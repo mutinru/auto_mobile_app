@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Витрина — вариант Б: два режима</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0B0D10;
+    --bg-1: #15181D;
+    --bg-2: #1E2228;
+    --bg-3: #262B33;
+    --line: #2A2F37;
+    --text-1: #F2F4F7;
+    --text-2: #8A93A1;
+    --text-3: #5B6371;
+
+    --st-none: #323843;
+    --st-progress: #F5A623;
+    --st-done: #5BC282;
+    --st-defect: #E94B3B;
+    --st-info: #4A9BE8;
+
+    /* mode accents */
+    --buy: #5BC282;      /* режим заказчика */
+    --buy-ink: #07150E;
+    --work: #F5A623;     /* режим исполнителя */
+    --work-ink: #1A1102;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 18% 25%, rgba(40, 50, 65, 0.4) 0%, transparent 45%),
+      radial-gradient(circle at 82% 75%, rgba(50, 40, 60, 0.3) 0%, transparent 45%),
+      #0B0D10;
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 48px 20px;
+  }
+
+  .intro { max-width: 800px; margin: 0 auto 40px; text-align: center; }
+  .intro-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .intro-title { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 10px 0 8px; }
+  .intro-sub { font-size: 14px; color: var(--text-2); max-width: 600px; margin: 0 auto; line-height: 1.55; }
+
+  .stage {
+    max-width: 1180px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 56px;
+    justify-content: center; align-items: flex-start;
+  }
+
+  .frame { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 340px; }
+  .frame-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  }
+  .frame-label.buy { color: var(--buy); }
+  .frame-label.work { color: var(--work); }
+  .frame-note { font-size: 11.5px; color: var(--text-3); text-align: center; line-height: 1.5; }
+  .frame-note b { color: var(--text-2); font-weight: 600; }
+
+  .group-band { flex-basis: 100%; text-align: center; padding: 8px 0 0; }
+  .group-band-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-2); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .group-band-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+  .phone {
+    width: 340px; background: #1a1c20; border-radius: 48px; padding: 7px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      0 50px 100px -20px rgba(0,0,0,0.7),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .screen {
+    background: var(--bg-0); border-radius: 41px; overflow: hidden;
+    height: 720px; display: flex; flex-direction: column; position: relative;
+  }
+
+  /* mode tint at the top of the screen */
+  .screen.mode-buy::before, .screen.mode-work::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 190px;
+    pointer-events: none; z-index: 0;
+  }
+  .screen.mode-buy::before { background: linear-gradient(180deg, rgba(91,194,130,0.10), transparent); }
+  .screen.mode-work::before { background: linear-gradient(180deg, rgba(245,166,35,0.11), transparent); }
+  .screen > * { position: relative; z-index: 1; }
+
+  .notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px; background: #000; border-radius: 999px; z-index: 5;
+  }
+
+  .status-bar {
+    padding: 16px 28px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-bar-icons { display: flex; gap: 6px; align-items: center; }
+  .signal { display: flex; align-items: flex-end; gap: 2px; }
+  .signal span { width: 3px; background: #fff; border-radius: 1px; }
+  .signal span:nth-child(1) { height: 4px; }
+  .signal span:nth-child(2) { height: 6px; }
+  .signal span:nth-child(3) { height: 8px; }
+  .signal span:nth-child(4) { height: 10px; opacity: 0.4; }
+  .battery {
+    width: 24px; height: 12px; border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 3px; position: relative; padding: 1px;
+  }
+  .battery::after {
+    content: ''; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px;
+    background: rgba(255,255,255,0.6); border-radius: 0 1px 1px 0;
+  }
+  .battery::before { content: ''; display: block; width: 80%; height: 100%; background: #fff; border-radius: 1px; }
+
+  /* ============== Mode switch ============== */
+  .mode-switch {
+    margin: 14px 22px 12px; display: flex; background: var(--bg-1);
+    border-radius: 13px; padding: 4px; gap: 3px;
+  }
+  .mode-btn {
+    flex: 1; padding: 10px 8px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-size: 13px; font-weight: 600; color: var(--text-2);
+    transition: all 0.18s; letter-spacing: -0.01em;
+  }
+  .mode-btn.on.buy { background: var(--buy); color: var(--buy-ink); }
+  .mode-btn.on.work { background: var(--work); color: var(--work-ink); }
+  .mode-btn .mb-count {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: rgba(0,0,0,0.18); padding: 1px 6px; border-radius: 999px;
+  }
+  .mode-btn:not(.on) .mb-count { background: var(--bg-3); color: var(--text-3); }
+
+  /* ============== Head ============== */
+  .head-row { padding: 2px 22px 12px; display: flex; align-items: center; gap: 12px; }
+  .head-text { flex: 1; min-width: 0; }
+  .head-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .head-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin: 3px 0 0; }
+  .head-action, .back {
+    width: 38px; height: 38px; background: var(--bg-1); border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-2); cursor: pointer; flex-shrink: 0;
+  }
+
+  .scroll-body { flex: 1; overflow-y: auto; padding: 2px 22px 16px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  .section { margin-top: 20px; }
+  .section:first-child { margin-top: 4px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 11px; }
+  .section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .section-extra { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============== Filters ============== */
+  .filter-row { display: flex; gap: 6px; padding: 0 22px 12px; overflow-x: auto; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .fchip {
+    background: var(--bg-1); border: 1px solid transparent; padding: 8px 13px;
+    border-radius: 999px; font-size: 12px; color: var(--text-2); white-space: nowrap;
+    font-family: inherit; cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fchip.on { background: var(--bg-3); color: var(--text-1); }
+  .fchip-count { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; opacity: 0.75; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--bg-1); border: 1px solid transparent; padding: 7px 12px;
+    border-radius: 999px; font-size: 12px; color: var(--text-2); font-family: inherit; cursor: pointer;
+  }
+  .chip.on { background: rgba(91,194,130,0.12); border-color: rgba(91,194,130,0.5); color: var(--st-done); }
+
+  /* ============== Pills ============== */
+  .pill {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 9px; border-radius: 999px; background: var(--bg-3); color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill.live { background: rgba(245,166,35,0.14); color: var(--st-progress); }
+  .pill.done { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .pill.free { background: rgba(245,166,35,0.16); color: var(--work); }
+
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ============== Cards ============== */
+  .card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px;
+    padding: 14px; margin-bottom: 9px; cursor: pointer; transition: background 0.15s;
+  }
+  .card:hover { background: var(--bg-2); }
+  .card.job { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.045); }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .card-time { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+  .card-car { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 5px; }
+  .card-meta { font-size: 12px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 3px 9px; }
+
+  .result {
+    margin-top: 11px; background: var(--bg-0); border-radius: 11px; padding: 11px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .result-ico {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(91,194,130,0.14); color: var(--st-done);
+  }
+  .result-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .result-txt b { color: var(--text-1); font-weight: 600; }
+  .result-save { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--st-done); font-weight: 600; }
+
+  .prog { margin-top: 11px; }
+  .prog-bar { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; }
+  .prog-fill { display: block; height: 100%; background: var(--st-progress); border-radius: 2px; }
+  .prog-cap { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; color: var(--text-3); }
+
+  .card-foot {
+    display: flex; align-items: center; gap: 9px; margin-top: 12px;
+    padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #5a6470, #2c3138);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-1); flex-shrink: 0;
+  }
+  .card-exec { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; }
+  .card-exec b { color: var(--text-1); font-weight: 600; }
+  .card-rating { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--st-progress); }
+
+  .pay {
+    margin-top: 11px; background: var(--bg-0); border-radius: 11px;
+    padding: 10px 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .pay-cap { font-size: 11px; color: var(--text-2); flex: 1; }
+  .pay-val {
+    font-family: 'JetBrains Mono', monospace; font-size: 15px;
+    font-weight: 600; color: var(--work); letter-spacing: -0.02em;
+  }
+  .take {
+    width: 100%; margin-top: 9px; background: var(--work); color: var(--work-ink);
+    border: none; border-radius: 11px; padding: 11px; font-size: 13px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .take.ghost { background: var(--bg-3); color: var(--text-1); font-weight: 600; }
+
+  /* ============== CTA ============== */
+  .cta-bar { padding: 12px 20px 22px; border-top: 1px solid var(--line); }
+  .cta {
+    width: 100%; border: none; border-radius: 14px; padding: 15px 18px;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
+  }
+  .cta.buy { background: var(--buy); color: var(--buy-ink); }
+  .cta.work { background: var(--work); color: var(--work-ink); }
+  .cta.flat { background: var(--bg-3); color: var(--text-1); }
+  .cta-ghost {
+    width: 100%; background: transparent; color: var(--text-2); border: none;
+    padding: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .cta-cap { text-align: center; font-size: 10.5px; color: var(--text-3); margin-top: 9px; line-height: 1.45; }
+
+  /* ============== Mode hint (cross-sell) ============== */
+  .hint {
+    display: flex; align-items: center; gap: 11px; padding: 12px 13px;
+    background: var(--bg-1); border: 1px dashed var(--line);
+    border-radius: 14px; margin-bottom: 11px; cursor: pointer;
+  }
+  .hint-ico {
+    width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(245,166,35,0.14); color: var(--work);
+  }
+  .hint-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .hint-txt b { color: var(--text-1); font-weight: 600; }
+  .hint-arrow { color: var(--work); flex-shrink: 0; display: flex; }
+
+  /* ============== First launch ============== */
+  .fl-body { flex: 1; padding: 0 24px; display: flex; flex-direction: column; justify-content: center; }
+  .fl-mark {
+    width: 54px; height: 54px; border-radius: 17px; background: var(--bg-1);
+    border: 1px solid var(--line); color: var(--text-1);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+  }
+  .fl-title { font-size: 24px; font-weight: 600; letter-spacing: -0.03em; margin: 0 0 8px; }
+  .fl-sub { font-size: 13.5px; color: var(--text-2); line-height: 1.5; margin: 0 0 24px; }
+
+  .fl-card {
+    width: 100%; text-align: left; background: var(--bg-1);
+    border: 1.5px solid var(--line); border-radius: 17px; padding: 16px;
+    cursor: pointer; font-family: inherit; color: var(--text-1);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+    transition: all 0.15s;
+  }
+  .fl-card.buy { border-color: rgba(91,194,130,0.45); background: rgba(91,194,130,0.06); }
+  .fl-card.work { border-color: rgba(245,166,35,0.45); background: rgba(245,166,35,0.06); }
+  .fl-ico {
+    width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fl-card.buy .fl-ico { background: var(--buy); color: var(--buy-ink); }
+  .fl-card.work .fl-ico { background: var(--work); color: var(--work-ink); }
+  .fl-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .fl-desc { font-size: 11.5px; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+  .fl-arrow { color: var(--text-3); flex-shrink: 0; display: flex; }
+  .fl-note { font-size: 11px; color: var(--text-3); text-align: center; margin-top: 14px; line-height: 1.5; }
+
+  /* ============== Map ============== */
+  .map-wrap { position: relative; flex: 1; min-height: 0; overflow: hidden; margin-bottom: -20px; }
+  .map-svg { width: 100%; height: 100%; display: block; }
+
+  .map-pin {
+    position: absolute; transform: translate(-50%, -100%);
+    background: var(--bg-3); border: 1px solid var(--line); color: var(--text-1);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+    padding: 5px 9px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer;
+  }
+  .map-pin.hot { background: var(--work); border-color: var(--work); color: var(--work-ink); font-weight: 700; }
+  .map-pin::after {
+    content: ''; position: absolute; bottom: -4px; left: 50%;
+    width: 7px; height: 7px; background: inherit;
+    border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .map-me {
+    position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--st-info); border: 2.5px solid var(--bg-0);
+    transform: translate(-50%, -50%); box-shadow: 0 0 0 8px rgba(74,155,232,0.16);
+  }
+
+  .sheet {
+    position: relative; background: var(--bg-0); border-top: 1px solid var(--line);
+    border-radius: 22px 22px 0 0; padding: 8px 22px 20px;
+    box-shadow: 0 -18px 40px rgba(0,0,0,0.55); z-index: 3;
+  }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bg-3); margin: 0 auto 12px; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .sheet-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .sheet-count { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  .view-toggle {
+    position: absolute; top: 12px; right: 14px; z-index: 4;
+    background: var(--bg-3); border: 1px solid var(--line);
+    border-radius: 11px; padding: 8px 12px; display: flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 600; color: var(--text-1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.5); cursor: pointer; font-family: inherit;
+  }
+
+  /* ============== Bid / respond ============== */
+  .pay-hero {
+    background: linear-gradient(120deg, rgba(245,166,35,0.16), rgba(245,166,35,0.04));
+    border: 1px solid rgba(245,166,35,0.35); border-radius: 16px;
+    padding: 16px; margin-top: 4px; text-align: center;
+  }
+  .pay-hero-cap {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--work); font-weight: 700;
+  }
+  .pay-hero-val {
+    font-size: 30px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.03em; margin: 7px 0 5px;
+  }
+  .pay-hero-sub { font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
+
+  .bid-row { display: flex; gap: 8px; }
+  .bid-opt {
+    flex: 1; background: var(--bg-1); border: 1.5px solid transparent;
+    border-radius: 13px; padding: 12px 10px; text-align: center;
+    cursor: pointer; font-family: inherit; color: var(--text-1);
+  }
+  .bid-opt.on { border-color: var(--work); background: rgba(245,166,35,0.08); }
+  .bid-val { font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; }
+  .bid-cap { font-size: 10px; color: var(--text-3); margin-top: 4px; line-height: 1.3; }
+
+  .field-box {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; font-size: 13px; color: var(--text-1);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .field-box.empty { color: var(--text-3); align-items: flex-start; min-height: 70px; line-height: 1.45; }
+
+  .req { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .req-ico { color: var(--text-3); flex-shrink: 0; margin-top: 1px; display: flex; }
+  .req-txt { font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
+  .req-txt b { color: var(--text-1); font-weight: 600; }
+
+  .gate {
+    background: var(--bg-1); border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 15px; padding: 14px; margin-bottom: 11px;
+  }
+  .gate-top { display: flex; align-items: center; gap: 11px; }
+  .gate-ico {
+    width: 34px; height: 34px; border-radius: 11px; flex-shrink: 0;
+    background: rgba(245,166,35,0.16); color: var(--work);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gate-txt { flex: 1; min-width: 0; }
+  .gate-title { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .gate-sub { font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.35; }
+  .gate-prog { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; margin-top: 11px; }
+  .gate-prog span { display: block; height: 100%; background: var(--work); border-radius: 2px; }
+  .gate-btn {
+    width: 100%; margin-top: 11px; background: var(--work); color: var(--work-ink);
+    border: none; border-radius: 11px; padding: 11px; font-size: 12.5px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+
+  .money-card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+    padding: 15px 16px; margin-top: 4px;
+  }
+  .money-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .money-val { font-size: 25px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; }
+  .money-cap { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .money-delta { font-size: 11.5px; color: var(--work); font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 760px) {
+    body { padding: 24px 12px; }
+    .stage { gap: 32px; }
+    .intro-title { font-size: 22px; }
+    .frame { width: 100%; max-width: 340px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="intro-eyebrow">вариант Б · два режима одного приложения</div>
+    <h1 class="intro-title">Переключатель режима вместо общего меню</h1>
+    <p class="intro-sub">Вместо того чтобы прятать работу во вкладку, приложение целиком переключается между «Ищу авто» и «Беру заказы» — как в такси у пассажира и водителя. Режим виден всегда: он в шапке и в цвете интерфейса. Зелёный — вы заказчик, оранжевый — вы исполнитель.</p>
+  </div>
+
+  <div class="stage">
+
+    <div class="group-band">
+      <div class="group-band-title">первый запуск</div>
+      <div class="group-band-sub">Один необязательный вопрос вместо скрытых путей — задаёт стартовый режим, а не роль</div>
+    </div>
+
+    <!-- ===================== 01 · First launch ===================== -->
+    <div class="frame">
+      <div class="frame-label">01 · что вас привело</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:40</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="fl-body">
+            <div class="fl-mark">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 17h2M19 17h2M3 17v-4l2-5h14l2 5v4M5 13h14"/>
+              </svg>
+            </div>
+
+            <h1 class="fl-title">Что вас сюда привело?</h1>
+            <p class="fl-sub">Настроим главный экран. Переключить режим можно в любой момент — регистрация пока не нужна.</p>
+
+            <button class="fl-card buy">
+              <span class="fl-ico">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span class="fl-name" style="display:block">Ищу автомобиль</span>
+                <span class="fl-desc" style="display:block">Нужен подборщик, который проверит машину</span>
+              </span>
+              <span class="fl-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </span>
+            </button>
+
+            <button class="fl-card work">
+              <span class="fl-ico">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-2-2.2-3-5-3s-5 .9-5 3 2 2.7 5 3.5 5 1.5 5 3.5-2.2 3-5 3-5-1-5-3"/></svg>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span class="fl-name" style="display:block">Беру заказы на подбор</span>
+                <span class="fl-desc" style="display:block">12 свободных заказов рядом · от 9 000 ₽</span>
+              </span>
+              <span class="fl-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </span>
+            </button>
+
+            <button class="cta-ghost">Просто посмотрю</button>
+
+            <p class="fl-note">Это не роль и не регистрация — только вид главного экрана. Аккаунт остаётся один на оба сценария.</p>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Экран показывается <b>один раз</b> и пропускается одним тапом. Исполнитель перестаёт быть невидимым уже на первой секунде.</div>
+    </div>
+
+    <div class="group-band">
+      <div class="group-band-title">одна витрина · два режима</div>
+      <div class="group-band-sub">Переключатель в шапке меняет ленту, фильтры, кнопку и цвет акцента</div>
+    </div>
+
+    <!-- ===================== 02 · Buy mode ===================== -->
+    <div class="frame">
+      <div class="frame-label buy">02 · режим «Ищу авто»</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen mode-buy">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="mode-switch">
+            <div class="mode-btn buy on">Ищу авто</div>
+            <div class="mode-btn work">Беру заказы <span class="mb-count">12</span></div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">без регистрации · Москва</div>
+              <h2 class="head-title">Как это работает</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip on">Все</button>
+            <button class="fchip">Выполнены <span class="fchip-count">1284</span></button>
+            <button class="fchip">В работе <span class="fchip-count">37</span></button>
+            <button class="fchip">Кроссоверы</button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="card">
+              <div class="card-top">
+                <span class="pill done">выполнен</span>
+                <span class="card-time">вчера</span>
+              </div>
+              <div class="card-car">Kia Sportage 2021</div>
+              <div class="card-meta"><span>Химки</span><span>·</span><span>бюджет 3 100 000 ₽</span></div>
+              <div class="result">
+                <div class="result-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="result-txt">Куплен за <b>2 815 000 ₽</b><br>Проверено 11 машин, 4 отклонены</div>
+                <div class="result-save">−285К</div>
+              </div>
+              <div class="card-foot">
+                <div class="avatar">ИВ</div>
+                <div class="card-exec"><b>Игорь В.</b> · 156 заказов</div>
+                <div class="card-rating">★ 5.0</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-top">
+                <span class="pill live"><span class="live-dot"></span>идёт осмотр</span>
+                <span class="card-time">15 мин назад</span>
+              </div>
+              <div class="card-car">Toyota Camry 2018–2020</div>
+              <div class="card-meta"><span>Москва</span><span>·</span><span>до 2 400 000 ₽</span></div>
+              <div class="prog">
+                <div class="prog-bar"><span class="prog-fill" style="width:72%"></span></div>
+                <div class="prog-cap"><span>Проверено 9 из 13 деталей</span><span>3-й вариант</span></div>
+              </div>
+              <div class="card-foot">
+                <div class="avatar">МК</div>
+                <div class="card-exec"><b>Максим К.</b> · 84 заказа</div>
+                <div class="card-rating">★ 4.9</div>
+              </div>
+            </div>
+
+            <div class="hint">
+              <span class="hint-ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-2-2.2-3-5-3s-5 .9-5 3 2 2.7 5 3.5 5 1.5 5 3.5-2.2 3-5 3-5-1-5-3"/></svg>
+              </span>
+              <span class="hint-txt">Сами разбираетесь в машинах? <b>Переключитесь в «Беру заказы»</b> — 12 свободных рядом</span>
+              <span class="hint-arrow">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+              </span>
+            </div>
+
+            <div class="card">
+              <div class="card-top">
+                <span class="pill done">выполнен</span>
+                <span class="card-time">3 дня назад</span>
+              </div>
+              <div class="card-car">Mazda CX-5 2020</div>
+              <div class="card-meta"><span>Санкт-Петербург</span><span>·</span><span>бюджет 2 600 000 ₽</span></div>
+              <div class="result">
+                <div class="result-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="result-txt">Куплен за <b>2 390 000 ₽</b><br>Скрытый ремонт найден у 2 машин</div>
+                <div class="result-save">−210К</div>
+              </div>
+              <div class="card-foot">
+                <div class="avatar">АЛ</div>
+                <div class="card-exec"><b>Артём Л.</b> · 73 заказа</div>
+                <div class="card-rating">★ 4.9</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta buy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Разместить заказ
+            </button>
+            <div class="cta-cap">312 подборщиков онлайн · средний отклик 8 минут</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Заказчик видит только доказательства и одну кнопку. Мостик в другой режим — <b>одна пунктирная подсказка</b> в ленте, не баннер.</div>
+    </div>
+
+    <!-- ===================== 03 · Work mode ===================== -->
+    <div class="frame">
+      <div class="frame-label work">03 · режим «Беру заказы»</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen mode-work">
+
+          <div class="status-bar">
+            <span>9:42</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="mode-switch">
+            <div class="mode-btn buy">Ищу авто</div>
+            <div class="mode-btn work on">Беру заказы <span class="mb-count">12</span></div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">свободные · Москва, 25 км</div>
+              <h2 class="head-title">Заказы рядом</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip on">Все · 12</button>
+            <button class="fchip">До 10 км</button>
+            <button class="fchip">От 12 000 ₽</button>
+            <button class="fchip">Мало откликов</button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="gate">
+              <div class="gate-top">
+                <div class="gate-ico">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                </div>
+                <div class="gate-txt">
+                  <div class="gate-title">Смотреть можно, откликаться — нет</div>
+                  <div class="gate-sub">Нужна верификация: вход, опыт, тест на дефекты · ~20 минут</div>
+                </div>
+              </div>
+              <div class="gate-prog"><span style="width:0%"></span></div>
+              <button class="gate-btn">Стать исполнителем</button>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Химки · 8 км</span>
+              </div>
+              <div class="card-car">Kia Sportage 2021+</div>
+              <div class="card-meta"><span>до 3 100 000 ₽</span><span>·</span><span>2 отклика</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">15 000 ₽</span>
+              </div>
+              <button class="take">
+                Откликнуться
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Москва · 3 км</span>
+              </div>
+              <div class="card-car">Skoda Octavia 2020+</div>
+              <div class="card-meta"><span>до 2 200 000 ₽</span><span>·</span><span>1 отклик</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">10 000 ₽</span>
+              </div>
+              <button class="take ghost">Откликнуться</button>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Мытищи · 14 км</span>
+              </div>
+              <div class="card-car">Toyota RAV4 2019+</div>
+              <div class="card-meta"><span>до 2 700 000 ₽</span><span>·</span><span>5 откликов</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">12 000 ₽</span>
+              </div>
+              <button class="take ghost">Откликнуться</button>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta flat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Показать на карте
+            </button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Тот же экран, но всё другое: свободные заказы вместо результатов, гонорары вместо экономии, оранжевый акцент. Кнопка внизу ведёт <b>на карту</b>, а не к размещению заказа.</div>
+    </div>
+
+    <!-- ===================== 04 · Map ===================== -->
+    <div class="frame">
+      <div class="frame-label work">04 · карта заказов</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:44</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="mode-switch">
+            <div class="mode-btn buy">Ищу авто</div>
+            <div class="mode-btn work on">Беру заказы <span class="mb-count">12</span></div>
+          </div>
+
+          <div class="map-wrap">
+            <button class="view-toggle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              Списком
+            </button>
+
+            <svg class="map-svg" viewBox="0 0 340 340" preserveAspectRatio="xMidYMid slice">
+              <rect width="340" height="340" fill="#0F1216"/>
+              <path d="M-10 240 L70 220 L110 260 L60 340 L-10 340 Z" fill="#131B18"/>
+              <path d="M250 20 L340 5 L340 70 L280 80 Z" fill="#131B18"/>
+              <path d="M-10 130 C 60 110, 90 170, 160 160 C 230 150, 260 200, 350 185 L350 215 C 260 230, 230 182, 162 192 C 92 202, 62 142, -10 162 Z" fill="#12202B"/>
+              <g fill="#161A20">
+                <rect x="18" y="20" width="72" height="54" rx="4"/>
+                <rect x="104" y="14" width="58" height="60" rx="4"/>
+                <rect x="176" y="30" width="52" height="44" rx="4"/>
+                <rect x="20" y="92" width="46" height="38" rx="4"/>
+                <rect x="132" y="86" width="66" height="40" rx="4"/>
+                <rect x="216" y="96" width="74" height="52" rx="4"/>
+                <rect x="26" y="188" width="52" height="30" rx="4"/>
+                <rect x="128" y="232" width="70" height="48" rx="4"/>
+                <rect x="212" y="248" width="62" height="44" rx="4"/>
+                <rect x="288" y="202" width="46" height="60" rx="4"/>
+              </g>
+              <g stroke="#1D232B" fill="none">
+                <path d="M0 82 H340" stroke-width="7"/>
+                <path d="M0 225 H340" stroke-width="7"/>
+                <path d="M98 0 V340" stroke-width="7"/>
+                <path d="M206 0 V340" stroke-width="7"/>
+                <path d="M0 155 H340" stroke-width="4"/>
+                <path d="M282 0 V340" stroke-width="4"/>
+                <path d="M20 0 L340 290" stroke-width="5"/>
+              </g>
+              <circle cx="170" cy="170" r="125" fill="none" stroke="#232A33" stroke-width="5"/>
+            </svg>
+
+            <span class="map-me" style="left:52%;top:52%"></span>
+            <button class="map-pin hot" style="left:38%;top:30%">15 000 ₽</button>
+            <button class="map-pin" style="left:73%;top:24%">12 000 ₽</button>
+            <button class="map-pin" style="left:22%;top:58%">9 000 ₽</button>
+            <button class="map-pin" style="left:67%;top:62%">18 000 ₽</button>
+            <button class="map-pin" style="left:46%;top:78%">3 заказа</button>
+          </div>
+
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-head">
+              <span class="sheet-title">Kia Sportage 2021+</span>
+              <span class="sheet-count">Химки · 8 км</span>
+            </div>
+            <div class="card job" style="margin-bottom:0;cursor:default">
+              <div class="card-meta" style="margin-bottom:2px"><span>до 3 100 000 ₽</span><span>·</span><span>2 отклика</span><span>·</span><span>18 мин назад</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">15 000 ₽</span>
+              </div>
+              <button class="take">Смотреть заказ</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Карта — <b>вид того же списка</b>, а не отдельный раздел. Переключатель режима остаётся сверху, чтобы не потеряться.</div>
+    </div>
+
+    <!-- ===================== 05 · Respond with bid ===================== -->
+    <div class="frame">
+      <div class="frame-label work">05 · отклик со своими условиями</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen mode-work">
+
+          <div class="status-bar">
+            <span>9:47</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row" style="padding-top:14px">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="head-text">
+              <div class="head-eyebrow">заказ #2038 · свободен</div>
+              <h2 class="head-title">Ваш отклик</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="pay-hero">
+              <div class="pay-hero-cap">заказчик готов заплатить</div>
+              <div class="pay-hero-val">15 000 ₽</div>
+              <div class="pay-hero-sub">Kia Sportage 2021+ · Химки · до 3 100 000 ₽</div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Ваша цена</div>
+                <div class="section-extra">2 конкурента</div>
+              </div>
+              <div class="bid-row">
+                <button class="bid-opt on">
+                  <div class="bid-val">15 000 ₽</div>
+                  <div class="bid-cap">как в заказе</div>
+                </button>
+                <button class="bid-opt">
+                  <div class="bid-val">13 000 ₽</div>
+                  <div class="bid-cap">дешевле · выше шанс</div>
+                </button>
+                <button class="bid-opt">
+                  <div class="bid-val">Своя</div>
+                  <div class="bid-cap">указать сумму</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Срок подбора</div>
+              </div>
+              <div class="field-box">
+                <span>7–10 дней</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Сообщение заказчику</div>
+                <div class="section-extra">повышает шанс</div>
+              </div>
+              <div class="field-box empty">Расскажите, почему именно вы: опыт с этой маркой, сколько таких машин смотрели…</div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Что увидит заказчик</div>
+              </div>
+              <div class="req">
+                <span class="req-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+                </span>
+                <span class="req-txt"><b>Андрей С.</b> · верифицирован, уровень «Новичок»</span>
+              </div>
+              <div class="req">
+                <span class="req-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-3-5.3 3 1.1-6L3.4 9.4l6-.8z"/></svg>
+                </span>
+                <span class="req-txt">3 заказа · ★ 4.8 · тест на дефекты <b>14 из 15</b></span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta work">Отправить отклик</button>
+            <div class="cta-cap">Заказчик выберет исполнителя в течение суток · комиссия сервиса 10%</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Отклик — не просто кнопка, а <b>мини-предложение</b>: цена, срок, сопроводительное сообщение. Так исполнитель конкурирует не только скоростью.</div>
+    </div>
+
+    <!-- ===================== 06 · Work mode, verified ===================== -->
+    <div class="frame">
+      <div class="frame-label work">06 · режим работы · после верификации</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen mode-work">
+
+          <div class="status-bar">
+            <span>10:14</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="mode-switch">
+            <div class="mode-btn buy">Ищу авто</div>
+            <div class="mode-btn work on">Беру заказы <span class="mb-count">2</span></div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">Андрей С. · верифицирован</div>
+              <h2 class="head-title">Мой день</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip on">Мой день</button>
+            <button class="fchip">Свободные <span class="fchip-count">12</span></button>
+            <button class="fchip">Отклики <span class="fchip-count">1</span></button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="money-card">
+              <div class="money-row">
+                <div>
+                  <div class="money-cap">Заработано в августе</div>
+                  <div class="money-val">27 000 ₽</div>
+                </div>
+                <div class="money-delta">+15 000 в работе</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Сегодня</div>
+                <div class="section-extra">2 задачи</div>
+              </div>
+
+              <div class="card job">
+                <div class="card-top">
+                  <span class="pill live"><span class="live-dot"></span>осмотр начат</span>
+                  <span class="card-time">Балашиха · 21 км</span>
+                </div>
+                <div class="card-car">Toyota Camry 2019</div>
+                <div class="card-meta"><span>осталось 4 детали из 13</span></div>
+                <button class="take">Продолжить осмотр</button>
+              </div>
+
+              <div class="card">
+                <div class="card-top">
+                  <span class="pill">осмотр в 16:00</span>
+                  <span class="card-time">Люберцы · 17 км</span>
+                </div>
+                <div class="card-car">Volkswagen Tiguan 2020</div>
+                <div class="card-meta"><span>продавец подтвердил встречу</span></div>
+                <button class="take ghost">Построить маршрут</button>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Ждёт ответа заказчика</div>
+              </div>
+              <div class="card">
+                <div class="card-top">
+                  <span class="pill">отклик отправлен</span>
+                  <span class="card-time">2 часа назад</span>
+                </div>
+                <div class="card-car">Skoda Octavia 2020+</div>
+                <div class="card-meta"><span>ваша цена 10 000 ₽</span><span>·</span><span>1 конкурент</span></div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta flat">Смотреть свободные заказы · 12</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">В рабочем режиме главный экран — <b>не лента, а сегодняшние задачи</b>. Свободные заказы уходят на второй план, когда работа уже есть.</div>
+    </div>
+
+  </div>
+
+  <script>
+    document.querySelectorAll('.fchip, .bid-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.fchip, .bid-opt').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+      });
+    });
+  </script>
+</body>
+</html>

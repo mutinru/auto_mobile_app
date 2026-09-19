@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подбор и осмотр</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0B0D10;
+    --bg-1: #15181D;
+    --bg-2: #1E2228;
+    --bg-3: #262B33;
+    --line: #2A2F37;
+    --text-1: #F2F4F7;
+    --text-2: #8A93A1;
+    --text-3: #5B6371;
+
+    --st-none: #323843;
+    --st-progress: #F5A623;
+    --st-done: #5BC282;
+    --st-defect: #E94B3B;
+    --st-info: #4A9BE8;
+
+    --buy: #5BC282;
+    --buy-ink: #07150E;
+    --work: #F5A623;
+    --work-ink: #1A1102;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 18% 25%, rgba(40, 50, 65, 0.4) 0%, transparent 45%),
+      radial-gradient(circle at 82% 75%, rgba(50, 40, 60, 0.3) 0%, transparent 45%),
+      #0B0D10;
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 48px 20px;
+  }
+
+  .intro { max-width: 800px; margin: 0 auto 40px; text-align: center; }
+  .intro-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .intro-title { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 10px 0 8px; }
+  .intro-sub { font-size: 14px; color: var(--text-2); max-width: 640px; margin: 0 auto; line-height: 1.55; }
+
+  .stage {
+    max-width: 1180px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 56px;
+    justify-content: center; align-items: flex-start;
+  }
+
+  .frame { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 340px; }
+  .frame-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  }
+  .frame-label.work { color: var(--work); }
+  .frame-note { font-size: 11.5px; color: var(--text-3); text-align: center; line-height: 1.5; }
+  .frame-note b { color: var(--text-2); font-weight: 600; }
+
+  .group-band { flex-basis: 100%; text-align: center; padding: 8px 0 0; }
+  .group-band-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-2); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .group-band-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+  .phone {
+    width: 340px; background: #1a1c20; border-radius: 48px; padding: 7px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      0 50px 100px -20px rgba(0,0,0,0.7),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  .screen {
+    background: var(--bg-0); border-radius: 41px; overflow: hidden;
+    height: 720px; display: flex; flex-direction: column; position: relative;
+  }
+  .screen.mode-work::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 190px;
+    pointer-events: none; z-index: 0;
+    background: linear-gradient(180deg, rgba(245,166,35,0.11), transparent);
+  }
+  .screen > * { position: relative; z-index: 1; }
+  /* кадр со списком целиком — показываем то, что в телефоне было бы ниже скролла */
+  .screen.tall { height: 1080px; }
+
+  .notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px; background: #000; border-radius: 999px; z-index: 5;
+  }
+  .status-bar {
+    padding: 16px 28px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-bar-icons { display: flex; gap: 6px; align-items: center; }
+  .signal { display: flex; align-items: flex-end; gap: 2px; }
+  .signal span { width: 3px; background: #fff; border-radius: 1px; }
+  .signal span:nth-child(1) { height: 4px; }
+  .signal span:nth-child(2) { height: 6px; }
+  .signal span:nth-child(3) { height: 8px; }
+  .signal span:nth-child(4) { height: 10px; opacity: 0.4; }
+  .battery {
+    width: 24px; height: 12px; border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 3px; position: relative; padding: 1px;
+  }
+  .battery::after {
+    content: ''; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px;
+    background: rgba(255,255,255,0.6); border-radius: 0 1px 1px 0;
+  }
+  .battery::before { content: ''; display: block; width: 80%; height: 100%; background: #fff; border-radius: 1px; }
+
+  /* ============== Head ============== */
+  .detail-head { padding: 14px 22px 12px; display: flex; align-items: center; gap: 12px; }
+  .detail-head-text { flex: 1; min-width: 0; }
+  .detail-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .detail-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin: 3px 0 0; }
+  .head-action, .back {
+    width: 38px; height: 38px; background: var(--bg-1); border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-2); cursor: pointer; flex-shrink: 0;
+  }
+
+  .toggle { margin: 0 22px 12px; display: flex; background: var(--bg-1); border-radius: 10px; padding: 3px; }
+  .toggle-btn {
+    flex: 1; padding: 8px; text-align: center; font-size: 12.5px; font-weight: 500;
+    color: var(--text-2); border-radius: 7px;
+  }
+  .toggle-btn.active { background: var(--bg-3); color: var(--text-1); }
+
+  .scroll-body { flex: 1; overflow-y: auto; padding: 2px 22px 16px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  .section { margin-top: 18px; }
+  .section:first-child { margin-top: 4px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .section-extra { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============== Pills ============== */
+  .pill {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 9px; border-radius: 999px; background: var(--bg-3); color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  }
+  .pill.search  { background: rgba(245,166,35,0.14); color: var(--st-progress); }
+  .pill.check   { background: rgba(74,155,232,0.14); color: var(--st-info); }
+  .pill.done    { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .pill.planned { background: var(--bg-3); color: var(--text-1); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ============== Order card ============== */
+  .order-card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px;
+    padding: 14px; margin-bottom: 9px; cursor: pointer;
+  }
+  .order-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+
+  /* вид заказа — справа, на месте номера */
+  .kind {
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3);
+  }
+  .kind b { color: var(--text-2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .order-car { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 5px; }
+  .order-car .km { color: var(--text-2); font-weight: 500; }
+  .order-meta { font-size: 12px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+
+  .order-foot {
+    display: flex; align-items: center; gap: 9px; margin-top: 12px;
+    padding-top: 12px; border-top: 1px solid var(--line);
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #5a6470, #2c3138);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-1); flex-shrink: 0;
+  }
+  .avatar.empty { background: var(--bg-3); color: var(--text-3); }
+  .avatar.lg { width: 36px; height: 36px; font-size: 12px; }
+  .order-exec { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; }
+  .order-exec b { color: var(--text-1); font-weight: 600; }
+  .order-price { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text-1); white-space: nowrap; }
+
+  /* когда и где — главное у осмотра */
+  .when {
+    margin-top: 10px; background: var(--bg-0); border-radius: 11px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .when-ico {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(74,155,232,0.14); color: var(--st-info);
+  }
+  .when.soon .when-ico { background: rgba(245,166,35,0.16); color: var(--st-progress); }
+  .when-txt { flex: 1; min-width: 0; }
+  .when-main { font-size: 12.5px; font-weight: 600; }
+  .when-sub { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+
+  .prog { margin-top: 11px; }
+  .prog-bar { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; }
+  .prog-fill { display: block; height: 100%; background: var(--st-progress); border-radius: 2px; }
+  .prog-cap { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; color: var(--text-3); }
+
+  /* осмотр, который подборщик передал другому исполнителю */
+  .sub {
+    margin-top: 10px; border: 1px dashed var(--line); border-radius: 11px;
+    padding: 9px 11px; display: flex; align-items: center; gap: 9px;
+  }
+  .sub-ico { color: var(--text-3); display: flex; flex-shrink: 0; }
+  .sub-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .sub-txt b { color: var(--text-1); font-weight: 600; }
+
+  /* итог осмотра */
+  .verdict {
+    margin-top: 10px; background: var(--bg-0); border-radius: 11px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .verdict-ico {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .verdict.bad .verdict-ico { background: rgba(233,75,59,0.14); color: var(--st-defect); }
+  .verdict.good .verdict-ico { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .verdict-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .verdict-txt b { color: var(--text-1); font-weight: 600; }
+  .verdict.bad .verdict-txt b { color: var(--st-defect); }
+  .verdict.good .verdict-txt b { color: var(--st-done); }
+  .verdict-link { font-size: 11.5px; color: var(--text-1); font-weight: 600; display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+
+  .again {
+    margin-top: 9px; width: 100%; background: transparent; border: 1px solid var(--line);
+    border-radius: 11px; padding: 9px; font-family: inherit; font-size: 12px;
+    color: var(--text-2); display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  }
+
+  /* ============== CTA ============== */
+  .detail-cta { padding: 12px 20px 22px; border-top: 1px solid var(--line); }
+  .cta-primary {
+    width: 100%; border: none; border-radius: 14px; padding: 15px 18px;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
+    background: var(--buy); color: var(--buy-ink);
+  }
+  .cta-primary.work { background: var(--work); color: var(--work-ink); }
+  .cta-cap { text-align: center; font-size: 10.5px; color: var(--text-3); margin-top: 9px; line-height: 1.45; }
+
+  /* ============== Sheet ============== */
+  .screen > .dim { position: absolute; inset: 0; background: rgba(4,5,7,0.72); z-index: 3; }
+  .screen > .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+    background: var(--bg-0); border-top: 1px solid var(--line);
+    border-radius: 22px 22px 0 0; padding: 8px 20px 24px;
+    box-shadow: 0 -18px 40px rgba(0,0,0,0.55);
+  }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bg-3); margin: 0 auto 14px; }
+  .sheet-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; margin: 0 2px 4px; }
+  .sheet-sub { font-size: 12px; color: var(--text-2); margin: 0 2px 14px; }
+
+  .kind-opt {
+    width: 100%; text-align: left; background: var(--bg-1);
+    border: 1.5px solid var(--line); border-radius: 17px; padding: 14px;
+    font-family: inherit; color: var(--text-1); cursor: pointer;
+    margin-bottom: 9px; display: flex; gap: 13px; align-items: flex-start;
+  }
+  .kind-opt-ico {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .kind-opt.pick .kind-opt-ico { background: var(--buy); color: var(--buy-ink); }
+  .kind-opt.insp .kind-opt-ico { background: var(--st-info); color: #06121F; }
+  .kind-opt-name { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .kind-opt-desc { font-size: 11.5px; color: var(--text-2); margin-top: 3px; line-height: 1.42; }
+  .kind-opt-facts {
+    display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-2);
+  }
+  .kind-opt-facts span { background: var(--bg-0); border-radius: 6px; padding: 3px 7px; }
+
+  /* ============== Form ============== */
+  .field { margin-bottom: 10px; }
+  .field-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600; margin-bottom: 6px;
+  }
+  .field-box {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 13px; font-size: 13.5px; color: var(--text-1);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .field-box.empty { color: var(--text-3); }
+  .field-box.locked { background: transparent; color: var(--text-2); }
+  .field-box .unit { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3); }
+  .field-box .ico { color: var(--text-3); display: flex; flex-shrink: 0; }
+  .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field-mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+  .field-hint { font-size: 11px; color: var(--text-3); margin-top: 6px; line-height: 1.45; }
+  .or {
+    display: flex; align-items: center; gap: 10px; margin: 2px 0 10px;
+    font-size: 10.5px; color: var(--text-3);
+  }
+  .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--bg-1); border: 1px solid transparent; padding: 7px 12px;
+    border-radius: 999px; font-size: 12px; color: var(--text-2); font-family: inherit; cursor: pointer;
+  }
+  .chip.on { background: rgba(91,194,130,0.12); border-color: rgba(91,194,130,0.5); color: var(--st-done); }
+  .mode-work .chip.on { background: rgba(245,166,35,0.12); border-color: rgba(245,166,35,0.5); color: var(--work); }
+
+  .price-box {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 14px;
+    padding: 13px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .price-val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+  .price-steps { display: flex; gap: 6px; }
+  .price-step {
+    width: 32px; height: 32px; border-radius: 10px; background: var(--bg-3);
+    display: flex; align-items: center; justify-content: center; color: var(--text-1);
+  }
+
+  /* ============== Detail: осмотр ============== */
+  .summary { background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px; padding: 13px 14px; }
+  .summary-row { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--text-2); line-height: 1.4; }
+  .summary-row + .summary-row { margin-top: 9px; }
+  .summary-row .ico { color: var(--text-3); display: flex; flex-shrink: 0; margin-top: 1px; }
+  .summary-row b { color: var(--text-1); font-weight: 600; }
+  .summary-price {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .summary-price-cap { font-size: 11.5px; color: var(--text-2); }
+  .summary-price-val { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600; }
+
+  .resp {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px;
+    padding: 12px 13px; margin-bottom: 8px;
+  }
+  .resp-top { display: flex; align-items: center; gap: 10px; }
+  .resp-who { flex: 1; min-width: 0; }
+  .resp-name { font-size: 13.5px; font-weight: 600; }
+  .resp-stats { font-size: 11px; color: var(--text-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .resp-stats .star { color: var(--st-progress); }
+  .resp-price { text-align: right; }
+  .resp-price-val { font-family: 'JetBrains Mono', monospace; font-size: 14.5px; font-weight: 600; }
+  .resp-price-delta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; margin-top: 2px; }
+  .resp-price-delta.lower { color: var(--st-done); }
+  .resp-price-delta.higher { color: var(--st-progress); }
+  .resp-price-delta.same { color: var(--text-3); }
+  .resp-note { font-size: 11.5px; color: var(--text-2); margin-top: 9px; line-height: 1.4; }
+  .resp-actions { display: flex; gap: 7px; margin-top: 10px; }
+  .resp-btn {
+    flex: 1; border: none; border-radius: 10px; padding: 9px; font-family: inherit;
+    font-size: 12.5px; font-weight: 600; cursor: pointer; background: var(--bg-3); color: var(--text-1);
+  }
+  .resp-btn.primary { background: var(--buy); color: var(--buy-ink); }
+
+  /* ============== Подборщик ============== */
+  .link-card {
+    background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.35);
+    border-radius: 15px; padding: 12px 13px; display: flex; gap: 11px; align-items: flex-start;
+  }
+  .link-ico {
+    width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(245,166,35,0.16); color: var(--work);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .link-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.42; }
+  .link-txt b { color: var(--text-1); font-weight: 600; }
+  .link-title { font-size: 13px; font-weight: 600; color: var(--text-1); margin-bottom: 2px; }
+
+  @media (max-width: 760px) {
+    body { padding: 24px 12px; }
+    .stage { gap: 32px; }
+    .intro-title { font-size: 22px; }
+    .frame { width: 100%; max-width: 340px; }
+    .phone { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="intro-eyebrow">два вида заказа · подбор и осмотр</div>
+    <h1 class="intro-title">Один список заказов, два вида работы</h1>
+    <p class="intro-sub">Подбор — долгий поиск по пожеланиям. Осмотр — разовый выезд к известной машине по известному адресу с отчётом. Заказчик держит оба в одном списке «Мои заказы»; вид заказа определяет, что показывает карточка, какие у него статусы и какая форма его создаёт.</p>
+  </div>
+
+  <div class="stage">
+
+    <div class="group-band">
+      <div class="group-band-title">заказчик</div>
+      <div class="group-band-sub">Список, выбор вида, форма осмотра, выбор исполнителя, итог</div>
+    </div>
+
+    <!-- ===================== 01 · Мои заказы · активные ===================== -->
+    <div class="frame">
+      <div class="frame-label">01 · мои заказы · активные</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen tall">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">Андрей С.</div>
+              <h2 class="detail-title">Мои заказы</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <div class="toggle-btn active">Активные</div>
+            <div class="toggle-btn">Завершённые</div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Осмотры</div>
+                <div class="section-extra">по дате</div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-top">
+                  <span class="pill planned">назначен</span>
+                  <span class="kind">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+                    <b>осмотр</b> #2051
+                  </span>
+                </div>
+                <div class="order-car">Kia Rio 2019 <span class="km">· 64 000 км</span></div>
+                <div class="when soon">
+                  <div class="when-ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                  </div>
+                  <div class="when-txt">
+                    <div class="when-main">Завтра, 16:00</div>
+                    <div class="when-sub">Химки, ул. Ленина, 5</div>
+                  </div>
+                </div>
+                <div class="order-foot">
+                  <div class="avatar">МК</div>
+                  <div class="order-exec"><b>Максим К.</b> · приедет</div>
+                  <div class="order-price">4 000 ₽</div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-top">
+                  <span class="pill">ждёт исполнителя</span>
+                  <span class="kind">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+                    <b>осмотр</b> #2053
+                  </span>
+                </div>
+                <div class="order-car">BMW X3 2017 <span class="km">· 112 000 км</span></div>
+                <div class="when">
+                  <div class="when-ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                  </div>
+                  <div class="when-txt">
+                    <div class="when-main">Сб, 19 сентября · днём</div>
+                    <div class="when-sub">Москва, Варшавское ш., 170</div>
+                  </div>
+                </div>
+                <div class="order-foot">
+                  <div class="avatar empty">?</div>
+                  <div class="order-exec">3 отклика</div>
+                  <div class="order-price">от 3 000 ₽</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Подборы</div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-top">
+                  <span class="pill search">идёт подбор</span>
+                  <span class="kind">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <b>подбор</b> #2038
+                  </span>
+                </div>
+                <div class="order-car">Kia Sportage 2021+</div>
+                <div class="order-meta"><span>Москва и область</span><span>·</span><span>до 3 100 000 ₽</span></div>
+                <div class="sub">
+                  <span class="sub-ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                  </span>
+                  <span class="sub-txt"><b>Осмотр в Казани</b> · сегодня, 18:00<br>Сергей П. по приглашению Игоря</span>
+                </div>
+                <div class="order-foot">
+                  <div class="avatar">ИВ</div>
+                  <div class="order-exec"><b>Игорь В.</b> · 7 вариантов</div>
+                  <div class="order-price">15 000 ₽</div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-top">
+                  <span class="pill check"><span class="live-dot"></span>на осмотре</span>
+                  <span class="kind">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                    <b>подбор</b> #2041
+                  </span>
+                </div>
+                <div class="order-car">Toyota Camry 2018+</div>
+                <div class="order-meta"><span>Москва</span><span>·</span><span>до 2 400 000 ₽</span><span>·</span><span>автомат</span></div>
+                <div class="prog">
+                  <div class="prog-bar"><span class="prog-fill" style="width:69%"></span></div>
+                  <div class="prog-cap"><span>Проверено 9 из 13 деталей</span><span>3-й вариант</span></div>
+                </div>
+                <div class="order-foot">
+                  <div class="avatar">АЛ</div>
+                  <div class="order-exec"><b>Артём Л.</b></div>
+                  <div class="order-price">12 000 ₽</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="detail-cta">
+            <button class="cta-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Новый заказ
+            </button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Активные осмотры — <b>первым блоком, по ближайшей дате</b>: их нельзя пропустить. У осмотра вместо бюджета — <b>когда и где</b>. Осмотр, который подборщик передал другому, виден внутри подбора пунктирной строкой.</div>
+    </div>
+
+    <!-- ===================== 02 · Выбор вида ===================== -->
+    <div class="frame">
+      <div class="frame-label">02 · новый заказ · выбор вида</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:42</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">Андрей С.</div>
+              <h2 class="detail-title">Мои заказы</h2>
+            </div>
+          </div>
+          <div class="toggle">
+            <div class="toggle-btn active">Активные</div>
+            <div class="toggle-btn">Завершённые</div>
+          </div>
+          <div class="scroll-body">
+            <div class="order-card">
+              <div class="order-top"><span class="pill planned">назначен</span><span class="kind"><b>осмотр</b> #2051</span></div>
+              <div class="order-car">Kia Rio 2019 <span class="km">· 64 000 км</span></div>
+            </div>
+            <div class="order-card">
+              <div class="order-top"><span class="pill">ждёт исполнителя</span><span class="kind"><b>осмотр</b> #2053</span></div>
+              <div class="order-car">BMW X3 2017 <span class="km">· 112 000 км</span></div>
+            </div>
+          </div>
+
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h3 class="sheet-title">Что нужно сделать?</h3>
+            <p class="sheet-sub">От этого зависит форма заказа и кто откликнется</p>
+
+            <button class="kind-opt pick">
+              <span class="kind-opt-ico">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span class="kind-opt-name" style="display:block">Подобрать автомобиль</span>
+                <span class="kind-opt-desc" style="display:block">Знаю, чего хочу, но машины ещё нет. Подборщик найдёт варианты и проверит лучшие.</span>
+                <span class="kind-opt-facts"><span>недели</span><span>несколько машин</span></span>
+              </span>
+            </button>
+
+            <button class="kind-opt insp">
+              <span class="kind-opt-ico">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span class="kind-opt-name" style="display:block">Осмотреть конкретную машину</span>
+                <span class="kind-opt-desc" style="display:block">Нашёл объявление. Специалист приедет по адресу, проверит кузов по 13 деталям и пришлёт отчёт.</span>
+                <span class="kind-opt-facts"><span>1–2 дня</span><span>одна машина</span><span>отчёт</span></span>
+              </span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">«Новый заказ» и «+» в шапке открывают один и тот же лист. Подбор ведёт в <b>текущий NewOrderScreen</b>, осмотр — в новую форму.</div>
+    </div>
+
+    <!-- ===================== 03 · Форма осмотра ===================== -->
+    <div class="frame">
+      <div class="frame-label">03 · новый осмотр</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:43</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">осмотр</div>
+              <h2 class="detail-title">Что осмотреть</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="section">
+              <div class="field">
+                <div class="field-label">Ссылка на объявление</div>
+                <div class="field-box">
+                  <span class="field-mono" style="font-size:12.5px">auto.ru/cars/used/sale/bmw/x3/…</span>
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg></span>
+                </div>
+              </div>
+              <div class="or">или</div>
+              <div class="field">
+                <div class="field-label">VIN</div>
+                <div class="field-box empty">
+                  <span>17 символов</span>
+                  <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Автомобиль</div></div>
+              <div class="field">
+                <div class="field-label">Марка и модель</div>
+                <div class="field-box"><span>BMW X3</span></div>
+              </div>
+              <div class="field-pair">
+                <div class="field">
+                  <div class="field-label">Год</div>
+                  <div class="field-box"><span class="field-mono">2017</span></div>
+                </div>
+                <div class="field">
+                  <div class="field-label">Пробег</div>
+                  <div class="field-box"><span class="field-mono">112 000</span><span class="unit">км</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Где и когда</div></div>
+              <div class="field">
+                <div class="field-box">
+                  <span>Москва, Варшавское ш., 170</span>
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                </div>
+              </div>
+              <div class="chips" style="margin-bottom:8px">
+                <button class="chip">Сегодня</button>
+                <button class="chip">Завтра</button>
+                <button class="chip on">Сб, 19 сен</button>
+                <button class="chip">Другая дата</button>
+              </div>
+              <div class="chips">
+                <button class="chip">Утром</button>
+                <button class="chip on">Днём</button>
+                <button class="chip">Вечером</button>
+                <button class="chip">Точное время</button>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Продавец</div>
+                <div class="section-extra">увидит только выбранный</div>
+              </div>
+              <div class="field-box empty"><span>+7 · телефон продавца</span></div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Ваша цена</div></div>
+              <div class="price-box">
+                <span class="price-val">3 500 ₽</span>
+                <span class="price-steps">
+                  <span class="price-step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></span>
+                  <span class="price-step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                </span>
+              </div>
+              <div class="field-hint">Исполнители видят вашу цену и могут предложить свою. Выбираете вы.</div>
+            </div>
+
+          </div>
+
+          <div class="detail-cta">
+            <button class="cta-primary">Разместить осмотр</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Ссылка или VIN заполняют марку, год и пробег. Вместо бюджета и городов поиска — <b>адрес, дата и цена заказчика</b>. Телефон продавца открывается только выбранному исполнителю.</div>
+    </div>
+
+    <!-- ===================== 04 · Осмотр · отклики ===================== -->
+    <div class="frame">
+      <div class="frame-label">04 · осмотр · отклики</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>11:05</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">осмотр #2053</div>
+              <h2 class="detail-title">BMW X3 2017</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="section">
+              <div class="summary">
+                <div class="summary-row">
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+                  <span><b>Сб, 19 сентября · днём</b></span>
+                </div>
+                <div class="summary-row">
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+                  <span>Москва, Варшавское ш., 170</span>
+                </div>
+                <div class="summary-row">
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg></span>
+                  <span>112 000 км · объявление на auto.ru</span>
+                </div>
+                <div class="summary-price">
+                  <span class="summary-price-cap">Ваша цена</span>
+                  <span class="summary-price-val">3 500 ₽</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Отклики</div>
+                <div class="section-extra">3</div>
+              </div>
+
+              <div class="resp">
+                <div class="resp-top">
+                  <div class="avatar lg">СП</div>
+                  <div class="resp-who">
+                    <div class="resp-name">Сергей П.</div>
+                    <div class="resp-stats"><span class="star">★ 4.9</span> · 212 осмотров</div>
+                  </div>
+                  <div class="resp-price">
+                    <div class="resp-price-val">3 500 ₽</div>
+                    <div class="resp-price-delta same">ваша цена</div>
+                  </div>
+                </div>
+                <div class="resp-note">Могу в субботу с 12 до 15. Толщиномер, эндоскоп, диагностика по OBD.</div>
+                <div class="resp-actions">
+                  <button class="resp-btn primary">Выбрать</button>
+                </div>
+              </div>
+
+              <div class="resp">
+                <div class="resp-top">
+                  <div class="avatar lg">ДН</div>
+                  <div class="resp-who">
+                    <div class="resp-name">Денис Н.</div>
+                    <div class="resp-stats"><span class="star">★ 4.7</span> · 38 осмотров</div>
+                  </div>
+                  <div class="resp-price">
+                    <div class="resp-price-val">3 000 ₽</div>
+                    <div class="resp-price-delta lower">−500 ₽</div>
+                  </div>
+                </div>
+                <div class="resp-note">Суббота, утро.</div>
+                <div class="resp-actions">
+                  <button class="resp-btn">Выбрать</button>
+                </div>
+              </div>
+
+              <div class="resp">
+                <div class="resp-top">
+                  <div class="avatar lg">ОК</div>
+                  <div class="resp-who">
+                    <div class="resp-name">Олег К.</div>
+                    <div class="resp-stats"><span class="star">★ 5.0</span> · 540 осмотров</div>
+                  </div>
+                  <div class="resp-price">
+                    <div class="resp-price-val">4 500 ₽</div>
+                    <div class="resp-price-delta higher">+1 000 ₽</div>
+                  </div>
+                </div>
+                <div class="resp-actions">
+                  <button class="resp-btn">Выбрать</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Цена заказчика — точка отсчёта: у каждого отклика видна <b>разница с ней</b>. Выбор исполнителя переводит осмотр в «назначен» с ценой из отклика.</div>
+    </div>
+
+    <!-- ===================== 05 · Мои заказы · завершённые ===================== -->
+    <div class="frame">
+      <div class="frame-label">05 · мои заказы · завершённые</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>18:20</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">Андрей С.</div>
+              <h2 class="detail-title">Мои заказы</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <div class="toggle-btn">Активные</div>
+            <div class="toggle-btn active">Завершённые</div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="order-card">
+              <div class="order-top">
+                <span class="pill done">отчёт готов</span>
+                <span class="kind">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+                  <b>осмотр</b> #2047
+                </span>
+              </div>
+              <div class="order-car">Hyundai Creta 2020 <span class="km">· 71 000 км</span></div>
+              <div class="order-meta"><span>Мытищи</span><span>·</span><span>14 сентября</span></div>
+              <div class="verdict bad">
+                <div class="verdict-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></svg>
+                </div>
+                <div class="verdict-txt"><b>Не рекомендую</b><br>3 детали перекрашены, замена крыла</div>
+                <div class="verdict-link">Отчёт
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+              </div>
+              <button class="again">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Осмотреть другую машину
+              </button>
+              <div class="order-foot">
+                <div class="avatar">МК</div>
+                <div class="order-exec"><b>Максим К.</b></div>
+                <div class="order-price">4 000 ₽</div>
+              </div>
+            </div>
+
+            <div class="order-card">
+              <div class="order-top">
+                <span class="pill done">отчёт готов</span>
+                <span class="kind">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+                  <b>осмотр</b> #2032
+                </span>
+              </div>
+              <div class="order-car">Skoda Octavia 2020 <span class="km">· 48 000 км</span></div>
+              <div class="order-meta"><span>Москва</span><span>·</span><span>2 сентября</span></div>
+              <div class="verdict good">
+                <div class="verdict-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="verdict-txt"><b>Можно брать</b><br>Кузов в родной краске, 1 скол</div>
+                <div class="verdict-link">Отчёт
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                </div>
+              </div>
+              <div class="order-foot">
+                <div class="avatar">СП</div>
+                <div class="order-exec"><b>Сергей П.</b></div>
+                <div class="order-price">3 500 ₽</div>
+              </div>
+            </div>
+
+            <div class="order-card">
+              <div class="order-top">
+                <span class="pill done">выполнен</span>
+                <span class="kind">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                  <b>подбор</b> #1990
+                </span>
+              </div>
+              <div class="order-car">Mazda CX-5 2019+</div>
+              <div class="order-meta"><span>Москва</span><span>·</span><span>до 2 600 000 ₽</span></div>
+              <div class="prog-cap" style="margin-top:9px"><span>Проверено 11 машин, 2 осмотра передано</span></div>
+              <div class="order-foot">
+                <div class="avatar">ИВ</div>
+                <div class="order-exec"><b>Игорь В.</b></div>
+                <div class="order-price">15 000 ₽</div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Завершённый осмотр показывает <b>вердикт, а не прогресс</b> — ради него заказ и делался. «Осмотреть другую машину» создаёт новый заказ с тем же адресом и ценой.</div>
+    </div>
+
+    <div class="group-band">
+      <div class="group-band-title">подборщик</div>
+      <div class="group-band-sub">Нанимает осмотр кандидата в рамках своего подбора</div>
+    </div>
+
+    <!-- ===================== 06 · Подборщик · нанять осмотр ===================== -->
+    <div class="frame">
+      <div class="frame-label work">06 · подбор · нанять осмотр</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen mode-work">
+
+          <div class="status-bar">
+            <span>12:10</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">для подбора #2038</div>
+              <h2 class="detail-title">Нанять осмотр</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="section">
+              <div class="link-card">
+                <span class="link-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                </span>
+                <span class="link-txt">
+                  <span class="link-title" style="display:block">Kia Sportage 2021+ · Андрей С.</span>
+                  Отчёт придёт вам и появится в заказе у заказчика. Исполнителя выбираете вы.
+                </span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Кандидат</div>
+                <div class="section-extra">из вашего списка</div>
+              </div>
+              <div class="field">
+                <div class="field-box locked">
+                  <span><b style="color:var(--text-1);font-weight:600">Kia Sportage 2021</b> · 58 000 км</span>
+                  <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                </div>
+              </div>
+              <div class="field">
+                <div class="field-box locked">
+                  <span>Казань, ул. Баумана, 12</span>
+                  <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Когда</div></div>
+              <div class="chips" style="margin-bottom:8px">
+                <button class="chip on">Сегодня</button>
+                <button class="chip">Завтра</button>
+                <button class="chip">Другая дата</button>
+              </div>
+              <div class="field-box"><span class="field-mono">18:00</span><span class="unit">точное время</span></div>
+            </div>
+
+            <div class="section">
+              <div class="section-head"><div class="section-title">Ваша цена</div></div>
+              <div class="price-box">
+                <span class="price-val">3 000 ₽</span>
+                <span class="price-steps">
+                  <span class="price-step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></span>
+                  <span class="price-step"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+                </span>
+              </div>
+              <div class="field-hint">Откликнутся исполнители из Казани. Кто оплачивает такой осмотр — ещё не решено.</div>
+            </div>
+
+          </div>
+
+          <div class="detail-cta">
+            <button class="cta-primary work">Разместить осмотр</button>
+            <div class="cta-cap">Появится в «Мои заказы» у вас и внутри подбора #2038 у заказчика</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Та же форма осмотра, но <b>машина и адрес берутся из кандидата</b> и не редактируются. Заказ осмотра привязан к подбору: заказчик видит его пунктирной строкой (кадр 01).</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

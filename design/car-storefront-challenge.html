@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Витрина — вариант В: вход через действие</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0B0D10;
+    --bg-1: #15181D;
+    --bg-2: #1E2228;
+    --bg-3: #262B33;
+    --line: #2A2F37;
+    --text-1: #F2F4F7;
+    --text-2: #8A93A1;
+    --text-3: #5B6371;
+
+    --st-none: #323843;
+    --st-progress: #F5A623;
+    --st-done: #5BC282;
+    --st-defect: #E94B3B;
+    --st-info: #4A9BE8;
+    --accent: #8B7BF0;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 18% 25%, rgba(40, 50, 65, 0.4) 0%, transparent 45%),
+      radial-gradient(circle at 82% 75%, rgba(50, 40, 60, 0.3) 0%, transparent 45%),
+      #0B0D10;
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 48px 20px;
+  }
+
+  .intro { max-width: 800px; margin: 0 auto 40px; text-align: center; }
+  .intro-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .intro-title { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 10px 0 8px; }
+  .intro-sub { font-size: 14px; color: var(--text-2); max-width: 610px; margin: 0 auto; line-height: 1.55; }
+
+  .stage {
+    max-width: 1180px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 56px;
+    justify-content: center; align-items: flex-start;
+  }
+
+  .frame { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 340px; }
+  .frame-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  }
+  .frame-note { font-size: 11.5px; color: var(--text-3); text-align: center; line-height: 1.5; }
+  .frame-note b { color: var(--text-2); font-weight: 600; }
+
+  .group-band { flex-basis: 100%; text-align: center; padding: 8px 0 0; }
+  .group-band-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-2); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .group-band-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+  .phone {
+    width: 340px; background: #1a1c20; border-radius: 48px; padding: 7px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      0 50px 100px -20px rgba(0,0,0,0.7),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .screen {
+    background: var(--bg-0); border-radius: 41px; overflow: hidden;
+    height: 720px; display: flex; flex-direction: column; position: relative;
+  }
+
+  .notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px; background: #000; border-radius: 999px; z-index: 5;
+  }
+
+  .status-bar {
+    padding: 16px 28px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-bar-icons { display: flex; gap: 6px; align-items: center; }
+  .signal { display: flex; align-items: flex-end; gap: 2px; }
+  .signal span { width: 3px; background: #fff; border-radius: 1px; }
+  .signal span:nth-child(1) { height: 4px; }
+  .signal span:nth-child(2) { height: 6px; }
+  .signal span:nth-child(3) { height: 8px; }
+  .signal span:nth-child(4) { height: 10px; opacity: 0.4; }
+  .battery {
+    width: 24px; height: 12px; border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 3px; position: relative; padding: 1px;
+  }
+  .battery::after {
+    content: ''; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px;
+    background: rgba(255,255,255,0.6); border-radius: 0 1px 1px 0;
+  }
+  .battery::before { content: ''; display: block; width: 80%; height: 100%; background: #fff; border-radius: 1px; }
+
+  /* ============== Head ============== */
+  .head-row { padding: 16px 22px 12px; display: flex; align-items: center; gap: 12px; }
+  .head-text { flex: 1; min-width: 0; }
+  .head-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .head-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin: 3px 0 0; }
+  .head-action, .back {
+    width: 38px; height: 38px; background: var(--bg-1); border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-2); cursor: pointer; flex-shrink: 0;
+  }
+
+  .scroll-body { flex: 1; overflow-y: auto; padding: 2px 22px 16px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  .section { margin-top: 20px; }
+  .section:first-child { margin-top: 4px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 11px; }
+  .section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .section-extra { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============== Continue bar (adaptive) ============== */
+  .continue-bar {
+    margin: 0 22px 12px; border-radius: 15px; padding: 13px 14px;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    background: linear-gradient(120deg, rgba(139,123,240,0.18), rgba(139,123,240,0.05));
+    border: 1px solid rgba(139,123,240,0.4);
+  }
+  .continue-bar.work {
+    background: linear-gradient(120deg, rgba(245,166,35,0.16), rgba(245,166,35,0.04));
+    border-color: rgba(245,166,35,0.4);
+  }
+  .cb-ico {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    background: var(--accent); color: #0C0818;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .continue-bar.work .cb-ico { background: var(--st-progress); color: #1A1102; }
+  .cb-txt { flex: 1; min-width: 0; }
+  .cb-title { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .cb-sub { font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.35; }
+  .cb-arrow { color: var(--text-2); flex-shrink: 0; display: flex; }
+  .cb-prog { height: 3px; background: rgba(0,0,0,0.3); border-radius: 2px; overflow: hidden; margin-top: 9px; }
+  .cb-prog span { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+  .continue-bar.work .cb-prog span { background: var(--st-progress); }
+
+  /* ============== Challenge card ============== */
+  .challenge {
+    border-radius: 17px; padding: 16px; margin-bottom: 10px;
+    background: linear-gradient(140deg, rgba(139,123,240,0.16), rgba(139,123,240,0.03));
+    border: 1px solid rgba(139,123,240,0.42);
+  }
+  .ch-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--accent); font-weight: 700; margin-bottom: 7px;
+  }
+  .ch-title { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+  .ch-sub { font-size: 12px; color: var(--text-2); margin-top: 6px; line-height: 1.45; }
+
+  .ch-photo {
+    height: 128px; border-radius: 13px; margin-top: 13px; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #5a6470 0%, #2c3138 100%);
+    cursor: crosshair;
+  }
+  .ch-photo::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.07), transparent 60%);
+  }
+  .ch-defect {
+    position: absolute; width: 54px; height: 5px; border-radius: 3px;
+    background: rgba(180,160,140,0.5); transform: rotate(-13deg);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  }
+  .ch-hint {
+    position: absolute; bottom: 9px; left: 0; right: 0; text-align: center;
+    font-size: 10.5px; color: rgba(255,255,255,0.65); letter-spacing: 0.03em;
+  }
+  .ch-tap {
+    position: absolute; width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid var(--accent); transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 6px rgba(139,123,240,0.18);
+  }
+  .ch-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px; font-size: 11px; color: var(--text-2);
+  }
+  .ch-count { font-family: 'JetBrains Mono', monospace; color: var(--text-3); }
+
+  .ch-btn {
+    width: 100%; margin-top: 11px; background: var(--accent); color: #0C0818;
+    border: none; border-radius: 12px; padding: 12px; font-size: 13.5px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .ch-btn.ghost { background: var(--bg-3); color: var(--text-1); font-weight: 600; }
+
+  /* ============== Result ============== */
+  .res-hero { text-align: center; padding: 8px 0 4px; }
+  .res-ring { width: 96px; height: 96px; margin: 0 auto 14px; position: relative;
+    display: flex; align-items: center; justify-content: center; }
+  .res-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .res-val {
+    font-size: 27px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.03em; color: var(--accent);
+  }
+  .res-title { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .res-sub { font-size: 13px; color: var(--text-2); margin-top: 7px; line-height: 1.5; }
+
+  .verdict {
+    display: flex; gap: 11px; align-items: flex-start; background: var(--bg-1);
+    border-radius: 13px; padding: 13px 14px; margin-bottom: 8px;
+  }
+  .verdict-ico {
+    width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .verdict-ico.ok { background: rgba(91,194,130,0.15); color: var(--st-done); }
+  .verdict-ico.no { background: rgba(233,75,59,0.15); color: var(--st-defect); }
+  .verdict-txt { font-size: 12px; color: var(--text-2); line-height: 1.45; flex: 1; min-width: 0; }
+  .verdict-txt b { color: var(--text-1); font-weight: 600; }
+
+  /* ============== Ladder ============== */
+  .ladder-item {
+    display: flex; gap: 12px; align-items: flex-start; position: relative; padding-bottom: 15px;
+  }
+  .ladder-item:last-child { padding-bottom: 0; }
+  .ladder-item::before {
+    content: ''; position: absolute; left: 12px; top: 26px; bottom: 0;
+    width: 1.5px; background: var(--line);
+  }
+  .ladder-item:last-child::before { display: none; }
+  .lad-mark {
+    width: 25px; height: 25px; border-radius: 9px; flex-shrink: 0; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-3); color: var(--text-3); border: 2px solid var(--bg-0);
+  }
+  .lad-mark.done { background: var(--st-done); color: #07150E; }
+  .lad-mark.now { background: var(--accent); color: #0C0818; }
+  .lad-body { flex: 1; min-width: 0; padding-top: 1px; }
+  .lad-name { font-size: 13.5px; font-weight: 600; }
+  .lad-desc { font-size: 11.5px; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+  .lad-badge {
+    display: inline-block; margin-top: 6px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--st-done);
+  }
+  .lad-badge.now { color: var(--accent); }
+
+  /* ============== Cards ============== */
+  .card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px;
+    padding: 14px; margin-bottom: 9px; cursor: pointer; transition: background 0.15s;
+  }
+  .card:hover { background: var(--bg-2); }
+  .card.job { border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.045); }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .card-time { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+  .card-car { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 5px; }
+  .card-meta { font-size: 12px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 3px 9px; }
+
+  .pill {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 9px; border-radius: 999px; background: var(--bg-3); color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill.live { background: rgba(245,166,35,0.14); color: var(--st-progress); }
+  .pill.done { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .pill.free { background: rgba(245,166,35,0.16); color: var(--st-progress); }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  .result {
+    margin-top: 11px; background: var(--bg-0); border-radius: 11px; padding: 11px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .result-ico {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(91,194,130,0.14); color: var(--st-done);
+  }
+  .result-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .result-txt b { color: var(--text-1); font-weight: 600; }
+  .result-save { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--st-done); font-weight: 600; }
+
+  .prog { margin-top: 11px; }
+  .prog-bar { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; }
+  .prog-fill { display: block; height: 100%; background: var(--st-progress); border-radius: 2px; }
+  .prog-cap { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; color: var(--text-3); }
+
+  .card-foot {
+    display: flex; align-items: center; gap: 9px; margin-top: 12px;
+    padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #5a6470, #2c3138);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-1); flex-shrink: 0;
+  }
+  .card-exec { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; }
+  .card-exec b { color: var(--text-1); font-weight: 600; }
+  .card-rating { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--st-progress); }
+
+  .pay {
+    margin-top: 11px; background: var(--bg-0); border-radius: 11px;
+    padding: 10px 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .pay-cap { font-size: 11px; color: var(--text-2); flex: 1; }
+  .pay-val {
+    font-family: 'JetBrains Mono', monospace; font-size: 15px;
+    font-weight: 600; color: var(--st-progress); letter-spacing: -0.02em;
+  }
+  .take {
+    width: 100%; margin-top: 9px; background: var(--st-progress); color: #1A1102;
+    border: none; border-radius: 11px; padding: 11px; font-size: 13px;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .take.ghost { background: var(--bg-3); color: var(--text-1); font-weight: 600; }
+  .take.lock { background: var(--bg-3); color: var(--text-3); font-weight: 600; }
+
+  /* ============== Filters ============== */
+  .filter-row { display: flex; gap: 6px; padding: 0 22px 12px; overflow-x: auto; scrollbar-width: none; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .fchip {
+    background: var(--bg-1); border: 1px solid transparent; padding: 8px 13px;
+    border-radius: 999px; font-size: 12px; color: var(--text-2); white-space: nowrap;
+    font-family: inherit; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .fchip.on { background: var(--bg-3); color: var(--text-1); }
+  .fchip-count { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; opacity: 0.75; }
+
+  /* ============== CTA ============== */
+  .cta-bar { padding: 12px 20px 22px; border-top: 1px solid var(--line); }
+  .cta {
+    width: 100%; border: none; border-radius: 14px; padding: 15px 18px;
+    font-size: 15px; font-weight: 600; letter-spacing: -0.01em; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit;
+  }
+  .cta.buy { background: var(--st-done); color: #07150E; }
+  .cta.accent { background: var(--accent); color: #0C0818; }
+  .cta.work { background: var(--st-progress); color: #1A1102; }
+  .cta.flat { background: var(--bg-3); color: var(--text-1); }
+  .cta-ghost {
+    width: 100%; background: transparent; color: var(--text-2); border: none;
+    padding: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .cta-cap { text-align: center; font-size: 10.5px; color: var(--text-3); margin-top: 9px; line-height: 1.45; }
+
+  .cta-split { display: flex; gap: 9px; }
+  .cta-split .cta { padding: 14px 10px; font-size: 13.5px; border-radius: 13px; }
+
+  .note-box {
+    background: rgba(139,123,240,0.07); border: 1px solid rgba(139,123,240,0.25);
+    border-radius: 13px; padding: 13px 14px; display: flex; gap: 11px; align-items: flex-start;
+  }
+  .note-ico { color: var(--accent); flex-shrink: 0; margin-top: 1px; display: flex; }
+  .note-txt { font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
+  .note-txt b { color: var(--text-1); font-weight: 600; }
+
+  .money-card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+    padding: 15px 16px; margin-top: 4px;
+  }
+  .money-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+  .money-val { font-size: 25px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; }
+  .money-cap { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+  .money-delta { font-size: 11.5px; color: var(--st-progress); font-family: 'JetBrains Mono', monospace; }
+
+  @media (max-width: 760px) {
+    body { padding: 24px 12px; }
+    .stage { gap: 32px; }
+    .intro-title { font-size: 22px; }
+    .frame { width: 100%; max-width: 340px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="intro-eyebrow">вариант В · вход через действие</div>
+    <h1 class="intro-title">Не меню, а испытание</h1>
+    <p class="intro-sub">Ни переключателей, ни вкладок для роли. Витрина одна для всех, но прямо в ленте живёт карточка-испытание: «найдите дефект на фото». Кто нашёл — тому приложение само предлагает заказы и показывает, что он уже прошёл первый шаг верификации. Дальше главный экран подстраивается: сверху появляется полоса «продолжить с того же места».</p>
+  </div>
+
+  <div class="stage">
+
+    <div class="group-band">
+      <div class="group-band-title">крючок в ленте</div>
+      <div class="group-band-sub">Исполнителя не ищут по кнопкам — его вылавливают через то, что он умеет</div>
+    </div>
+
+    <!-- ===================== 01 · Feed with challenge ===================== -->
+    <div class="frame">
+      <div class="frame-label">01 · витрина · старт</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">без регистрации · Москва</div>
+              <h2 class="head-title">Подбор авто</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip on">Всё</button>
+            <button class="fchip">Выполнены <span class="fchip-count">1284</span></button>
+            <button class="fchip">В работе <span class="fchip-count">37</span></button>
+            <button class="fchip">Свободные <span class="fchip-count">12</span></button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="card">
+              <div class="card-top">
+                <span class="pill done">выполнен</span>
+                <span class="card-time">вчера</span>
+              </div>
+              <div class="card-car">Kia Sportage 2021</div>
+              <div class="card-meta"><span>Химки</span><span>·</span><span>бюджет 3 100 000 ₽</span></div>
+              <div class="result">
+                <div class="result-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="result-txt">Куплен за <b>2 815 000 ₽</b><br>Проверено 11 машин, 4 отклонены</div>
+                <div class="result-save">−285К</div>
+              </div>
+              <div class="card-foot">
+                <div class="avatar">ИВ</div>
+                <div class="card-exec"><b>Игорь В.</b> · 156 заказов</div>
+                <div class="card-rating">★ 5.0</div>
+              </div>
+            </div>
+
+            <div class="challenge">
+              <div class="ch-eyebrow">проверьте себя · 30 секунд</div>
+              <div class="ch-title">Заметите дефект, который стоил покупателю 180 000 ₽?</div>
+              <div class="ch-sub">Настоящее фото с осмотра. Ткните в место, где что-то не так.</div>
+              <div class="ch-photo">
+                <span class="ch-defect" style="left:26%;top:56%"></span>
+                <span class="ch-hint">тапните по фото</span>
+              </div>
+              <div class="ch-foot">
+                <span>Правильно отвечают <b style="color:var(--text-1)">32%</b></span>
+                <span class="ch-count">1 из 3</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-top">
+                <span class="pill live"><span class="live-dot"></span>идёт осмотр</span>
+                <span class="card-time">15 мин назад</span>
+              </div>
+              <div class="card-car">Toyota Camry 2018–2020</div>
+              <div class="card-meta"><span>Москва</span><span>·</span><span>до 2 400 000 ₽</span></div>
+              <div class="prog">
+                <div class="prog-bar"><span class="prog-fill" style="width:72%"></span></div>
+                <div class="prog-cap"><span>Проверено 9 из 13 деталей</span><span>3-й вариант</span></div>
+              </div>
+              <div class="card-foot">
+                <div class="avatar">МК</div>
+                <div class="card-exec"><b>Максим К.</b> · 84 заказа</div>
+                <div class="card-rating">★ 4.9</div>
+              </div>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">ищет исполнителя</span>
+                <span class="card-time">Химки · 8 км</span>
+              </div>
+              <div class="card-car">Kia Sportage 2021+</div>
+              <div class="card-meta"><span>до 3 100 000 ₽</span><span>·</span><span>2 отклика</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар подборщику</span>
+                <span class="pay-val">15 000 ₽</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta buy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Разместить заказ
+            </button>
+            <div class="cta-cap">312 подборщиков онлайн · средний отклик 8 минут</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Кнопка внизу одна — для заказчика. Исполнителя цепляет <b>испытание в ленте</b>: не «стань исполнителем», а «слабо найти дефект».</div>
+    </div>
+
+    <!-- ===================== 02 · Challenge result ===================== -->
+    <div class="frame">
+      <div class="frame-label">02 · результат испытания</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:43</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="head-text">
+              <div class="head-eyebrow">испытание пройдено</div>
+              <h2 class="head-title">3 из 3</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="res-hero">
+              <div class="res-ring">
+                <svg width="96" height="96" viewBox="0 0 96 96">
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="var(--bg-3)" stroke-width="6"/>
+                  <circle cx="48" cy="48" r="42" fill="none" stroke="var(--accent)" stroke-width="6"
+                          stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="21"/>
+                </svg>
+                <span class="res-val">92</span>
+              </div>
+              <div class="res-title">Вы точнее 92% людей</div>
+              <div class="res-sub">И точнее трети действующих подборщиков.<br>Похоже, вы умеете смотреть машины.</div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Разбор ответов</div>
+              </div>
+
+              <div class="verdict">
+                <span class="verdict-ico ok">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <span class="verdict-txt"><b>Крыло:</b> нашли волну от рихтовки. Толщиномер показал бы 340 мкм против 120 на соседних.</span>
+              </div>
+
+              <div class="verdict">
+                <span class="verdict-ico ok">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <span class="verdict-txt"><b>Стойка:</b> заметили следы сварки. Такую машину подборщик снимает с торга сразу.</span>
+              </div>
+
+              <div class="verdict">
+                <span class="verdict-ico ok">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <span class="verdict-txt"><b>Салон:</b> износ руля не сходится с пробегом 62 000 км.</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Это был первый шаг</div>
+                <div class="section-extra">1 / 4</div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark done">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="lad-body">
+                  <div class="lad-name">Быстрый тест</div>
+                  <div class="lad-desc">3 фото · вы прошли только что</div>
+                  <span class="lad-badge">зачтено</span>
+                </div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark now">2</div>
+                <div class="lad-body">
+                  <div class="lad-name">Полный тест · 15 фото</div>
+                  <div class="lad-desc">Порог 12 из 15. Ваши 3 верных ответа уже засчитаны</div>
+                  <span class="lad-badge now">можно начать сейчас</span>
+                </div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark">3</div>
+                <div class="lad-body">
+                  <div class="lad-name">Личность и опыт</div>
+                  <div class="lad-desc">Паспорт, селфи, ваши марки и регион</div>
+                </div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark">4</div>
+                <div class="lad-body">
+                  <div class="lad-name">Первый заказ с куратором</div>
+                  <div class="lad-desc">Оплата обычная · в среднем 12 000 ₽</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="note-box">
+                <span class="note-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+                </span>
+                <span class="note-txt">Прогресс <b>сохранится без регистрации</b> — вход понадобится только на третьем шаге.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta accent">Пройти полный тест · 12 минут</button>
+            <button class="cta-ghost">Сначала посмотрю заказы рядом</button>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Испытание задним числом объявляется <b>первым шагом верификации</b>. Человек уже вложился — бросать жальче, чем продолжить.</div>
+    </div>
+
+    <div class="group-band">
+      <div class="group-band-title">адаптивная главная</div>
+      <div class="group-band-sub">После любого действия витрина сама показывает, что делать дальше</div>
+    </div>
+
+    <!-- ===================== 03 · Adaptive feed ===================== -->
+    <div class="frame">
+      <div class="frame-label">03 · витрина после испытания</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:52</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">Москва · 12 свободных заказов</div>
+              <h2 class="head-title">Подбор авто</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </div>
+          </div>
+
+          <div class="continue-bar">
+            <div class="cb-ico">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9z"/></svg>
+            </div>
+            <div class="cb-txt">
+              <div class="cb-title">Продолжить тест · 6 из 15</div>
+              <div class="cb-sub">Верных 6 · осталось 9 фото, около 7 минут</div>
+              <div class="cb-prog"><span style="width:40%"></span></div>
+            </div>
+            <span class="cb-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </span>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip">Всё</button>
+            <button class="fchip on">Свободные <span class="fchip-count">12</span></button>
+            <button class="fchip">В работе <span class="fchip-count">37</span></button>
+            <button class="fchip">Выполнены</button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Химки · 8 км</span>
+              </div>
+              <div class="card-car">Kia Sportage 2021+</div>
+              <div class="card-meta"><span>до 3 100 000 ₽</span><span>·</span><span>2 отклика</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">15 000 ₽</span>
+              </div>
+              <button class="take lock">
+                Откликнуться · после теста
+              </button>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Москва · 3 км</span>
+              </div>
+              <div class="card-car">Skoda Octavia 2020+</div>
+              <div class="card-meta"><span>до 2 200 000 ₽</span><span>·</span><span>1 отклик</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">10 000 ₽</span>
+              </div>
+              <button class="take lock">Откликнуться · после теста</button>
+            </div>
+
+            <div class="card job">
+              <div class="card-top">
+                <span class="pill free">свободен</span>
+                <span class="card-time">Мытищи · 14 км</span>
+              </div>
+              <div class="card-car">Toyota RAV4 2019+</div>
+              <div class="card-meta"><span>до 2 700 000 ₽</span><span>·</span><span>5 откликов</span></div>
+              <div class="pay">
+                <span class="pay-cap">Гонорар за заказ</span>
+                <span class="pay-val">12 000 ₽</span>
+              </div>
+              <button class="take lock">Откликнуться · после теста</button>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <div class="cta-split">
+              <button class="cta accent">Продолжить тест</button>
+              <button class="cta flat">Разместить заказ</button>
+            </div>
+            <div class="cta-cap">Лента перестроилась под вас · вернуть обычный вид можно фильтром «Всё»</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">После испытания лента <b>сама переключилась</b> на свободные заказы, а кнопка снизу раздвоилась. Никаких режимов — приложение просто помнит, что вы делали.</div>
+    </div>
+
+    <!-- ===================== 04 · Free order, gated ===================== -->
+    <div class="frame">
+      <div class="frame-label">04 · заказ · до верификации</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:55</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="head-text">
+              <div class="head-eyebrow">заказ #2038 · свободен</div>
+              <h2 class="head-title">Kia Sportage 2021+</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="money-card" style="text-align:center">
+              <div class="money-cap">гонорар за этот заказ</div>
+              <div class="money-val" style="color:var(--st-progress);font-size:30px;margin:6px 0 4px">15 000 ₽</div>
+              <div style="font-size:11.5px;color:var(--text-2);line-height:1.45">Химки · до 3 100 000 ₽ · 2 отклика · опубликован 18 минут назад</div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Что нужно сделать</div>
+              </div>
+              <div class="verdict">
+                <span class="verdict-ico" style="background:var(--bg-3);color:var(--text-2)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                </span>
+                <span class="verdict-txt">Найти варианты <b>от 2021 года</b>, пробег до 80 000 км, без ДТП</span>
+              </div>
+              <div class="verdict">
+                <span class="verdict-ico" style="background:var(--bg-3);color:var(--text-2)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13" r="3.2"/></svg>
+                </span>
+                <span class="verdict-txt">Осмотр по чек-листу: <b>13 деталей кузова</b>, фото и отчёт</span>
+              </div>
+              <div class="verdict">
+                <span class="verdict-ico" style="background:var(--bg-3);color:var(--text-2)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6.5c0-2-2.2-3-5-3s-5 .9-5 3 2 2.7 5 3.5 5 1.5 5 3.5-2.2 3-5 3-5-1-5-3"/></svg>
+                </span>
+                <span class="verdict-txt">Помочь с торгом и сопроводить сделку</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Ваш прогресс</div>
+                <div class="section-extra">1 / 4</div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark done">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="lad-body">
+                  <div class="lad-name">Быстрый тест</div>
+                  <div class="lad-desc">3 из 3 · точнее 92% людей</div>
+                </div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark now">2</div>
+                <div class="lad-body">
+                  <div class="lad-name">Полный тест · осталось 9 фото</div>
+                  <div class="lad-desc">Единственное, что отделяет вас от отклика</div>
+                  <span class="lad-badge now">7 минут</span>
+                </div>
+              </div>
+
+              <div class="ladder-item">
+                <div class="lad-mark">3</div>
+                <div class="lad-body">
+                  <div class="lad-name">Личность и опыт</div>
+                  <div class="lad-desc">Можно сделать позже, до первого выезда</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <button class="cta accent">Доделать тест и откликнуться</button>
+            <div class="cta-cap">Заказ держится за вами 2 часа, пока вы проходите тест</div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Барьер подан не как запрет, а как <b>последний шаг до конкретных денег</b>. Заказ «держится» — это снимает страх, что уведут пока сдаёшь.</div>
+    </div>
+
+    <!-- ===================== 05 · Adaptive feed, verified ===================== -->
+    <div class="frame">
+      <div class="frame-label">05 · главная · после верификации</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>10:14</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head-row">
+            <div class="head-text">
+              <div class="head-eyebrow">Андрей С. · подборщик</div>
+              <h2 class="head-title">Подбор авто</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+            </div>
+          </div>
+
+          <div class="continue-bar work">
+            <div class="cb-ico">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 17h2M19 17h2M3 17v-4l2-5h14l2 5v4M5 13h14"/></svg>
+            </div>
+            <div class="cb-txt">
+              <div class="cb-title">Продолжить осмотр · Camry 2019</div>
+              <div class="cb-sub">Осталось 4 детали из 13 · Балашиха</div>
+              <div class="cb-prog"><span style="width:69%"></span></div>
+            </div>
+            <span class="cb-arrow">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+            </span>
+          </div>
+
+          <div class="filter-row">
+            <button class="fchip on">Мои дела <span class="fchip-count">3</span></button>
+            <button class="fchip">Свободные <span class="fchip-count">12</span></button>
+            <button class="fchip">Всё</button>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="money-card">
+              <div class="money-row">
+                <div>
+                  <div class="money-cap">Заработано в августе</div>
+                  <div class="money-val">27 000 ₽</div>
+                </div>
+                <div class="money-delta">+15 000 в работе</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Сегодня</div>
+                <div class="section-extra">2 задачи</div>
+              </div>
+
+              <div class="card">
+                <div class="card-top">
+                  <span class="pill">осмотр в 16:00</span>
+                  <span class="card-time">Люберцы · 17 км</span>
+                </div>
+                <div class="card-car">Volkswagen Tiguan 2020</div>
+                <div class="card-meta"><span>продавец подтвердил встречу</span></div>
+                <button class="take ghost">Построить маршрут</button>
+              </div>
+
+              <div class="card">
+                <div class="card-top">
+                  <span class="pill">отклик отправлен</span>
+                  <span class="card-time">2 часа назад</span>
+                </div>
+                <div class="card-car">Skoda Octavia 2020+</div>
+                <div class="card-meta"><span>ваша цена 10 000 ₽</span><span>·</span><span>1 конкурент</span></div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Ваш заказ как покупателя</div>
+              </div>
+              <div class="card">
+                <div class="card-top">
+                  <span class="pill live"><span class="live-dot"></span>идёт подбор</span>
+                  <span class="card-time">#2044</span>
+                </div>
+                <div class="card-car">Volkswagen Tiguan 2019+</div>
+                <div class="card-meta"><span>Тула</span><span>·</span><span>Денис П. нашёл 5 вариантов</span></div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="cta-bar">
+            <div class="cta-split">
+              <button class="cta work">Свободные · 12</button>
+              <button class="cta flat">Разместить заказ</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-note">Обе роли <b>сосуществуют на одном экране</b>: сверху ваша работа, ниже ваш собственный заказ у другого подборщика. Переключать нечего.</div>
+    </div>
+
+  </div>
+
+  <script>
+    document.querySelectorAll('.fchip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.fchip').forEach(b => b.classList.remove('on'));
+        btn.classList.add('on');
+      });
+    });
+
+    document.querySelectorAll('.ch-photo').forEach(ph => {
+      ph.addEventListener('click', e => {
+        const r = ph.getBoundingClientRect();
+        let tap = ph.querySelector('.ch-tap');
+        if (!tap) {
+          tap = document.createElement('span');
+          tap.className = 'ch-tap';
+          ph.appendChild(tap);
+        }
+        tap.style.left = ((e.clientX - r.left) / r.width * 100) + '%';
+        tap.style.top = ((e.clientY - r.top) / r.height * 100) + '%';
+      });
+    });
+  </script>
+</body>
+</html>

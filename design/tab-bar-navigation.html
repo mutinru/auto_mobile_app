@@ -1,0 +1,592 @@
+<title>Нижние вкладки</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Палитра взята из остальных макетов (car-storefront-modes.html) —
+     приложение только тёмное, поэтому страница однотемная. */
+  :root {
+    color-scheme: dark;
+    --bg-0: #0B0D10;
+    --bg-1: #15181D;
+    --bg-2: #1E2228;
+    --bg-3: #262B33;
+    --line: #2A2F37;
+    --text-1: #F2F4F7;
+    --text-2: #8A93A1;
+    --text-3: #5B6371;
+    --st-progress: #F5A623;
+    --st-done: #5BC282;
+    --st-info: #4A9BE8;
+    --st-defect: #E94B3B;
+    --buy: #5BC282;
+    --buy-ink: #07150E;
+    --work: #F5A623;
+    --work-ink: #1A1102;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  html { background: var(--bg-0); }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 18% 25%, rgba(40, 50, 65, 0.4) 0%, transparent 45%),
+      radial-gradient(circle at 82% 75%, rgba(50, 40, 60, 0.3) 0%, transparent 45%),
+      #0B0D10;
+    color: var(--text-1);
+    min-height: 100%;
+    padding-inline: 16px;
+    padding-block: 40px 56px;
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--st-info); outline-offset: 2px; border-radius: 8px; }
+
+  .intro { max-width: 760px; margin: 0 auto 36px; text-align: center; }
+  .eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600; font-family: var(--mono);
+  }
+  .intro h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 10px 0 8px; text-wrap: balance; }
+  .intro p { font-size: 14px; color: var(--text-2); max-width: 600px; margin: 0 auto; line-height: 1.55; }
+
+  .stage {
+    max-width: 1080px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 48px;
+    justify-content: center; align-items: flex-start;
+  }
+
+  /* ---------- телефон ---------- */
+  .phone-col { display: flex; flex-direction: column; align-items: center; gap: 16px; max-width: 100%; }
+  .scenario { display: flex; background: var(--bg-1); border-radius: 12px; padding: 4px; gap: 3px; }
+  .scenario button {
+    padding: 8px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: var(--text-2);
+  }
+  .scenario button[aria-pressed="true"] { background: var(--bg-3); color: var(--text-1); }
+
+  .phone {
+    width: 340px; max-width: 100%; background: #1a1c20; border-radius: 48px; padding: 7px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      0 50px 100px -20px rgba(0,0,0,0.7),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+  }
+  .screen {
+    background: var(--bg-0); border-radius: 41px; overflow: hidden;
+    height: 720px; display: flex; flex-direction: column; position: relative;
+  }
+  .screen::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 190px;
+    pointer-events: none; transition: background 0.25s;
+  }
+  .screen.tint-buy::before { background: linear-gradient(180deg, rgba(91,194,130,0.10), transparent); }
+  .screen.tint-work::before { background: linear-gradient(180deg, rgba(245,166,35,0.11), transparent); }
+  .screen > * { position: relative; }
+  .notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px; background: #000; border-radius: 999px; z-index: 5;
+  }
+  .status-bar {
+    padding: 16px 28px 0; display: flex; justify-content: space-between;
+    font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; height: 36px;
+  }
+
+  .head { display: flex; align-items: center; gap: 12px; padding: 22px 22px 14px; }
+  .head-text { flex: 1; min-width: 0; }
+  .head-eyebrow {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .head-title { font-size: 23px; font-weight: 600; letter-spacing: -0.02em; margin-top: 3px; }
+  .sq {
+    width: 40px; height: 40px; border-radius: 12px; background: var(--bg-1);
+    display: grid; place-items: center; color: var(--text-2); flex: none;
+  }
+
+  .body { flex: 1; overflow-y: auto; padding: 0 22px 16px; scrollbar-width: none; }
+  .body::-webkit-scrollbar { display: none; }
+
+  .seg { display: flex; background: var(--bg-1); border-radius: 12px; padding: 4px; gap: 3px; margin-bottom: 16px; }
+  .seg button {
+    flex: 1; padding: 9px 6px; border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--text-2);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .seg button.on { background: var(--bg-3); color: var(--text-1); }
+  .seg.work button.on { background: var(--work); color: var(--work-ink); }
+  .count {
+    font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+  }
+  .seg.work button.on .count { background: rgba(0,0,0,0.18); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--bg-1); border-radius: 14px; padding: 12px 8px; text-align: center; }
+  .stat b { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 10.5px; color: var(--text-2); }
+
+  .chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .chip {
+    font-size: 12px; font-weight: 600; padding: 7px 11px; border-radius: 999px;
+    background: var(--bg-1); color: var(--text-2);
+  }
+  .chip.on { background: var(--text-1); color: var(--bg-0); }
+
+  .section {
+    display: flex; justify-content: space-between; margin: 6px 2px 10px;
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3); font-weight: 600;
+  }
+  .section i { font-style: normal; text-transform: none; letter-spacing: 0.04em; font-family: var(--mono); }
+
+  .card {
+    display: block; width: 100%; text-align: left;
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 20px;
+    padding: 14px 15px; margin-bottom: 10px;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+  .pill {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 9px; border-radius: 999px; background: var(--bg-3); color: var(--text-2);
+  }
+  .pill.done { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .pill.info { background: rgba(74,155,232,0.14); color: var(--st-info); }
+  .pill.prog { background: rgba(245,166,35,0.14); color: var(--st-progress); }
+  .kind { font-family: var(--mono); font-size: 10.5px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .card-title { font-size: 15.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .card-title span { color: var(--text-2); font-weight: 500; }
+  .card-sub { font-size: 12.5px; color: var(--text-2); margin-top: 4px; }
+  .bar { height: 3px; background: var(--bg-3); border-radius: 3px; margin: 11px 0 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--st-progress); }
+  .card-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-top: 1px solid var(--line); margin-top: 11px; padding-top: 10px; font-size: 12.5px;
+  }
+  .who { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+  .ava {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--bg-3); flex: none;
+    display: grid; place-items: center; font-size: 10px; font-weight: 700; color: var(--text-2);
+  }
+  .money { font-family: var(--mono); font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .money.work { color: var(--work); }
+  .respond {
+    font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 10px;
+    background: var(--work); color: var(--work-ink); white-space: nowrap;
+  }
+  .muted { color: var(--text-2); font-weight: 500; }
+
+  .cta { padding: 12px 22px 12px; border-top: 1px solid var(--line); background: var(--bg-0); }
+  .cta button {
+    width: 100%; padding: 14px; border-radius: 14px; font-weight: 700; font-size: 15px;
+    background: var(--buy); color: var(--buy-ink);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .cta.work button { background: var(--work); color: var(--work-ink); }
+
+  /* профиль */
+  .me { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+  .me .ava { width: 56px; height: 56px; border-radius: 16px; font-size: 18px; color: var(--text-1); background: linear-gradient(135deg, #3a414c, #22262d); }
+  .me b { font-size: 18px; font-weight: 600; }
+  .me div div { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+  .rows { background: var(--bg-1); border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
+  .row {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 13px 14px; font-size: 14px; font-weight: 500;
+  }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row .ic { width: 32px; height: 32px; border-radius: 10px; background: var(--bg-3); display: grid; place-items: center; color: var(--text-2); flex: none; }
+  .row .ic.buy { background: rgba(91,194,130,0.14); color: var(--buy); }
+  .row .ic.work { background: rgba(245,166,35,0.14); color: var(--work); }
+  .row .t { flex: 1; min-width: 0; }
+  .row .t small { display: block; font-size: 11.5px; color: var(--text-2); margin-top: 2px; font-weight: 400; }
+  .row .v { font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+  .steps { display: flex; gap: 4px; margin-top: 7px; }
+  .steps i { flex: 1; height: 3px; border-radius: 2px; background: var(--bg-3); }
+  .steps i.ok { background: var(--st-done); }
+  .steps i.wait { background: var(--st-progress); }
+
+  /* гостевая заглушка */
+  .gate { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 30px 40px; }
+  .gate .big {
+    width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; margin-bottom: 20px;
+    background: var(--bg-1); color: var(--text-2);
+  }
+  .gate h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px; text-wrap: balance; }
+  .gate p { font-size: 13.5px; color: var(--text-2); line-height: 1.5; margin: 0 0 22px; }
+  .gate .go {
+    padding: 14px; border-radius: 14px; font-weight: 700; font-size: 15px; background: var(--buy); color: var(--buy-ink);
+  }
+  .gate.work .go { background: var(--work); color: var(--work-ink); }
+  .gate .alt { margin-top: 14px; font-size: 13.5px; color: var(--text-2); font-weight: 500; }
+
+  /* ---------- нижняя панель ---------- */
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 8px 10px 22px; background: rgba(21,24,29,0.96);
+    border-top: 1px solid var(--line);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px 0 2px; color: var(--text-3); font-size: 10.5px; font-weight: 600;
+    position: relative; transition: color 0.15s;
+  }
+  .tab .pic { position: relative; width: 44px; height: 28px; border-radius: 999px; display: grid; place-items: center; transition: background 0.15s; }
+  .tab[aria-selected="true"] { color: var(--text-1); }
+  .tab[aria-selected="true"] .pic { background: var(--bg-3); }
+  .tab.buy[aria-selected="true"] { color: var(--buy); }
+  .tab.buy[aria-selected="true"] .pic { background: rgba(91,194,130,0.14); }
+  .tab.work[aria-selected="true"] { color: var(--work); }
+  .tab.work[aria-selected="true"] .pic { background: rgba(245,166,35,0.14); }
+  .badge {
+    position: absolute; top: -3px; right: 2px; min-width: 17px; height: 17px; padding: 0 5px;
+    border-radius: 999px; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+    display: grid; place-items: center; border: 2px solid var(--bg-1);
+  }
+  .badge.buy { background: var(--buy); color: var(--buy-ink); }
+  .badge.work { background: var(--work); color: var(--work-ink); }
+  .lock { position: absolute; bottom: -2px; right: 6px; color: var(--text-3); }
+  .homebar { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.8); }
+
+  .toast {
+    position: absolute; left: 16px; right: 16px; bottom: 96px; z-index: 10;
+    background: var(--text-1); color: var(--bg-0); border-radius: 14px;
+    padding: 11px 14px; font-size: 12.5px; font-weight: 500; line-height: 1.4;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* ---------- пояснения ---------- */
+  .notes { width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: 22px; padding-top: 52px; }
+  .note h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-3);
+    font-weight: 600; font-family: var(--mono); margin: 0 0 10px;
+  }
+  .map { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .map td { padding: 9px 0; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.45; }
+  .map td:first-child { width: 112px; font-weight: 600; padding-right: 12px; }
+  .map td:last-child { color: var(--text-2); }
+  .map tr.cur td:first-child { color: var(--text-1); }
+  .map tr.cur td { background: rgba(255,255,255,0.03); }
+  .note ul { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13px; line-height: 1.55; }
+  .note li + li { margin-top: 6px; }
+  .note b { color: var(--text-1); font-weight: 600; }
+  .flow {
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.7; color: var(--text-2);
+    background: var(--bg-1); border-radius: 14px; padding: 12px 14px; overflow-x: auto; white-space: pre; margin: 0;
+  }
+  .flow b { color: var(--text-1); font-weight: 500; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, .toast { transition: none !important; }
+  }
+</style>
+
+<header class="intro">
+  <div class="eyebrow">навигация · предложение</div>
+  <h1>Нижняя панель вместо цепочки экранов</h1>
+  <p>Четыре вкладки заменяют переходы «Мои заказы → профиль → Мои заказы». Нажимайте на вкладки и кнопки, переключайте гостя и вошедшего. Вопрос «Что вас сюда привело?» остаётся, но только выбирает, с какой вкладки начать.</p>
+</header>
+
+<main class="stage">
+  <div class="phone-col">
+    <div class="scenario" role="group" aria-label="Сценарий">
+      <button id="as-user" aria-pressed="true">Вошёл · Андрей С.</button>
+      <button id="as-guest" aria-pressed="false">Гость</button>
+    </div>
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span>●●● ▮</span></div>
+        <div id="view" style="flex:1; display:flex; flex-direction:column; min-height:0;"></div>
+        <nav class="tabbar" role="tablist" aria-label="Разделы" id="tabbar"></nav>
+        <div class="homebar"></div>
+        <div class="toast" id="toast" role="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    <section class="note">
+      <h2>Что где живёт</h2>
+      <table class="map" id="map">
+        <tr data-tab="feed"><td>Витрина</td><td>Лента подборов, «Разместить заказ». Открыта всем. Иконки профиля нет — он теперь вкладка.</td></tr>
+        <tr data-tab="mine"><td>Мои заказы</td><td>Заказы, где вы заказчик. Бейдж — новые отклики. «Новый заказ» внизу.</td></tr>
+        <tr data-tab="work"><td>Заказы рядом</td><td>Переключатель <b>Свободные · Взятые</b>: сюда переезжают «Взятые заказы» из профиля. Иконка карты — «Заказы на карте».</td></tr>
+        <tr data-tab="me"><td>Профиль</td><td>Только аккаунт: верификация, тест, выход. Кнопок «Мои заказы» и «Заказы рядом» больше нет — нет и круга.</td></tr>
+      </table>
+    </section>
+
+    <section class="note">
+      <h2>Правила</h2>
+      <ul>
+        <li><b>Гость</b> видит все четыре вкладки. Закрытые вкладки показывают приглашение войти, а не экран входа сразу: переключаться между вкладками можно свободно.</li>
+        <li>Детальные экраны (заказ, осмотр, форма) открываются <b>поверх вкладки</b>, панель под ними остаётся. «Назад» возвращает внутри вкладки.</li>
+        <li>Повторное нажатие на активную вкладку возвращает к её началу.</li>
+        <li>После создания заказа с витрины приложение <b>переключается</b> на «Мои заказы», а не открывает их поверх.</li>
+      </ul>
+    </section>
+
+    <section class="note">
+      <h2>Старт</h2>
+<pre class="flow"><b>Что вас сюда привело?</b>
+ ├ Ищу автомобиль       → вкладка <b>Мои заказы</b>
+ ├ Беру заказы на подбор → вкладка <b>Заказы рядом</b>
+ └ Просто посмотрю      → вкладка <b>Витрина</b></pre>
+    </section>
+  </aside>
+</main>
+
+<script>
+const I = {
+  feed: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  mine: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg>',
+  work: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  me: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  lock: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  map: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/></svg>',
+  search: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>',
+  gear: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  shield: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/></svg>',
+  quiz: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/></svg>',
+  exit: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg>',
+  plus: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+};
+
+const TABS = [
+  { id: 'feed', label: 'Витрина', tone: '', open: true },
+  { id: 'mine', label: 'Мои заказы', tone: 'buy', badge: 3 },
+  { id: 'work', label: 'Рядом', tone: 'work', badge: 12 },
+  { id: 'me', label: 'Профиль', tone: '' },
+];
+
+const state = { tab: 'mine', authed: true, mineSeg: 0, workSeg: 0, feedChip: 0 };
+
+const head = (eyebrow, title, action) => `
+  <div class="head">
+    <div class="head-text"><div class="head-eyebrow">${eyebrow}</div><div class="head-title">${title}</div></div>
+    ${action || ''}
+  </div>`;
+const btn = (icon, hint) => `<button class="sq" data-toast="${hint}" aria-label="${hint}">${icon}</button>`;
+
+function feedView() {
+  const chips = ['Все', 'В работе', 'Выполнены'];
+  return `
+    ${head('без регистрации · Москва', 'Что происходит сейчас', btn(I.search, 'Поиск по ленте'))}
+    <div class="body">
+      <div class="stats">
+        <div class="stat"><b>2</b><span>выполнено</span></div>
+        <div class="stat"><b style="color:var(--st-progress)">2</b><span>в работе</span></div>
+        <div class="stat"><b style="color:var(--st-done)">7</b><span>осмотров</span></div>
+      </div>
+      <div class="chips">${chips.map((c, i) => `<button class="chip ${i === state.feedChip ? 'on' : ''}" data-feedchip="${i}">${c}</button>`).join('')}</div>
+      <button class="card" data-toast="PublicOrderScreen откроется поверх вкладки — панель остаётся">
+        <div class="card-top"><span class="pill info">на осмотре</span><span class="kind">3-й вариант</span></div>
+        <div class="card-title">Toyota Camry 2018+</div>
+        <div class="card-sub">Москва · до 2 400 000 ₽</div>
+        <div class="bar"><i style="width:69%"></i></div>
+        <div class="card-sub">Проверено 9 из 13 деталей</div>
+        <div class="card-foot"><span class="who"><span class="ava">МК</span>Максим К. <span class="muted">· 14 заказов</span></span></div>
+      </button>
+      <button class="card" data-toast="PublicOrderScreen откроется поверх вкладки — панель остаётся">
+        <div class="card-top"><span class="pill done">выполнен</span><span class="kind">1-й вариант</span></div>
+        <div class="card-title">Kia Sportage 2021+</div>
+        <div class="card-sub">Химки · до 3 100 000 ₽</div>
+        <div class="bar"><i style="width:100%"></i></div>
+        <div class="card-sub">Проверено 13 из 13 деталей</div>
+        <div class="card-foot"><span class="who"><span class="ava">ИВ</span>Игорь В. <span class="muted">· 1 заказ</span></span></div>
+      </button>
+      <button class="card" data-toast="PublicOrderScreen откроется поверх вкладки — панель остаётся">
+        <div class="card-top"><span class="pill done">выполнен</span><span class="kind">1-й вариант</span></div>
+        <div class="card-title">Mazda CX-5 2020+</div>
+        <div class="card-sub">Санкт-Петербург · до 2 600 000 ₽</div>
+      </button>
+    </div>
+    <div class="cta"><button data-action="place">Разместить заказ</button></div>`;
+}
+
+function mineView() {
+  const active = state.mineSeg === 0;
+  const list = active ? `
+      <div class="section"><span>Осмотры</span><i>по дате</i></div>
+      <button class="card" data-toast="InspectionOrderDetailScreen поверх вкладки">
+        <div class="card-top"><span class="pill">назначен</span><span class="kind">осмотр #8</span></div>
+        <div class="card-title">Kia Rio 2019 <span>· 64 000 км</span></div>
+        <div class="card-sub">Завтра, 16:00 · Химки, ул. Ленина, 5</div>
+        <div class="card-foot"><span class="who"><span class="ava">МК</span>Максим К. · приедет</span><span class="money">4 000 ₽</span></div>
+      </button>
+      <button class="card" data-toast="Бейдж «3» на вкладке — это новые отклики здесь">
+        <div class="card-top"><span class="pill prog">3 новых отклика</span><span class="kind">осмотр #9</span></div>
+        <div class="card-title">BMW X3 2017 <span>· 112 000 км</span></div>
+        <div class="card-sub">Сб, 19 сентября · днём · Москва, Варшавское ш., 170</div>
+        <div class="card-foot"><span class="who muted">3 отклика</span><span class="money">от 3 000 ₽</span></div>
+      </button>
+      <div class="section"><span>Подборы</span></div>
+      <button class="card" data-toast="OrderDetailScreen поверх вкладки">
+        <div class="card-top"><span class="pill info">на осмотре</span><span class="kind">подбор #1</span></div>
+        <div class="card-title">Toyota Camry 2018+</div>
+        <div class="card-sub">Москва · до 2 400 000 ₽ · Без ДТП</div>
+        <div class="card-foot"><span class="who"><span class="ava">МК</span>Максим К.</span><span class="money">12 000 ₽</span></div>
+      </button>` : `
+      <button class="card" data-toast="InspectionOrderDetailScreen поверх вкладки">
+        <div class="card-top"><span class="pill done">можно брать</span><span class="kind">осмотр #11</span></div>
+        <div class="card-title">Hyundai Creta 2021 <span>· 38 000 км</span></div>
+        <div class="card-sub">12 сентября · Москва, Профсоюзная, 56</div>
+        <div class="card-foot"><span class="who"><span class="ava">СП</span>Сергей П.</span><span class="money">3 500 ₽</span></div>
+      </button>
+      <button class="card" data-toast="OrderDetailScreen поверх вкладки">
+        <div class="card-top"><span class="pill done">выполнен</span><span class="kind">подбор #4</span></div>
+        <div class="card-title">Kia Sportage 2021+</div>
+        <div class="card-sub">Химки · до 3 100 000 ₽</div>
+        <div class="card-foot"><span class="who"><span class="ava">ИВ</span>Игорь В.</span><span class="money">15 000 ₽</span></div>
+      </button>`;
+  return `
+    ${head('Андрей С.', 'Мои заказы')}
+    <div class="body">
+      <div class="seg">
+        <button class="${active ? 'on' : ''}" data-mineseg="0">Активные <span class="count">7</span></button>
+        <button class="${active ? '' : 'on'}" data-mineseg="1">Завершённые</button>
+      </div>
+      ${list}
+    </div>
+    <div class="cta"><button data-action="new">${I.plus} Новый заказ</button></div>`;
+}
+
+function workView() {
+  const free = state.workSeg === 0;
+  const list = free ? `
+      <div class="chips"><button class="chip on">Все · 12</button><button class="chip" data-toast="Фильтр: откликов ≤ 2">Мало откликов</button></div>
+      ${[
+        ['подбор', 'Hyundai Solaris 2019+', 'Казань · до 1 200 000 ₽', 'от 9 000 ₽', '1 отклик'],
+        ['осмотр', 'BMW X3 2017 <span>· 112 000 км</span>', 'Сб, 19 сентября · Москва', 'от 3 000 ₽', '3 отклика'],
+        ['подбор', 'Skoda Kodiaq 2020+', 'Москва · до 3 000 000 ₽', 'предлагаете вы', 'нет откликов'],
+      ].map(([k, t, s, m, r]) => `
+      <div class="card">
+        <div class="card-top"><span class="pill">ждёт исполнителя</span><span class="kind">${k}</span></div>
+        <div class="card-title">${t}</div>
+        <div class="card-sub">${s}</div>
+        <div class="card-foot"><span class="who muted">${r} · <span class="money work">${m}</span></span><button class="respond" data-toast="Лист отклика (respond_sheet)">Откликнуться</button></div>
+      </div>`).join('')}` : `
+      <div class="section"><span>В работе</span></div>
+      <button class="card" data-toast="OrderDetailScreen исполнителя поверх вкладки">
+        <div class="card-top"><span class="pill info">на осмотре</span><span class="kind">подбор #1</span></div>
+        <div class="card-title">Toyota Camry 2018+</div>
+        <div class="card-sub">Заказчик Андрей С. · Москва</div>
+        <div class="bar"><i style="width:69%"></i></div>
+        <div class="card-foot"><span class="who muted">Осмотр: 9 из 13 деталей</span><span class="money work">12 000 ₽</span></div>
+      </button>
+      <button class="card" data-toast="StartInspectionScreen поверх вкладки">
+        <div class="card-top"><span class="pill">назначен</span><span class="kind">осмотр #8</span></div>
+        <div class="card-title">Kia Rio 2019 <span>· 64 000 км</span></div>
+        <div class="card-sub">Завтра, 16:00 · Химки, ул. Ленина, 5</div>
+        <div class="card-foot"><span class="who muted">Начать осмотр</span><span class="money work">4 000 ₽</span></div>
+      </button>`;
+  return `
+    ${head('Москва · вы исполнитель', 'Заказы рядом', btn(I.map, 'AvailableOrdersScreen — заказы на карте'))}
+    <div class="body">
+      <div class="seg work">
+        <button class="${free ? 'on' : ''}" data-workseg="0">Свободные <span class="count">12</span></button>
+        <button class="${free ? '' : 'on'}" data-workseg="1">Взятые <span class="count">2</span></button>
+      </div>
+      ${list}
+    </div>`;
+}
+
+function meView() {
+  return `
+    ${head('аккаунт', 'Профиль', btn(I.gear, 'Настройки'))}
+    <div class="body">
+      <div class="me"><span class="ava">АС</span><div><b>Андрей С.</b><div>+7 900 000-00-02 · с сентября 2026</div></div></div>
+      <div class="rows">
+        <div class="row"><span class="ic buy">${I.mine}</span><span class="t">Заказано<small>11 заказов · 7 в работе</small></span></div>
+        <div class="row"><span class="ic work">${I.work}</span><span class="t">Выполнено<small>2 взято · 0 завершено</small></span></div>
+      </div>
+      <div class="rows">
+        <button class="row" data-toast="VerificationScreen поверх вкладки">
+          <span class="ic">${I.shield}</span>
+          <span class="t">Верификация исполнителя<small>2 из 4 шагов</small>
+            <span class="steps"><i class="ok"></i><i class="ok"></i><i class="wait"></i><i></i></span></span>
+          <span class="v">›</span>
+        </button>
+        <button class="row" data-toast="QuizScreen поверх вкладки"><span class="ic">${I.quiz}</span><span class="t">Тест на знание дефектов<small>10 вопросов</small></span><span class="v">›</span></button>
+      </div>
+      <div class="rows">
+        <button class="row" data-action="logout"><span class="ic">${I.exit}</span><span class="t" style="color:var(--st-defect)">Выйти</span></button>
+      </div>
+    </div>`;
+}
+
+function gateView(tab) {
+  const copy = {
+    mine: ['Ваши заказы появятся здесь', 'Войдите по номеру телефона, чтобы разместить подбор или осмотр и следить за откликами.', ''],
+    work: ['Заказы рядом — после входа', 'Войдите, чтобы видеть свободные заказы, откликаться и вести взятые осмотры.', 'work'],
+    me: ['Профиль', 'Один аккаунт на всё: заказывайте подбор и берите чужие заказы, когда захотите.', ''],
+  }[tab];
+  return `
+    <div class="gate ${copy[2]}">
+      <div class="big">${I[tab]}</div>
+      <h3>${copy[0]}</h3>
+      <p>${copy[1]}</p>
+      <button class="go" data-action="login">Войти по номеру</button>
+      <button class="alt" data-go="feed">Посмотреть витрину</button>
+    </div>`;
+}
+
+const $ = (s) => document.querySelector(s);
+let toastTimer;
+function toast(text) {
+  const t = $('#toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function render() {
+  const { tab, authed } = state;
+  const locked = !authed && tab !== 'feed';
+  const views = { feed: feedView, mine: mineView, work: workView, me: meView };
+  $('#view').innerHTML = locked ? gateView(tab) : views[tab]();
+  $('#screen').className = 'screen ' + (tab === 'mine' ? 'tint-buy' : tab === 'work' ? 'tint-work' : '');
+  $('#tabbar').innerHTML = TABS.map((t) => {
+    const badge = authed && t.badge ? `<span class="badge ${t.tone}">${t.badge}</span>` : '';
+    const lock = !authed && !t.open ? `<span class="lock">${I.lock}</span>` : '';
+    return `<button class="tab ${t.tone}" role="tab" aria-selected="${t.id === tab}" data-go="${t.id}">
+      <span class="pic">${I[t.id]}${badge}${lock}</span>${t.label}</button>`;
+  }).join('');
+  document.querySelectorAll('#map tr').forEach((r) => r.classList.toggle('cur', r.dataset.tab === tab));
+  $('#as-user').setAttribute('aria-pressed', authed);
+  $('#as-guest').setAttribute('aria-pressed', !authed);
+}
+
+function setAuth(v) { state.authed = v; render(); }
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('button');
+  if (!el) return;
+  const d = el.dataset;
+  if (el.id === 'as-user') return setAuth(true);
+  if (el.id === 'as-guest') return setAuth(false);
+  if (d.go) {
+    if (d.go === state.tab && d.go !== 'feed') toast('Повторное нажатие — к началу вкладки');
+    state.tab = d.go; render(); $('#view .body')?.scrollTo(0, 0); return;
+  }
+  if (d.mineseg) { state.mineSeg = +d.mineseg; return render(); }
+  if (d.workseg) { state.workSeg = +d.workseg; return render(); }
+  if (d.feedchip) { state.feedChip = +d.feedchip; return render(); }
+  if (d.toast) return toast(d.toast);
+  switch (d.action) {
+    case 'place':
+      toast(state.authed
+        ? 'Лист «подбор / осмотр» → форма → после отправки переключаемся на «Мои заказы»'
+        : 'Гостю: лист «подбор / осмотр» → вход → форма');
+      break;
+    case 'new': toast('Лист «подбор / осмотр» (кадр 02) → форма поверх вкладки'); break;
+    case 'login': toast('PhoneLoginScreen → после входа остаёмся на этой же вкладке'); setTimeout(() => setAuth(true), 900); break;
+    case 'logout': toast('Выход → вкладка «Витрина»'); state.tab = 'feed'; setAuth(false); break;
+  }
+});
+
+render();
+</script>

@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подбор авто — эксперимент: открытая витрина и две роли</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0B0D10;
+    --bg-1: #15181D;
+    --bg-2: #1E2228;
+    --bg-3: #262B33;
+    --line: #2A2F37;
+    --text-1: #F2F4F7;
+    --text-2: #8A93A1;
+    --text-3: #5B6371;
+
+    --st-none: #323843;
+    --st-progress: #F5A623;
+    --st-done: #5BC282;
+    --st-defect: #E94B3B;
+    --st-info: #4A9BE8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background:
+      radial-gradient(circle at 18% 25%, rgba(40, 50, 65, 0.4) 0%, transparent 45%),
+      radial-gradient(circle at 82% 75%, rgba(50, 40, 60, 0.3) 0%, transparent 45%),
+      #0B0D10;
+    color: var(--text-1);
+    min-height: 100vh;
+    padding: 48px 20px;
+  }
+
+  .intro { max-width: 760px; margin: 0 auto 40px; text-align: center; }
+  .intro-eyebrow {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .intro-title { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin: 10px 0 8px; }
+  .intro-sub { font-size: 14px; color: var(--text-2); max-width: 540px; margin: 0 auto; line-height: 1.55; }
+
+  .stage {
+    max-width: 1180px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 56px;
+    justify-content: center; align-items: flex-start;
+  }
+
+  .frame { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+  .frame-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--text-3); font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  }
+  .frame-note {
+    max-width: 340px; font-size: 11.5px; color: var(--text-3);
+    text-align: center; line-height: 1.5;
+  }
+
+  .group-band { flex-basis: 100%; text-align: center; padding: 8px 0 0; }
+  .group-band-title {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--text-2); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .group-band-sub { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+
+  .phone {
+    width: 340px; background: #1a1c20; border-radius: 48px; padding: 7px;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      0 50px 100px -20px rgba(0,0,0,0.7),
+      0 30px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .screen {
+    background: var(--bg-0); border-radius: 41px; overflow: hidden;
+    height: 720px; display: flex; flex-direction: column; position: relative;
+  }
+
+  .notch {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    width: 100px; height: 28px; background: #000; border-radius: 999px; z-index: 5;
+  }
+
+  .status-bar {
+    padding: 16px 28px 0; display: flex; justify-content: space-between;
+    align-items: center; font-size: 14px; font-weight: 600; color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-bar-icons { display: flex; gap: 6px; align-items: center; }
+  .signal { display: flex; align-items: flex-end; gap: 2px; }
+  .signal span { width: 3px; background: #fff; border-radius: 1px; }
+  .signal span:nth-child(1) { height: 4px; }
+  .signal span:nth-child(2) { height: 6px; }
+  .signal span:nth-child(3) { height: 8px; }
+  .signal span:nth-child(4) { height: 10px; opacity: 0.4; }
+  .battery {
+    width: 24px; height: 12px; border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 3px; position: relative; padding: 1px;
+  }
+  .battery::after {
+    content: ''; position: absolute; right: -3px; top: 3px; width: 2px; height: 4px;
+    background: rgba(255,255,255,0.6); border-radius: 0 1px 1px 0;
+  }
+  .battery::before {
+    content: ''; display: block; width: 80%; height: 100%; background: #fff; border-radius: 1px;
+  }
+
+  /* ============== Heads ============== */
+  .detail-head { padding: 18px 22px 14px; display: flex; align-items: center; gap: 12px; }
+  .back, .head-action {
+    width: 38px; height: 38px; background: var(--bg-1); border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-2); cursor: pointer; flex-shrink: 0;
+  }
+  .detail-head-text { flex: 1; min-width: 0; }
+  .detail-eyebrow {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .detail-title { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; margin: 3px 0 0; }
+  .detail-pos {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-3);
+    background: var(--bg-1); padding: 6px 10px; border-radius: 8px;
+  }
+
+  .scroll-body { flex: 1; overflow-y: auto; padding: 4px 22px 18px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  .section { margin-top: 22px; }
+  .section:first-child { margin-top: 6px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .section-title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600;
+  }
+  .section-extra { font-size: 11px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; }
+
+  /* ============== Toggle / chips ============== */
+  .toggle { margin: 0 22px 12px; display: flex; background: var(--bg-1); border-radius: 10px; padding: 3px; }
+  .toggle-btn {
+    flex: 1; padding: 8px; text-align: center; font-size: 12.5px; font-weight: 500;
+    color: var(--text-2); border-radius: 7px; cursor: pointer; transition: all 0.15s;
+  }
+  .toggle-btn.active {
+    background: var(--bg-3); color: var(--text-1); box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    background: var(--bg-1); border: 1px solid transparent; padding: 7px 12px;
+    border-radius: 999px; font-size: 12px; color: var(--text-2);
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+  }
+  .chip.on {
+    background: rgba(91,194,130,0.12); border-color: rgba(91,194,130,0.5); color: var(--st-done);
+  }
+
+  /* ============== CTA ============== */
+  .detail-cta { padding: 12px 20px 22px; border-top: 1px solid var(--line); }
+  .cta-primary {
+    width: 100%; background: var(--st-done); color: #07150E; border: none;
+    border-radius: 14px; padding: 15px 18px; font-size: 15px; font-weight: 600;
+    letter-spacing: -0.01em; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 8px; font-family: inherit;
+  }
+  .cta-primary.muted { background: var(--bg-3); color: var(--text-2); }
+  .cta-ghost {
+    width: 100%; background: transparent; color: var(--text-2); border: none;
+    padding: 12px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;
+  }
+  .cta-caption {
+    text-align: center; font-size: 10.5px; color: var(--text-3);
+    margin-top: 9px; line-height: 1.45;
+  }
+
+  /* ============== Pills / status ============== */
+  .pill {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 9px; border-radius: 999px; background: var(--bg-3); color: var(--text-2);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill.live { background: rgba(245,166,35,0.14); color: var(--st-progress); }
+  .pill.done { background: rgba(91,194,130,0.14); color: var(--st-done); }
+  .pill.check { background: rgba(74,155,232,0.14); color: var(--st-info); }
+
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ============== Public feed ============== */
+  .feed-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin: 0 22px 14px;
+  }
+  .fstat { background: var(--bg-1); border-radius: 12px; padding: 11px 8px; text-align: center; }
+  .fstat-num {
+    font-size: 17px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+  .fstat-cap { font-size: 9.5px; color: var(--text-3); margin-top: 2px; }
+
+  .feed-card {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 15px;
+    padding: 14px; margin-bottom: 9px; cursor: pointer; transition: background 0.15s;
+  }
+  .feed-card:hover { background: var(--bg-2); }
+
+  .feed-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .feed-time { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+
+  .feed-car { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 5px; }
+  .feed-meta { font-size: 12px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 3px 9px; }
+
+  .feed-result {
+    margin-top: 11px; background: var(--bg-0); border-radius: 11px; padding: 11px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .feed-result-ico {
+    width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(91,194,130,0.14); color: var(--st-done);
+  }
+  .feed-result-txt { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text-2); line-height: 1.4; }
+  .feed-result-txt b { color: var(--text-1); font-weight: 600; }
+  .feed-save {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--st-done); font-weight: 600; flex-shrink: 0;
+  }
+
+  .feed-progress { margin-top: 11px; }
+  .fp-bar { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; }
+  .fp-fill { height: 100%; background: var(--st-progress); border-radius: 2px; }
+  .fp-cap {
+    display: flex; justify-content: space-between; margin-top: 7px;
+    font-size: 11px; color: var(--text-3);
+  }
+
+  .feed-foot {
+    display: flex; align-items: center; gap: 9px; margin-top: 12px;
+    padding-top: 11px; border-top: 1px solid var(--line);
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #5a6470, #2c3138);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--text-1); flex-shrink: 0;
+  }
+  .avatar.lg { width: 54px; height: 54px; font-size: 17px; border-radius: 17px; }
+  .feed-exec { font-size: 12px; color: var(--text-2); flex: 1; min-width: 0; }
+  .feed-exec b { color: var(--text-1); font-weight: 600; }
+  .feed-rating {
+    font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+    color: var(--st-progress); display: flex; align-items: center; gap: 3px;
+  }
+
+  /* blurred teaser */
+  .locked { position: relative; }
+  .locked .locked-content { filter: blur(4.5px); opacity: 0.5; user-select: none; pointer-events: none; }
+  .locked-badge {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 7px; text-align: center;
+  }
+  .locked-ico {
+    width: 34px; height: 34px; border-radius: 11px; background: var(--bg-3);
+    border: 1px solid var(--line); color: var(--text-2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .locked-text { font-size: 11.5px; color: var(--text-2); font-weight: 500; max-width: 190px; line-height: 1.4; }
+
+  /* sticky join bar */
+  .join-bar {
+    padding: 12px 20px 20px; border-top: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(11,13,16,0.6), var(--bg-0));
+  }
+  .join-line {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 11px;
+    font-size: 11.5px; color: var(--text-2); line-height: 1.35;
+  }
+  .join-dots { display: flex; }
+  .join-dots .avatar { width: 22px; height: 22px; font-size: 8.5px; margin-right: -7px; border: 2px solid var(--bg-0); }
+
+  /* ============== Order detail (public) ============== */
+  .hero-block {
+    background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; margin-top: 4px;
+  }
+  .hero-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hero-label { font-size: 11px; color: var(--text-3); margin-bottom: 3px; }
+  .hero-val { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .hero-val.mono { font-family: 'JetBrains Mono', monospace; }
+  .hero-div { height: 1px; background: var(--line); margin: 13px 0; }
+
+  .tl-item { display: flex; gap: 11px; padding-bottom: 15px; position: relative; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: ''; position: absolute; left: 8px; top: 20px; bottom: 0;
+    width: 1.5px; background: var(--line);
+  }
+  .tl-item:last-child::before { display: none; }
+  .tl-dot {
+    width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+    background: var(--bg-3); border: 2px solid var(--bg-0);
+    display: flex; align-items: center; justify-content: center; z-index: 1;
+  }
+  .tl-dot.done { background: var(--st-done); color: #07150E; }
+  .tl-dot.now { background: var(--st-progress); }
+  .tl-body { flex: 1; min-width: 0; }
+  .tl-title { font-size: 13px; font-weight: 600; }
+  .tl-desc { font-size: 11.5px; color: var(--text-2); margin-top: 2px; line-height: 1.4; }
+  .tl-time { font-size: 10.5px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; margin-top: 3px; }
+
+  .car-thumbs { display: flex; gap: 7px; }
+  .car-thumb {
+    flex: 1; height: 62px; border-radius: 11px;
+    background: linear-gradient(135deg, #5a6470 0%, #2c3138 100%);
+  }
+  .car-thumb.b { background: linear-gradient(150deg, #4a5260 0%, #1f242c 100%); }
+  .car-thumb.c { background: linear-gradient(120deg, #667080 0%, #23282f 100%); }
+
+  /* ============== Dual role profile ============== */
+  .prof-head {
+    display: flex; align-items: center; gap: 14px; padding: 4px 0 6px;
+  }
+  .prof-name { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .prof-sub { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+
+  .role-block {
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 16px; padding: 15px; margin-bottom: 10px;
+  }
+  .role-block.active { border-color: rgba(91,194,130,0.45); background: rgba(91,194,130,0.05); }
+  .role-block.locked-role { border-style: dashed; }
+
+  .rb-top { display: flex; align-items: center; gap: 11px; }
+  .rb-ico {
+    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+    background: var(--bg-3); color: var(--text-2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .role-block.active .rb-ico { background: var(--st-done); color: #07150E; }
+  .rb-text { flex: 1; min-width: 0; }
+  .rb-name { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .rb-state { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+  .rb-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .rb-stats { display: flex; gap: 18px; }
+  .rb-stat-num { font-size: 16px; font-weight: 600; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.02em; }
+  .rb-stat-cap { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+  .rb-action {
+    width: 100%; margin-top: 12px; border: none; border-radius: 11px;
+    padding: 11px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; background: var(--bg-3); color: var(--text-1);
+  }
+  .rb-action.go { background: var(--st-done); color: #07150E; }
+
+  .mini-prog { height: 4px; background: var(--bg-0); border-radius: 2px; overflow: hidden; margin-top: 11px; }
+  .mini-prog span { display: block; height: 100%; background: var(--st-info); border-radius: 2px; }
+
+  /* ============== Verification ============== */
+  .verif-hero {
+    display: flex; align-items: center; gap: 16px; background: var(--bg-1);
+    border: 1px solid var(--line); border-radius: 18px; padding: 17px; margin-top: 4px;
+  }
+  .ring { width: 66px; height: 66px; position: relative; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; }
+  .ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring-val {
+    font-size: 15px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.02em;
+  }
+  .verif-txt { flex: 1; min-width: 0; }
+  .verif-title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+  .verif-desc { font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
+
+  .step {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 14px; padding: 13px 14px; margin-bottom: 8px;
+  }
+  .step.current { border-color: rgba(74,155,232,0.5); background: rgba(74,155,232,0.05); }
+  .step-mark {
+    width: 24px; height: 24px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-3); color: var(--text-3);
+  }
+  .step-mark.done { background: var(--st-done); color: #07150E; }
+  .step-mark.wait { background: rgba(245,166,35,0.16); color: var(--st-progress); }
+  .step-mark.now { background: var(--st-info); color: #04121F; }
+  .step-body { flex: 1; min-width: 0; }
+  .step-name { font-size: 13.5px; font-weight: 600; }
+  .step-desc { font-size: 11.5px; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+  .step-state {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-top: 6px; color: var(--text-3);
+  }
+  .step-state.ok { color: var(--st-done); }
+  .step-state.pending { color: var(--st-progress); }
+  .step-state.go { color: var(--st-info); }
+
+  .level-row { display: flex; gap: 7px; margin-top: 4px; }
+  .level {
+    flex: 1; background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 12px; padding: 11px 9px; text-align: center;
+  }
+  .level.on { border-color: var(--st-done); background: rgba(91,194,130,0.07); }
+  .level-name { font-size: 11.5px; font-weight: 600; }
+  .level-cap { font-size: 9.5px; color: var(--text-3); margin-top: 3px; line-height: 1.3; }
+
+  /* ============== Quiz / test task ============== */
+  .quiz-q {
+    background: var(--bg-1); border: 1px solid var(--line);
+    border-radius: 15px; padding: 15px; margin-top: 4px;
+  }
+  .quiz-num {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .quiz-text { font-size: 14.5px; font-weight: 500; line-height: 1.45; letter-spacing: -0.01em; }
+  .quiz-photo {
+    height: 96px; border-radius: 11px; margin-top: 12px; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #5a6470 0%, #2c3138 100%);
+  }
+  .quiz-photo::after {
+    content: ''; position: absolute; width: 62px; height: 5px; top: 52px; left: 30px;
+    background: rgba(245,166,35,0.55); transform: rotate(-14deg); border-radius: 3px;
+    box-shadow: 0 0 10px rgba(245,166,35,0.35);
+  }
+
+  .answer {
+    width: 100%; text-align: left; background: var(--bg-1);
+    border: 1.5px solid transparent; border-radius: 13px; padding: 13px 14px;
+    font-family: inherit; color: var(--text-1); font-size: 13.5px;
+    cursor: pointer; margin-bottom: 7px; display: flex; align-items: center; gap: 11px;
+    transition: all 0.15s;
+  }
+  .answer-key {
+    width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+    background: var(--bg-3); color: var(--text-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  }
+  .answer.on { background: rgba(74,155,232,0.09); border-color: var(--st-info); }
+  .answer.on .answer-key { background: var(--st-info); color: #04121F; }
+
+  .quiz-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--text-3); margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .quiz-bar { height: 3px; background: var(--bg-1); border-radius: 2px; margin-top: 7px; overflow: hidden; }
+  .quiz-bar span { display: block; height: 100%; background: var(--st-info); border-radius: 2px; }
+
+  .note-box {
+    background: rgba(74,155,232,0.07); border: 1px solid rgba(74,155,232,0.25);
+    border-radius: 13px; padding: 13px 14px; display: flex; gap: 11px; align-items: flex-start;
+  }
+  .note-ico { color: var(--st-info); flex-shrink: 0; margin-top: 1px; }
+  .note-txt { font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
+  .note-txt b { color: var(--text-1); font-weight: 600; }
+
+  @media (max-width: 760px) {
+    body { padding: 24px 12px; }
+    .stage { gap: 32px; }
+    .intro-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="intro">
+    <div class="intro-eyebrow">эксперимент · открытая витрина и единый аккаунт</div>
+    <h1 class="intro-title">Витрина без входа + две роли в одном аккаунте</h1>
+    <p class="intro-sub">Любой посетитель видит живую ленту заказов — что ищут, что уже нашли и сколько сэкономили. Регистрация нужна только для действия. После входа аккаунт один: заказывать можно сразу, брать заказы — после верификации компетенции.</p>
+  </div>
+
+  <div class="stage">
+
+    <div class="group-band">
+      <div class="group-band-title">без авторизации</div>
+      <div class="group-band-sub">Витрина работает как воронка: видно результат, скрыты детали и контакты</div>
+    </div>
+
+    <!-- ===================== 01 · Public feed ===================== -->
+    <div class="frame">
+      <div class="frame-label">01 · витрина</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">без регистрации</div>
+              <h2 class="detail-title">Что происходит сейчас</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </div>
+          </div>
+
+          <div class="feed-stats">
+            <div class="fstat">
+              <div class="fstat-num">1 284</div>
+              <div class="fstat-cap">заказов выполнено</div>
+            </div>
+            <div class="fstat">
+              <div class="fstat-num" style="color:var(--st-progress)">37</div>
+              <div class="fstat-cap">в работе сейчас</div>
+            </div>
+            <div class="fstat">
+              <div class="fstat-num" style="color:var(--st-done)">218К</div>
+              <div class="fstat-cap">средняя экономия</div>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <div class="toggle-btn active">Все</div>
+            <div class="toggle-btn">В работе</div>
+            <div class="toggle-btn">Выполнены</div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="feed-card">
+              <div class="feed-top">
+                <span class="pill live"><span class="live-dot"></span>идёт осмотр</span>
+                <span class="feed-time">15 мин назад</span>
+              </div>
+              <div class="feed-car">Toyota Camry 2018–2020</div>
+              <div class="feed-meta"><span>Москва</span><span>·</span><span>до 2 400 000 ₽</span></div>
+              <div class="feed-progress">
+                <div class="fp-bar"><span class="fp-fill" style="width:72%;display:block"></span></div>
+                <div class="fp-cap"><span>Проверено 9 из 13 деталей</span><span>3-й вариант</span></div>
+              </div>
+              <div class="feed-foot">
+                <div class="avatar">МК</div>
+                <div class="feed-exec"><b>Максим К.</b> · 84 заказа</div>
+                <div class="feed-rating">★ 4.9</div>
+              </div>
+            </div>
+
+            <div class="feed-card">
+              <div class="feed-top">
+                <span class="pill done">выполнен</span>
+                <span class="feed-time">вчера</span>
+              </div>
+              <div class="feed-car">Kia Sportage 2021</div>
+              <div class="feed-meta"><span>Химки</span><span>·</span><span>бюджет 3 100 000 ₽</span></div>
+              <div class="feed-result">
+                <div class="feed-result-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="feed-result-txt">Куплен за <b>2 815 000 ₽</b><br>Проверено 11 машин, 4 отклонены</div>
+                <div class="feed-save">−285К</div>
+              </div>
+              <div class="feed-foot">
+                <div class="avatar">ИВ</div>
+                <div class="feed-exec"><b>Игорь В.</b> · 156 заказов</div>
+                <div class="feed-rating">★ 5.0</div>
+              </div>
+            </div>
+
+            <div class="feed-card">
+              <div class="feed-top">
+                <span class="pill live"><span class="live-dot"></span>идёт подбор</span>
+                <span class="feed-time">2 часа назад</span>
+              </div>
+              <div class="feed-car">Volkswagen Tiguan 2019+</div>
+              <div class="feed-meta"><span>Тула</span><span>·</span><span>до 2 000 000 ₽</span></div>
+              <div class="feed-progress">
+                <div class="fp-bar"><span class="fp-fill" style="width:34%;display:block"></span></div>
+                <div class="fp-cap"><span>Найдено 5 вариантов</span><span>осмотров: 1</span></div>
+              </div>
+              <div class="feed-foot">
+                <div class="avatar">ДП</div>
+                <div class="feed-exec"><b>Денис П.</b> · 41 заказ</div>
+                <div class="feed-rating">★ 4.8</div>
+              </div>
+            </div>
+
+            <div class="feed-card">
+              <div class="feed-top">
+                <span class="pill done">выполнен</span>
+                <span class="feed-time">3 дня назад</span>
+              </div>
+              <div class="feed-car">Mazda CX-5 2020</div>
+              <div class="feed-meta"><span>Санкт-Петербург</span><span>·</span><span>бюджет 2 600 000 ₽</span></div>
+              <div class="feed-result">
+                <div class="feed-result-ico">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="feed-result-txt">Куплен за <b>2 390 000 ₽</b><br>Скрытый ремонт найден у 2 машин</div>
+                <div class="feed-save">−210К</div>
+              </div>
+              <div class="feed-foot">
+                <div class="avatar">АЛ</div>
+                <div class="feed-exec"><b>Артём Л.</b> · 73 заказа</div>
+                <div class="feed-rating">★ 4.9</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="join-bar">
+            <div class="join-line">
+              <div class="join-dots">
+                <div class="avatar">МК</div>
+                <div class="avatar">ИВ</div>
+                <div class="avatar">ДП</div>
+              </div>
+              <span>312 подборщиков онлайн · средний отклик 8 минут</span>
+            </div>
+            <button class="cta-primary">Разместить заказ</button>
+            <div class="cta-caption">Вход по номеру телефона · бесплатно, оплата только за результат</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 02 · Public order detail ===================== -->
+    <div class="frame">
+      <div class="frame-label">02 · заказ · открытый просмотр</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:43</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">заказ #1974 · выполнен</div>
+              <h2 class="detail-title">Kia Sportage 2021</h2>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="hero-block">
+              <div class="hero-row">
+                <div>
+                  <div class="hero-label">Бюджет заказчика</div>
+                  <div class="hero-val mono">3 100 000 ₽</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="hero-label">Итоговая покупка</div>
+                  <div class="hero-val mono" style="color:var(--st-done)">2 815 000 ₽</div>
+                </div>
+              </div>
+              <div class="hero-div"></div>
+              <div class="hero-row">
+                <div>
+                  <div class="hero-label">Срок подбора</div>
+                  <div class="hero-val">9 дней</div>
+                </div>
+                <div style="text-align:center">
+                  <div class="hero-label">Осмотрено</div>
+                  <div class="hero-val">11 авто</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="hero-label">Отклонено</div>
+                  <div class="hero-val" style="color:var(--st-defect)">4</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Как шла работа</div>
+              </div>
+
+              <div class="tl-item">
+                <div class="tl-dot done">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-title">Заказ размещён</div>
+                  <div class="tl-desc">Кроссовер до 3.1 млн, без ДТП, 1–2 владельца</div>
+                  <div class="tl-time">21 июля</div>
+                </div>
+              </div>
+
+              <div class="tl-item">
+                <div class="tl-dot done">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-title">Отклики подборщиков</div>
+                  <div class="tl-desc">7 откликов за 40 минут, выбран Игорь В.</div>
+                  <div class="tl-time">21 июля</div>
+                </div>
+              </div>
+
+              <div class="tl-item">
+                <div class="tl-dot done">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-title">Осмотры на месте</div>
+                  <div class="tl-desc">11 машин с фотоотчётом, 4 отклонены: скрытый ремонт, скрученный пробег</div>
+                  <div class="tl-time">22–29 июля</div>
+                </div>
+              </div>
+
+              <div class="tl-item">
+                <div class="tl-dot done">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="tl-body">
+                  <div class="tl-title">Торг и сделка</div>
+                  <div class="tl-desc">Сбито 285 000 ₽ по результатам осмотра</div>
+                  <div class="tl-time">30 июля</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Фото осмотра</div>
+                <div class="section-extra">24 снимка</div>
+              </div>
+              <div class="locked">
+                <div class="locked-content">
+                  <div class="car-thumbs">
+                    <div class="car-thumb"></div>
+                    <div class="car-thumb b"></div>
+                    <div class="car-thumb c"></div>
+                  </div>
+                </div>
+                <div class="locked-badge">
+                  <div class="locked-ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                  </div>
+                  <div class="locked-text">Полный отчёт и фото — после входа</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Исполнитель</div>
+              </div>
+              <div class="hero-block" style="margin-top:0">
+                <div class="prof-head" style="padding:0">
+                  <div class="avatar lg">ИВ</div>
+                  <div class="detail-head-text">
+                    <div class="prof-name" style="font-size:16px">Игорь В.</div>
+                    <div class="prof-sub">156 заказов · ★ 5.0 · Москва и область</div>
+                  </div>
+                </div>
+                <div class="hero-div"></div>
+                <div class="chips">
+                  <span class="chip on" style="cursor:default">Верифицирован</span>
+                  <span class="chip" style="cursor:default">Эксперт-уровень</span>
+                  <span class="chip" style="cursor:default">Кроссоверы</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="join-bar">
+            <button class="cta-primary">Хочу такой же подбор</button>
+            <div class="cta-caption">Или войдите, чтобы открыть отчёт целиком и написать исполнителю</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="group-band">
+      <div class="group-band-title">после входа · один аккаунт</div>
+      <div class="group-band-sub">Заказывать можно сразу. Брать заказы — после проверки компетенции</div>
+    </div>
+
+    <!-- ===================== 03 · Dual role profile ===================== -->
+    <div class="frame">
+      <div class="frame-label">03 · профиль · две роли</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>10:02</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">аккаунт</div>
+              <h2 class="detail-title">Профиль</h2>
+            </div>
+            <div class="head-action">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9.4a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+            </div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="prof-head">
+              <div class="avatar lg">АС</div>
+              <div style="flex:1;min-width:0">
+                <div class="prof-name">Андрей С.</div>
+                <div class="prof-sub">+7 925 431 68 12 · с марта 2026</div>
+              </div>
+            </div>
+
+            <div class="note-box" style="margin-top:14px">
+              <span class="note-ico">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+              </span>
+              <span class="note-txt">Аккаунт один — <b>роли не разделены</b>. Вы можете заказывать подбор и одновременно выполнять чужие заказы.</span>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Ваши возможности</div>
+              </div>
+
+              <div class="role-block active">
+                <div class="rb-top">
+                  <div class="rb-ico">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                  </div>
+                  <div class="rb-text">
+                    <div class="rb-name">Заказывать подбор</div>
+                    <div class="rb-state">Доступно сразу · без проверок</div>
+                  </div>
+                </div>
+                <div class="rb-body">
+                  <div class="rb-stats">
+                    <div>
+                      <div class="rb-stat-num">3</div>
+                      <div class="rb-stat-cap">заказа</div>
+                    </div>
+                    <div>
+                      <div class="rb-stat-num">1</div>
+                      <div class="rb-stat-cap">в работе</div>
+                    </div>
+                    <div>
+                      <div class="rb-stat-num" style="color:var(--st-done)">218К</div>
+                      <div class="rb-stat-cap">сэкономлено</div>
+                    </div>
+                  </div>
+                  <button class="rb-action go">Мои заказы</button>
+                </div>
+              </div>
+
+              <div class="role-block locked-role">
+                <div class="rb-top">
+                  <div class="rb-ico">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                  </div>
+                  <div class="rb-text">
+                    <div class="rb-name">Выполнять заказы</div>
+                    <div class="rb-state">Нужна верификация · 2 из 4 шагов</div>
+                  </div>
+                </div>
+                <div class="mini-prog"><span style="width:50%"></span></div>
+                <div class="rb-body">
+                  <div class="verif-desc" style="font-size:11.5px;color:var(--text-2);line-height:1.45">
+                    Мы проверяем личность и умение находить дефекты — заказчики доверяют подборщику свои деньги.
+                  </div>
+                  <button class="rb-action">Продолжить верификацию</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Смотреть заказы</div>
+                <div class="section-extra">доступно всем</div>
+              </div>
+              <div class="chips">
+                <span class="chip on" style="cursor:default">Витрина заказов</span>
+                <span class="chip" style="cursor:default">Рейтинг подборщиков</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 04 · Verification checklist ===================== -->
+    <div class="frame">
+      <div class="frame-label">04 · верификация исполнителя</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>10:05</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">доступ к заказам</div>
+              <h2 class="detail-title">Верификация</h2>
+            </div>
+            <div class="detail-pos">2 / 4</div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="verif-hero">
+              <div class="ring">
+                <svg width="66" height="66" viewBox="0 0 66 66">
+                  <circle cx="33" cy="33" r="28" fill="none" stroke="var(--bg-3)" stroke-width="5"/>
+                  <circle cx="33" cy="33" r="28" fill="none" stroke="var(--st-info)" stroke-width="5"
+                          stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="88"/>
+                </svg>
+                <span class="ring-val">50%</span>
+              </div>
+              <div class="verif-txt">
+                <div class="verif-title">Осталось два шага</div>
+                <div class="verif-desc">После проверки вы получите доступ к заказам и значок «Верифицирован» в профиле.</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Шаги проверки</div>
+              </div>
+
+              <div class="step">
+                <div class="step-mark done">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="step-body">
+                  <div class="step-name">Личность</div>
+                  <div class="step-desc">Паспорт и селфи, сверка с данными телефона</div>
+                  <div class="step-state ok">Пройдено · 2 августа</div>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-mark done">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div class="step-body">
+                  <div class="step-name">Опыт и специализация</div>
+                  <div class="step-desc">Марки, регион работы, ссылки на прошлые отчёты</div>
+                  <div class="step-state ok">Пройдено · 3 августа</div>
+                </div>
+              </div>
+
+              <div class="step current">
+                <div class="step-mark now">3</div>
+                <div class="step-body">
+                  <div class="step-name">Тест на дефекты</div>
+                  <div class="step-desc">15 фотографий кузова и агрегатов — найдите и назовите повреждения. Порог — 12 верных из 15.</div>
+                  <div class="step-state go">Начать · ~12 минут</div>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-mark">4</div>
+                <div class="step-body">
+                  <div class="step-name">Пробный осмотр</div>
+                  <div class="step-desc">Один реальный заказ под наблюдением куратора. Оплата обычная, отчёт проверяется вручную.</div>
+                  <div class="step-state">Откроется после теста</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-head">
+                <div class="section-title">Уровни доступа</div>
+                <div class="section-extra">растут с рейтингом</div>
+              </div>
+              <div class="level-row">
+                <div class="level on">
+                  <div class="level-name">Новичок</div>
+                  <div class="level-cap">заказы до 1.5 млн</div>
+                </div>
+                <div class="level">
+                  <div class="level-name">Профи</div>
+                  <div class="level-cap">от 20 заказов, ★ 4.7</div>
+                </div>
+                <div class="level">
+                  <div class="level-name">Эксперт</div>
+                  <div class="level-cap">от 100 заказов, ★ 4.9</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="note-box">
+                <span class="note-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.4 8.5-8 9.9C7.4 20.5 4 17 4 12V7z"/></svg>
+                </span>
+                <span class="note-txt">Верификация <b>бесплатна</b> и проходится один раз. При жалобах заказчиков статус можно потерять и пересдать.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="detail-cta">
+            <button class="cta-primary">Пройти тест на дефекты</button>
+            <button class="cta-ghost">Позже · вернуться к заказам</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== 05 · Competence test ===================== -->
+    <div class="frame">
+      <div class="frame-label">05 · тест на дефекты</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>10:09</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="detail-head">
+            <div class="back">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </div>
+            <div class="detail-head-text">
+              <div class="detail-eyebrow">шаг 3 из 4</div>
+              <h2 class="detail-title">Тест на дефекты</h2>
+            </div>
+            <div class="detail-pos">08:14</div>
+          </div>
+
+          <div class="scroll-body">
+
+            <div class="quiz-q">
+              <div class="quiz-num">Вопрос 7 из 15</div>
+              <div class="quiz-text">Толщиномер на переднем правом крыле показывает 340 мкм, на соседних панелях — 110–130 мкм. О чём это говорит?</div>
+              <div class="quiz-photo"></div>
+            </div>
+
+            <div class="section">
+              <button class="answer">
+                <span class="answer-key">A</span>
+                <span>Заводская окраска, разброс в норме</span>
+              </button>
+              <button class="answer on">
+                <span class="answer-key">B</span>
+                <span>Перекрас панели, возможен ремонт после удара</span>
+              </button>
+              <button class="answer">
+                <span class="answer-key">C</span>
+                <span>Плёнка или антигравийное покрытие</span>
+              </button>
+              <button class="answer">
+                <span class="answer-key">D</span>
+                <span>Ошибка прибора, нужна перекалибровка</span>
+              </button>
+
+              <div class="quiz-foot">
+                <span>верных: 6 из 6</span>
+                <span>порог 12 / 15</span>
+              </div>
+              <div class="quiz-bar"><span style="width:47%"></span></div>
+            </div>
+
+            <div class="section">
+              <div class="note-box">
+                <span class="note-ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+                </span>
+                <span class="note-txt">Вопросы собраны из реальных осмотров. Пересдать можно через <b>48 часов</b>, попыток не больше трёх подряд.</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="detail-cta">
+            <button class="cta-primary">
+              Следующий вопрос
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.parentElement.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.answer').forEach(a => {
+      a.addEventListener('click', () => {
+        a.parentElement.querySelectorAll('.answer').forEach(b => b.classList.remove('on'));
+        a.classList.add('on');
+      });
+    });
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => chip.classList.toggle('on'));
+    });
+  </script>
+</body>
+</html>
