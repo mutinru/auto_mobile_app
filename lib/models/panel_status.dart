@@ -10,11 +10,11 @@ import '../theme/app_colors.dart';
 enum PanelStatus { none, inProgress, done, defect }
 
 extension PanelStatusX on PanelStatus {
-  Color get color => switch (this) {
-        PanelStatus.none => AppColors.statusNone,
-        PanelStatus.inProgress => AppColors.statusProgress,
-        PanelStatus.done => AppColors.statusDone,
-        PanelStatus.defect => AppColors.statusDefect,
+  Color color(AppColors c) => switch (this) {
+        PanelStatus.none => c.statusNone,
+        PanelStatus.inProgress => c.statusProgress,
+        PanelStatus.done => c.statusDone,
+        PanelStatus.defect => c.statusDefect,
       };
 
   String get label => switch (this) {

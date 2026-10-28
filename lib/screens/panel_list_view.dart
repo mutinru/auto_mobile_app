@@ -17,30 +17,59 @@ class PanelListView extends StatelessWidget {
     super.key,
     required this.panels,
     required this.onTap,
+    this.embedded = false,
+    this.forCustomer = false,
   });
 
   final List<InspectionPanel> panels;
   final ValueChanged<InspectionPanel> onTap;
 
+  /// Внутри чужой прокрутки (отчёт заказчику): без своего скролла и отступов.
+  final bool embedded;
+
+  /// Заказчику важно не «что осталось сделать», а в каком состоянии
+  /// машина — группируем по оценке, а не по ходу работы.
+  final bool forCustomer;
+
+  List<(String, List<InspectionPanel>)> _byWork() => [
+    (
+      'Требует внимания',
+      panels
+          .where(
+            (p) =>
+                p.status == PanelStatus.defect ||
+                p.status == PanelStatus.inProgress,
+          )
+          .toList(),
+    ),
+    ('Не начато', panels.where((p) => p.status == PanelStatus.none).toList()),
+    ('Готово', panels.where((p) => p.status == PanelStatus.done).toList()),
+  ];
+
+  List<(String, List<InspectionPanel>)> _byCondition() {
+    List<InspectionPanel> having(Set<PanelCondition?> conditions) =>
+        panels.where((p) => conditions.contains(p.condition)).toList();
+    return [
+      ('К ремонту', having({PanelCondition.needsRepair})),
+      ('Есть замечания', having({PanelCondition.satisfactory})),
+      ('В порядке', having({PanelCondition.excellent, PanelCondition.good})),
+      ('Не оценено', having({null})),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final attention = panels
-        .where((p) =>
-            p.status == PanelStatus.defect || p.status == PanelStatus.inProgress)
+    final groups = (forCustomer ? _byCondition() : _byWork())
+        .where((g) => g.$2.isNotEmpty)
         .toList();
-    final notStarted =
-        panels.where((p) => p.status == PanelStatus.none).toList();
-    final done = panels.where((p) => p.status == PanelStatus.done).toList();
-
-    final groups = <(String, List<InspectionPanel>)>[
-      ('Требует внимания', attention),
-      ('Не начато', notStarted),
-      ('Готово', done),
-    ].where((g) => g.$2.isNotEmpty).toList();
 
     return ListView(
+      shrinkWrap: embedded,
+      physics: embedded ? const NeverScrollableScrollPhysics() : null,
       // .scroll-body { padding: 4px 22px 18px }
-      padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+      padding: embedded
+          ? EdgeInsets.zero
+          : const EdgeInsets.fromLTRB(22, 4, 22, 18),
       children: [
         for (final (title, items) in groups) ...[
           // .list-group-head
@@ -51,8 +80,8 @@ class PanelListView extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title.toUpperCase(), style: AppText.sectionTitle),
-                Text('${items.length}', style: AppText.sectionExtra),
+                Text(title.toUpperCase(), style: context.text.sectionTitle),
+                Text('${items.length}', style: context.text.sectionExtra),
               ],
             ),
           ),
@@ -80,13 +109,13 @@ class _PanelRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.bg1,
+          color: context.colors.bg1,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             // .list-dot — квадратик 8×8 с радиусом 2, как в макете
-            StatusDot(color: panel.status.color, size: 8),
+            StatusDot(color: panel.status.color(context.colors), size: 8),
             const SizedBox(width: 11),
             Expanded(
               child: Column(
@@ -94,24 +123,24 @@ class _PanelRow extends StatelessWidget {
                 children: [
                   Text(
                     panel.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.text1,
+                      color: context.colors.text1,
                     ),
                   ),
                   // зоны в макете нет, но без неё теряется, где деталь
                   const SizedBox(height: 2),
                   Text(
                     panel.zone,
-                    style: const TextStyle(fontSize: 10.5, color: AppColors.text3),
+                    style: TextStyle(fontSize: 10.5, color: context.colors.text3),
                   ),
                 ],
               ),
             ),
             _Trailing(panel: panel),
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, size: 14, color: AppColors.text3),
+            Icon(Icons.chevron_right, size: 14, color: context.colors.text3),
           ],
         ),
       ),
@@ -133,16 +162,16 @@ class _Trailing extends StatelessWidget {
     if (condition != null) {
       final (bg, fg) = switch (condition) {
         PanelCondition.excellent || PanelCondition.good => (
-            AppColors.statusDone.withValues(alpha: 0.14),
-            AppColors.statusDone
+            context.colors.statusDone.withValues(alpha: 0.14),
+            context.colors.statusDone
           ),
         PanelCondition.satisfactory => (
-            AppColors.statusProgress.withValues(alpha: 0.14),
-            AppColors.statusProgress
+            context.colors.statusProgress.withValues(alpha: 0.14),
+            context.colors.statusProgress
           ),
         PanelCondition.needsRepair => (
-            AppColors.statusDefect.withValues(alpha: 0.14),
-            AppColors.statusDefect
+            context.colors.statusDefect.withValues(alpha: 0.14),
+            context.colors.statusDefect
           ),
       };
 
@@ -167,7 +196,7 @@ class _Trailing extends StatelessWidget {
     if (panel.photoCount > 0) {
       return Text(
         '${panel.photoCount} фото',
-        style: AppText.sectionExtra,
+        style: context.text.sectionExtra,
       );
     }
 

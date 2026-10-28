@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/order_status.dart';
+import '../theme/app_colors.dart';
 
 /// Соответствует .pill/.pill.search/.pill.check/.pill.done из макета.
 class OrderStatusPill extends StatelessWidget {
@@ -13,7 +14,7 @@ class OrderStatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.14),
+        color: status.color(context.colors).withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -22,7 +23,7 @@ class OrderStatusPill extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
-          color: status.color,
+          color: status.color(context.colors),
         ),
       ),
     );

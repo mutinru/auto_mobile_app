@@ -1,36 +1,63 @@
 import 'package:flutter/material.dart';
 
-import '../data/api_client.dart';
-import '../data/api_verification_repository.dart';
 import '../data/auth_service.dart';
+import '../data/verification_repository.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
-import 'nearby_orders_screen.dart';
+import '../widgets/support_sheet.dart';
+import '../widgets/theme_switch.dart';
 import 'verification_screen.dart';
 import 'my_orders_screen.dart';
 
 /// Экран 03 из car-marketplace-experiment.html — «профиль · две роли».
 /// Точка входа после логина: аккаунт один, роли не выбираются, доступ к
-/// выполнению заказов открывается верификацией.
+/// выполнению заказов открывается верификацией — если сервер её требует.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.auth, required this.store});
+  const ProfileScreen({
+    super.key,
+    required this.auth,
+    required this.store,
+    required this.verification,
+    required this.onMyOrders,
+    required this.onNearbyOrders,
+  });
 
   final AuthService auth;
   final OrderStore store;
+  final VerificationRepository verification;
+
+  /// Переход в разделы. Они подменяют профиль, а не ложатся поверх —
+  /// навигацией разделов управляет main.dart.
+  final VoidCallback onMyOrders;
+  final VoidCallback onNearbyOrders;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  VerificationSummary? _verification;
+
   @override
   void initState() {
     super.initState();
     widget.store.loadMyOrders();
     widget.store.loadAssignedOrders();
+    _loadVerification();
+  }
+
+  /// Ошибку глотаем: без сводки считаем верификацию необязательной и пункт
+  /// про неё не показываем — сервер всё равно проверит отклик сам.
+  Future<void> _loadVerification() async {
+    try {
+      final summary = await widget.verification.fetchSummary();
+      if (mounted) setState(() => _verification = summary);
+    } catch (_) {
+      // молча
+    }
   }
 
   @override
@@ -41,9 +68,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final user = widget.auth.user;
         final orders = widget.store.myOrders;
         final assigned = widget.store.assignedOrders;
+        final verificationRequired = _verification?.required ?? false;
         final active = orders
-            .where((o) =>
-                o.status != OrderStatus.completed && o.status != OrderStatus.cancelled)
+            .where(
+              (o) =>
+                  o.status != OrderStatus.completed &&
+                  o.status != OrderStatus.cancelled,
+            )
             .length;
 
         return Scaffold(
@@ -78,23 +109,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: [
                                 Text(
                                   user?.name ?? '—',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: -0.36,
-                                    color: AppColors.text1,
+                                    color: context.colors.text1,
                                   ),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
                                   [
                                     user?.email ?? '',
-                                    if (user?.registeredLabel.isNotEmpty ?? false)
+                                    if (user?.registeredLabel.isNotEmpty ??
+                                        false)
                                       user!.registeredLabel,
                                   ].where((s) => s.isNotEmpty).join(' · '),
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.text2,
+                                    color: context.colors.text2,
                                   ),
                                 ),
                               ],
@@ -119,59 +151,99 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         state: 'Доступно сразу · без проверок',
                         actionLabel: 'Мои заказы',
                         actionPrimary: true,
-                        onAction: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => MyOrdersScreen(
-                              store: widget.store,
-                              auth: widget.auth,
-                              // открыты из профиля — иконка просто
-                              // возвращает в него, а не плодит копию
-                              onProfile: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                        ),
+                        onAction: widget.onMyOrders,
                         statsWidgets: [
                           _Stat('${orders.length}', 'заказов'),
                           _Stat('$active', 'в работе'),
                         ],
                       ),
-                      _RoleBlock(
-                        active: false,
-                        dashed: true,
-                        icon: Icons.lock_outline,
-                        name: 'Выполнять заказы',
-                        state: assigned.isEmpty
-                            ? 'Верификация появится позже'
-                            : 'Взятых заказов: ${assigned.length}',
-                        description:
-                            'Мы проверяем личность и умение находить дефекты — заказчики доверяют подборщику свои деньги.',
-                        actionLabel: 'Смотреть заказы рядом',
-                        onAction: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => NearbyOrdersScreen(
-                    store: widget.store,
-                    verification: ApiVerificationRepository(ApiClient(widget.auth)),
-                    auth: widget.auth,
-                  ),
+                      if (verificationRequired)
+                        _RoleBlock(
+                          active: false,
+                          dashed: true,
+                          icon: Icons.lock_outline,
+                          name: 'Выполнять заказы',
+                          state: assigned.isEmpty
+                              ? 'Верификация появится позже'
+                              : 'Взятых заказов: ${assigned.length}',
+                          description:
+                              'Мы проверяем личность и умение находить дефекты — заказчики доверяют подборщику свои деньги.',
+                          actionLabel: 'Смотреть заказы рядом',
+                          onAction: widget.onNearbyOrders,
+                          statsWidgets: assigned.isEmpty
+                              ? null
+                              : [_Stat('${assigned.length}', 'взято')],
+                          secondaryLabel: assigned.isEmpty
+                              ? 'Пройти верификацию'
+                              : 'Взятые заказы',
+                          onSecondary: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => assigned.isEmpty
+                                  ? VerificationScreen(auth: widget.auth)
+                                  : MyOrdersScreen(
+                                      store: widget.store,
+                                      auth: widget.auth,
+                                      asExecutor: true,
+                                    ),
+                            ),
                           ),
-                        ),
-                        statsWidgets: assigned.isEmpty
-                            ? null
-                            : [_Stat('${assigned.length}', 'взято')],
-                        secondaryLabel: assigned.isEmpty
-                            ? 'Пройти верификацию'
-                            : 'Взятые заказы',
-                        onSecondary: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => assigned.isEmpty
-                                ? VerificationScreen(auth: widget.auth)
-                                : MyOrdersScreen(
-                                    store: widget.store,
-                                    auth: widget.auth,
-                                    asExecutor: true,
+                        )
+                      else
+                        // верификация выключена на сервере — откликаться
+                        // можно сразу, пункт про неё не показываем
+                        _RoleBlock(
+                          active: true,
+                          icon: Icons.check,
+                          name: 'Выполнять заказы',
+                          state: assigned.isEmpty
+                              ? 'Можно откликаться на заказы'
+                              : 'Взятых заказов: ${assigned.length}',
+                          actionLabel: 'Смотреть заказы рядом',
+                          onAction: widget.onNearbyOrders,
+                          statsWidgets: assigned.isEmpty
+                              ? null
+                              : [_Stat('${assigned.length}', 'взято')],
+                          secondaryLabel: assigned.isEmpty
+                              ? null
+                              : 'Взятые заказы',
+                          onSecondary: assigned.isEmpty
+                              ? null
+                              : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => MyOrdersScreen(
+                                      store: widget.store,
+                                      auth: widget.auth,
+                                      asExecutor: true,
+                                    ),
                                   ),
-                          ),
+                                ),
                         ),
+
+                      // те же тема и поддержка, что на стартовом экране, —
+                      // чтобы не возвращаться к нему ради них
+                      const SizedBox(height: 22),
+                      const SectionHead('Приложение'),
+                      const _SettingsRow(
+                        icon: Icons.contrast,
+                        label: 'Тема',
+                        trailing: ThemeSwitch(),
+                      ),
+                      _SettingsRow(
+                        icon: Icons.headset_mic_outlined,
+                        label: 'Поддержка',
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const OnlineDot(),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: context.colors.text3,
+                            ),
+                          ],
+                        ),
+                        onTap: () => showSupportSheet(context),
                       ),
                     ],
                   ),
@@ -187,7 +259,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 /// .note-box — синяя врезка с пояснением.
 class _NoteBox extends StatelessWidget {
-  const _NoteBox({required this.before, required this.boldPart, required this.after});
+  const _NoteBox({
+    required this.before,
+    required this.boldPart,
+    required this.after,
+  });
 
   final String before;
   final String boldPart;
@@ -198,16 +274,22 @@ class _NoteBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.statusInfo.withValues(alpha: 0.07),
-        border: Border.all(color: AppColors.statusInfo.withValues(alpha: 0.25)),
+        color: context.colors.statusInfo.withValues(alpha: 0.07),
+        border: Border.all(
+          color: context.colors.statusInfo.withValues(alpha: 0.25),
+        ),
         borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.info_outline, size: 15, color: AppColors.statusInfo),
+            child: Icon(
+              Icons.info_outline,
+              size: 15,
+              color: context.colors.statusInfo,
+            ),
           ),
           const SizedBox(width: 11),
           Expanded(
@@ -217,17 +299,17 @@ class _NoteBox extends StatelessWidget {
                   TextSpan(text: before),
                   TextSpan(
                     text: boldPart,
-                    style: const TextStyle(
-                      color: AppColors.text1,
+                    style: TextStyle(
+                      color: context.colors.text1,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   TextSpan(text: after),
                 ],
               ),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
-                color: AppColors.text2,
+                color: context.colors.text2,
                 height: 1.45,
               ),
             ),
@@ -275,12 +357,12 @@ class _RoleBlock extends StatelessWidget {
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: active
-            ? AppColors.statusDone.withValues(alpha: 0.05)
-            : AppColors.bg1,
+            ? context.colors.statusDone.withValues(alpha: 0.05)
+            : context.colors.bg1,
         border: Border.all(
           color: active
-              ? AppColors.statusDone.withValues(alpha: 0.45)
-              : AppColors.line,
+              ? context.colors.statusDone.withValues(alpha: 0.45)
+              : context.colors.line,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -294,13 +376,17 @@ class _RoleBlock extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: active ? AppColors.statusDone : AppColors.bg3,
+                  color: active
+                      ? context.colors.statusDone
+                      : context.colors.bg3,
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Icon(
                   icon,
                   size: 17,
-                  color: active ? const Color(0xFF07150E) : AppColors.text2,
+                  color: active
+                      ? context.colors.modeBuyInk
+                      : context.colors.text2,
                 ),
               ),
               const SizedBox(width: 11),
@@ -310,17 +396,20 @@ class _RoleBlock extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.15,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       state,
-                      style: const TextStyle(fontSize: 11.5, color: AppColors.text2),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: context.colors.text2,
+                      ),
                     ),
                   ],
                 ),
@@ -329,12 +418,15 @@ class _RoleBlock extends StatelessWidget {
           ),
           // .rb-body
           const SizedBox(height: 12),
-          Container(height: 1, color: AppColors.line),
+          Container(height: 1, color: context.colors.line),
           const SizedBox(height: 12),
           if (statsWidgets != null) ...[
             Row(
               children: [
-                for (final w in statsWidgets!) ...[w, const SizedBox(width: 18)],
+                for (final w in statsWidgets!) ...[
+                  w,
+                  const SizedBox(width: 18),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -342,9 +434,9 @@ class _RoleBlock extends StatelessWidget {
           if (description != null) ...[
             Text(
               description!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
-                color: AppColors.text2,
+                color: context.colors.text2,
                 height: 1.45,
               ),
             ),
@@ -355,10 +447,12 @@ class _RoleBlock extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onAction,
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    actionPrimary ? AppColors.statusDone : AppColors.bg3,
-                foregroundColor:
-                    actionPrimary ? const Color(0xFF07150E) : AppColors.text1,
+                backgroundColor: actionPrimary
+                    ? context.colors.statusDone
+                    : context.colors.bg3,
+                foregroundColor: actionPrimary
+                    ? context.colors.modeBuyInk
+                    : context.colors.text1,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(11),
@@ -367,7 +461,10 @@ class _RoleBlock extends StatelessWidget {
               ),
               child: Text(
                 actionLabel,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -378,8 +475,8 @@ class _RoleBlock extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onSecondary,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.statusDone,
-                  foregroundColor: const Color(0xFF07150E),
+                  backgroundColor: context.colors.statusDone,
+                  foregroundColor: context.colors.modeBuyInk,
                   padding: const EdgeInsets.symmetric(vertical: 11),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(11),
@@ -388,7 +485,10 @@ class _RoleBlock extends StatelessWidget {
                 ),
                 child: Text(
                   secondaryLabel!,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -413,17 +513,82 @@ class _Stat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppTheme.monoFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.32,
-            color: AppColors.text1,
+            color: context.colors.text1,
           ),
         ),
         const SizedBox(height: 2),
-        Text(caption, style: const TextStyle(fontSize: 10, color: AppColors.text3)),
+        Text(
+          caption,
+          style: TextStyle(fontSize: 10, color: context.colors.text3),
+        ),
       ],
+    );
+  }
+}
+
+/// Строка настроек: иконка, подпись, справа — контрол или стрелка.
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.label,
+    required this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Widget trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: c.bg1,
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: c.line),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(13, 10, 10, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: c.bg3,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 17, color: c.text1),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: c.text1,
+                    ),
+                  ),
+                ),
+                trailing,
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

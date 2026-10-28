@@ -15,6 +15,14 @@ class VinScanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // видоискатель — кадр камеры, он тёмный в любой теме
+    return Theme(
+      data: AppTheme.dark,
+      child: Builder(builder: _viewfinder),
+    );
+  }
+
+  Widget _viewfinder(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -47,14 +55,14 @@ class VinScanner extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppColors.statusDone.withValues(alpha: 0),
-                      AppColors.statusDone,
-                      AppColors.statusDone.withValues(alpha: 0),
+                      context.colors.statusDone.withValues(alpha: 0),
+                      context.colors.statusDone,
+                      context.colors.statusDone.withValues(alpha: 0),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.statusDone.withValues(alpha: 0.6),
+                      color: context.colors.statusDone.withValues(alpha: 0.6),
                       blurRadius: 12,
                     ),
                   ],
@@ -114,7 +122,7 @@ class _Bracket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const side = BorderSide(color: AppColors.statusDone, width: 2);
+    final side = BorderSide(color: context.colors.statusDone, width: 2);
     const none = BorderSide.none;
 
     return Positioned(

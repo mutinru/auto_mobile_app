@@ -19,8 +19,8 @@ class ProgressSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.line)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.line)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,24 +31,24 @@ class ProgressSummary extends StatelessWidget {
             children: [
               Text(
                 '$_evaluated',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.text1,
+                  color: context.colors.text1,
                 ),
               ),
-              const Text(
+              Text(
                 ' / ',
-                style: TextStyle(color: AppColors.text3, fontSize: 22),
+                style: TextStyle(color: context.colors.text3, fontSize: 22),
               ),
               Text(
                 '${panels.length}',
-                style: const TextStyle(color: AppColors.text3, fontSize: 22),
+                style: TextStyle(color: context.colors.text3, fontSize: 22),
               ),
               const SizedBox(width: 10),
-              const Text(
+              Text(
                 'деталей оценено',
-                style: TextStyle(color: AppColors.text2, fontSize: 12),
+                style: TextStyle(color: context.colors.text2, fontSize: 12),
               ),
             ],
           ),
@@ -60,7 +60,7 @@ class ProgressSummary extends StatelessWidget {
               child: Row(
                 children: [
                   for (final p in panels) ...[
-                    Expanded(child: Container(color: p.status.color)),
+                    Expanded(child: Container(color: p.status.color(context.colors))),
                     if (p != panels.last) const SizedBox(width: 2),
                   ],
                 ],
@@ -76,12 +76,12 @@ class ProgressSummary extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    StatusDot(color: status.color),
+                    StatusDot(color: status.color(context.colors)),
                     const SizedBox(width: 6),
                     Text(
                       status.label,
-                      style: const TextStyle(
-                        color: AppColors.text2,
+                      style: TextStyle(
+                        color: context.colors.text2,
                         fontSize: 11,
                       ),
                     ),

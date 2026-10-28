@@ -9,7 +9,9 @@ import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_kind_sheet.dart';
+import 'assigned_inspection_screen.dart';
 import 'inspection_order_detail_screen.dart';
+import 'inspection_report_screen.dart';
 import 'new_inspection_screen.dart';
 import 'new_order_screen.dart';
 import 'order_detail_screen.dart';
@@ -56,15 +58,23 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   /// У осмотра своя деталь (кадр 04): деталь подбора собрана под бюджет,
-  /// города и список кандидатов.
+  /// города и список кандидатов. Исполнителю осмотр открывается отдельным
+  /// экраном — там старт осмотра и вердикт, а не отклики.
   Future<void> _openOrder(Order order) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => order.isInspection
+        builder: (_) => order.isInspection && widget.asExecutor
+            ? AssignedInspectionScreen(
+                store: widget.store,
+                orderId: order.id,
+                auth: widget.auth,
+              )
+            : order.isInspection
             ? InspectionOrderDetailScreen(
                 store: widget.store,
                 orderId: order.id,
                 viewerIsCustomer: !widget.asExecutor,
+                auth: widget.auth,
               )
             : OrderDetailScreen(
                 store: widget.store,
@@ -95,7 +105,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   Future<void> _repeatInspection(Order order) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => NewInspectionScreen(store: widget.store, basedOn: order),
+        builder: (_) =>
+            NewInspectionScreen(store: widget.store, basedOn: order),
       ),
     );
     _reload();
@@ -112,15 +123,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Не удалось загрузить заказы',
-              style: TextStyle(fontSize: 14, color: AppColors.text1),
+              style: TextStyle(fontSize: 14, color: context.colors.text1),
             ),
             const SizedBox(height: 6),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.text3),
+              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
             ),
             const SizedBox(height: 10),
             CtaGhost(label: 'Повторить', onPressed: _reload),
@@ -134,17 +145,18 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     }
 
     if (orders.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Пока пусто',
-          style: TextStyle(color: AppColors.text3, fontSize: 12),
+          style: TextStyle(color: context.colors.text3, fontSize: 12),
         ),
       );
     }
 
     final inspections = orders.where((o) => o.isInspection).toList();
     final selections = orders.where((o) => !o.isInspection).toList();
-    final splitBySections = _tab == 0 && inspections.isNotEmpty && selections.isNotEmpty;
+    final splitBySections =
+        _tab == 0 && inspections.isNotEmpty && selections.isNotEmpty;
 
     return ListView(
       // .scroll-body { padding: 4px 22px 18px }
@@ -163,14 +175,18 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Widget _card(Order order) => OrderCard(
-        order: order,
-        onTap: () => _openOrder(order),
-        onRepeat: !widget.asExecutor &&
-                order.isInspection &&
-                order.status == OrderStatus.completed
-            ? () => _repeatInspection(order)
-            : null,
-      );
+    order: order,
+    onTap: () => _openOrder(order),
+    onRepeat:
+        !widget.asExecutor &&
+            order.isInspection &&
+            order.status == OrderStatus.completed
+        ? () => _repeatInspection(order)
+        : null,
+    onReport: widget.auth != null && hasInspectionReport(order)
+        ? () => openInspectionReport(context, widget.auth!, order)
+        : null,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -178,16 +194,21 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       listenable: widget.store,
       builder: (context, _) {
         final store = widget.store;
-        final source = widget.asExecutor ? store.assignedOrders : store.myOrders;
+        final source = widget.asExecutor
+            ? store.assignedOrders
+            : store.myOrders;
         final orders = source.where((o) {
           final finished =
-              o.status == OrderStatus.completed || o.status == OrderStatus.cancelled;
+              o.status == OrderStatus.completed ||
+              o.status == OrderStatus.cancelled;
           return _tab == 0 ? !finished : finished;
         }).toList();
 
         final eyebrow = widget.asExecutor
             ? 'вы исполнитель'
-            : (store.myOrders.isNotEmpty ? store.myOrders.first.customer.name : null);
+            : (store.myOrders.isNotEmpty
+                  ? store.myOrders.first.customer.name
+                  : null);
 
         return Scaffold(
           body: SafeArea(

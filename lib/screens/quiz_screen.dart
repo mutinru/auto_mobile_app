@@ -124,8 +124,8 @@ class _QuizScreenState extends State<QuizScreen> {
                             child: Text(
                               _error!,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.text3,
+                              style: TextStyle(
+                                color: context.colors.text3,
                                 fontSize: 12,
                               ),
                             ),
@@ -174,8 +174,8 @@ class _QuizScreenState extends State<QuizScreen> {
         Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: AppColors.bg1,
-            border: Border.all(color: AppColors.line),
+            color: context.colors.bg1,
+            border: Border.all(color: context.colors.line),
             borderRadius: BorderRadius.circular(15),
           ),
           child: Column(
@@ -183,17 +183,17 @@ class _QuizScreenState extends State<QuizScreen> {
             children: [
               Text(
                 'ВОПРОС ${_index + 1} ИЗ ${_questions.length}',
-                style: AppText.sectionTitle,
+                style: context.text.sectionTitle,
               ),
               const SizedBox(height: 8),
               Text(
                 q['text'] as String,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w500,
                   height: 1.45,
                   letterSpacing: -0.15,
-                  color: AppColors.text1,
+                  color: context.colors.text1,
                 ),
               ),
               // .quiz-photo — фотографии к вопросам ещё не загружены
@@ -203,10 +203,10 @@ class _QuizScreenState extends State<QuizScreen> {
                   height: 96,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(11),
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFF5A6470), Color(0xFF2C3138)],
+                      colors: [context.colors.avatarFrom, context.colors.avatarTo],
                     ),
                   ),
                 ),
@@ -231,9 +231,9 @@ class _QuizScreenState extends State<QuizScreen> {
           children: [
             Text(
               'отвечено: $answered из ${_questions.length}',
-              style: AppText.sectionExtra,
+              style: context.text.sectionExtra,
             ),
-            Text('порог $_threshold / $_expected', style: AppText.sectionExtra),
+            Text('порог $_threshold / $_expected', style: context.text.sectionExtra),
           ],
         ),
         const SizedBox(height: 7),
@@ -242,8 +242,8 @@ class _QuizScreenState extends State<QuizScreen> {
           child: LinearProgressIndicator(
             value: _questions.isEmpty ? 0 : answered / _questions.length,
             minHeight: 3,
-            backgroundColor: AppColors.bg1,
-            valueColor: const AlwaysStoppedAnimation(AppColors.statusInfo),
+            backgroundColor: context.colors.bg1,
+            valueColor: AlwaysStoppedAnimation(context.colors.statusInfo),
           ),
         ),
 
@@ -251,7 +251,7 @@ class _QuizScreenState extends State<QuizScreen> {
           const SizedBox(height: 16),
           Text(
             _result!,
-            style: const TextStyle(fontSize: 12.5, color: AppColors.text1),
+            style: TextStyle(fontSize: 12.5, color: context.colors.text1),
           ),
         ],
 
@@ -261,28 +261,28 @@ class _QuizScreenState extends State<QuizScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
-              color: AppColors.statusProgress.withValues(alpha: 0.07),
+              color: context.colors.statusProgress.withValues(alpha: 0.07),
               border: Border.all(
-                color: AppColors.statusProgress.withValues(alpha: 0.25),
+                color: context.colors.statusProgress.withValues(alpha: 0.25),
               ),
               borderRadius: BorderRadius.circular(13),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.warning_amber_outlined,
                   size: 15,
-                  color: AppColors.statusProgress,
+                  color: context.colors.statusProgress,
                 ),
                 const SizedBox(width: 11),
                 Expanded(
                   child: Text(
                     'В банке ${_questions.length} вопрос(ов) вместо $_expected — '
                     'тест пока нельзя сдать, порог $_threshold верных.',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: AppColors.text2,
+                      color: context.colors.text2,
                       height: 1.45,
                     ),
                   ),
@@ -319,10 +319,10 @@ class _Answer extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.statusInfo.withValues(alpha: 0.09)
-              : AppColors.bg1,
+              ? context.colors.statusInfo.withValues(alpha: 0.09)
+              : context.colors.bg1,
           border: Border.all(
-            color: selected ? AppColors.statusInfo : Colors.transparent,
+            color: selected ? context.colors.statusInfo : Colors.transparent,
             width: 1.5,
           ),
           borderRadius: BorderRadius.circular(13),
@@ -335,7 +335,7 @@ class _Answer extends StatelessWidget {
               height: 22,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected ? AppColors.statusInfo : AppColors.bg3,
+                color: selected ? context.colors.statusInfo : context.colors.bg3,
                 borderRadius: BorderRadius.circular(7),
               ),
               child: Text(
@@ -344,7 +344,7 @@ class _Answer extends StatelessWidget {
                   fontFamily: AppTheme.monoFamily,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: selected ? const Color(0xFF04121F) : AppColors.text3,
+                  color: selected ? context.colors.infoInk : context.colors.text3,
                 ),
               ),
             ),
@@ -352,7 +352,7 @@ class _Answer extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: const TextStyle(fontSize: 13.5, color: AppColors.text1),
+                style: TextStyle(fontSize: 13.5, color: context.colors.text1),
               ),
             ),
           ],

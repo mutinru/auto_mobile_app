@@ -40,10 +40,10 @@ class DetailHead extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (eyebrow != null) ...[
-                  Text(eyebrow!.toUpperCase(), style: AppText.detailEyebrow),
+                  Text(eyebrow!.toUpperCase(), style: context.text.detailEyebrow),
                   const SizedBox(height: 3),
                 ],
-                Text(title, style: AppText.detailTitle),
+                Text(title, style: context.text.detailTitle),
               ],
             ),
           ),
@@ -76,10 +76,10 @@ class SquareIconButton extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: AppColors.bg1,
+          color: context.colors.bg1,
           borderRadius: BorderRadius.circular(11),
         ),
-        child: Icon(icon, size: size, color: AppColors.text2),
+        child: Icon(icon, size: size, color: context.colors.text2),
       ),
     );
   }
@@ -96,15 +96,15 @@ class DetailPos extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
+        color: context.colors.bg1,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppTheme.monoFamily,
           fontSize: 12,
-          color: AppColors.text3,
+          color: context.colors.text3,
         ),
       ),
     );
@@ -125,12 +125,12 @@ class Pill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color == null ? AppColors.bg3 : color!.withValues(alpha: 0.14),
+        color: color == null ? context.colors.bg3 : color!.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         text.toUpperCase(),
-        style: AppText.pill.copyWith(color: color ?? AppColors.text2),
+        style: context.text.pill.copyWith(color: color ?? context.colors.text2),
       ),
     );
   }
@@ -152,15 +152,15 @@ class Avatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: size >= 48 ? BoxShape.rectangle : BoxShape.circle,
         borderRadius: size >= 48 ? BorderRadius.circular(17) : null,
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF5A6470), Color(0xFF2C3138)],
+          colors: [context.colors.avatarFrom, context.colors.avatarTo],
         ),
       ),
       child: Text(
         initials,
-        style: AppText.avatar.copyWith(fontSize: size >= 48 ? 17 : 10),
+        style: context.text.avatar.copyWith(fontSize: size >= 48 ? 17 : 10),
       ),
     );
   }
@@ -182,8 +182,8 @@ class SectionHead extends StatelessWidget {
         textBaseline: TextBaseline.alphabetic,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title.toUpperCase(), style: AppText.sectionTitle),
-          if (extra != null) Text(extra!, style: AppText.sectionExtra),
+          Text(title.toUpperCase(), style: context.text.sectionTitle),
+          if (extra != null) Text(extra!, style: context.text.sectionExtra),
         ],
       ),
     );
@@ -222,8 +222,8 @@ class FieldBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = mono
-        ? AppText.fieldMono
-        : (placeholder ? AppText.fieldPlaceholder : AppText.fieldValue);
+        ? context.text.fieldMono
+        : (placeholder ? context.text.fieldPlaceholder : context.text.fieldValue);
 
     return Padding(
       // .field { margin-bottom: 10px }
@@ -231,7 +231,7 @@ class FieldBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(), style: AppText.fieldLabel),
+          Text(label.toUpperCase(), style: context.text.fieldLabel),
           const SizedBox(height: 6),
           InkWell(
             onTap: onTap,
@@ -240,8 +240,8 @@ class FieldBox extends StatelessWidget {
               constraints: BoxConstraints(minHeight: minHeight ?? 0),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               decoration: BoxDecoration(
-                color: AppColors.bg1,
-                border: Border.all(color: AppColors.line),
+                color: context.colors.bg1,
+                border: Border.all(color: context.colors.line),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -254,10 +254,10 @@ class FieldBox extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       unit!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.monoFamily,
                         fontSize: 12,
-                        color: AppColors.text3,
+                        color: context.colors.text3,
                       ),
                     ),
                   ],
@@ -312,15 +312,15 @@ class FieldBoxInput extends StatelessWidget {
           // в макете «Комментарий» — голый field-box под section-head,
           // без собственной подписи
           if (label.isNotEmpty) ...[
-            Text(label.toUpperCase(), style: AppText.fieldLabel),
+            Text(label.toUpperCase(), style: context.text.fieldLabel),
             const SizedBox(height: 6),
           ],
           Container(
             constraints: BoxConstraints(minHeight: minHeight ?? 0),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
-              color: AppColors.bg1,
-              border: Border.all(color: AppColors.line),
+              color: context.colors.bg1,
+              border: Border.all(color: context.colors.line),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -334,14 +334,14 @@ class FieldBoxInput extends StatelessWidget {
                     keyboardType: keyboardType,
                     maxLines: maxLines,
                     inputFormatters: inputFormatters,
-                    style: mono ? AppText.fieldMono : AppText.fieldValue,
-                    cursorColor: AppColors.statusDone,
+                    style: mono ? context.text.fieldMono : context.text.fieldValue,
+                    cursorColor: context.colors.statusDone,
                     decoration: InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                       border: InputBorder.none,
                       hintText: hint,
-                      hintStyle: AppText.fieldPlaceholder,
+                      hintStyle: context.text.fieldPlaceholder,
                     ),
                   ),
                 ),
@@ -349,10 +349,10 @@ class FieldBoxInput extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     unit!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 12,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                     ),
                   ),
                 ],
@@ -373,31 +373,33 @@ class AppChip extends StatelessWidget {
     required this.label,
     required this.on,
     this.onTap,
-    this.activeColor = AppColors.statusProgress,
+    this.activeColor,
   });
 
   final String label;
   final bool on;
   final VoidCallback? onTap;
-  final Color activeColor;
+  /// null — оранжевый statusProgress текущей темы.
+  final Color? activeColor;
 
   @override
   Widget build(BuildContext context) {
+    final active = activeColor ?? context.colors.statusProgress;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: on ? activeColor.withValues(alpha: 0.12) : AppColors.bg1,
+          color: on ? active.withValues(alpha: 0.12) : context.colors.bg1,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: on ? activeColor.withValues(alpha: 0.5) : Colors.transparent,
+            color: on ? active.withValues(alpha: 0.5) : Colors.transparent,
           ),
         ),
         child: Text(
           label,
-          style: AppText.chip.copyWith(color: on ? activeColor : AppColors.text2),
+          style: context.text.chip.copyWith(color: on ? active : context.colors.text2),
         ),
       ),
     );
@@ -414,8 +416,8 @@ class BottomCta extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.line)),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: context.colors.line)),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
     );
@@ -446,9 +448,9 @@ class CtaPrimary extends StatelessWidget {
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.statusDone,
-          foregroundColor: const Color(0xFF07150E),
-          disabledBackgroundColor: AppColors.bg3,
+          backgroundColor: context.colors.statusDone,
+          foregroundColor: context.colors.modeBuyInk,
+          disabledBackgroundColor: context.colors.bg3,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
@@ -463,7 +465,7 @@ class CtaPrimary extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 8)],
-                  Text(label, style: AppText.ctaPrimary),
+                  Text(label, style: context.text.ctaPrimary),
                   if (trailingIcon != null) ...[
                     const SizedBox(width: 8),
                     Icon(trailingIcon, size: 16),
@@ -491,8 +493,8 @@ class CtaFlat extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.bg3,
-          foregroundColor: AppColors.text1,
+          backgroundColor: context.colors.bg3,
+          foregroundColor: context.colors.text1,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
@@ -501,7 +503,7 @@ class CtaFlat extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 8)],
-            Text(label, style: AppText.ctaPrimary),
+            Text(label, style: context.text.ctaPrimary),
           ],
         ),
       ),
@@ -522,7 +524,7 @@ class CtaGhost extends StatelessWidget {
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(padding: const EdgeInsets.all(12)),
-        child: Text(label, style: AppText.ctaGhost),
+        child: Text(label, style: context.text.ctaGhost),
       ),
     );
   }
@@ -548,7 +550,7 @@ class AppToggle extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(22, 0, 22, 14),
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
+        color: context.colors.bg1,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -562,7 +564,7 @@ class AppToggle extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: i == activeIndex ? AppColors.bg3 : Colors.transparent,
+                    color: i == activeIndex ? context.colors.bg3 : Colors.transparent,
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
@@ -570,7 +572,7 @@ class AppToggle extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: i == activeIndex ? AppColors.text1 : AppColors.text2,
+                      color: i == activeIndex ? context.colors.text1 : context.colors.text2,
                     ),
                   ),
                 ),

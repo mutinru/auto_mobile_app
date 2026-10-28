@@ -52,7 +52,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   Future<void> _vinTapped() async {
     final scan = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -61,19 +61,19 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined,
-                  color: AppColors.text2),
-              title: const Text('Сфотографировать VIN',
-                  style: TextStyle(color: AppColors.text1)),
-              subtitle: const Text('Наведите на табличку или стекло',
-                  style: TextStyle(color: AppColors.text3, fontSize: 11.5)),
+              leading: Icon(Icons.photo_camera_outlined,
+                  color: context.colors.text2),
+              title: Text('Сфотографировать VIN',
+                  style: TextStyle(color: context.colors.text1)),
+              subtitle: Text('Наведите на табличку или стекло',
+                  style: TextStyle(color: context.colors.text3, fontSize: 11.5)),
               onTap: () => Navigator.of(context).pop(true),
             ),
             ListTile(
-              leading: const Icon(Icons.keyboard_alt_outlined,
-                  color: AppColors.text2),
-              title: const Text('Ввести вручную',
-                  style: TextStyle(color: AppColors.text1)),
+              leading: Icon(Icons.keyboard_alt_outlined,
+                  color: context.colors.text2),
+              title: Text('Ввести вручную',
+                  style: TextStyle(color: context.colors.text1)),
               onTap: () => Navigator.of(context).pop(false),
             ),
             const SizedBox(height: 8),
@@ -135,7 +135,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   Future<void> _editVin() async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -240,10 +240,10 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                   FieldBox(
                     label: 'Марка и модель',
                     value: '${_brandController.text} ${_modelController.text}'.trim(),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.keyboard_arrow_down,
                       size: 15,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                     ),
                     onTap: () {},
                   ),

@@ -101,32 +101,32 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.statusDone,
+                    color: context.colors.statusDone,
                     borderRadius: BorderRadius.circular(17),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.directions_car_filled_outlined,
                     size: 28,
-                    color: Color(0xFF07150E),
+                    color: context.colors.modeBuyInk,
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Подбор авто',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.75,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Один аккаунт на всё: заказывайте подбор и берите чужие '
                   'заказы, когда захотите.',
                   style: TextStyle(
                     fontSize: 13.5,
-                    color: AppColors.text2,
+                    color: context.colors.text2,
                     height: 1.5,
                   ),
                 ),
@@ -137,7 +137,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
                   decoration: BoxDecoration(
-                    color: AppColors.bg1,
+                    color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -154,12 +154,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Заказчики и подборщики в одном сервисе',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: AppColors.text2,
+                            color: context.colors.text2,
                             height: 1.35,
                           ),
                         ),
@@ -169,24 +169,24 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ),
                 const SizedBox(height: 22),
 
-                const Text('НОМЕР ТЕЛЕФОНА', style: AppText.fieldLabel),
+                Text('НОМЕР ТЕЛЕФОНА', style: context.text.fieldLabel),
                 const SizedBox(height: 6),
                 // .phone-input
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.bg1,
-                    border: Border.all(color: AppColors.line),
+                    color: context.colors.bg1,
+                    border: Border.all(color: context.colors.line),
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'RU +7',
-                        style: TextStyle(fontSize: 13, color: AppColors.text2),
+                        style: TextStyle(fontSize: 13, color: context.colors.text2),
                       ),
                       const SizedBox(width: 10),
-                      Container(width: 1, height: 20, color: AppColors.line),
+                      Container(width: 1, height: 20, color: context.colors.line),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -194,14 +194,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                           keyboardType: TextInputType.phone,
                           enabled: !_codeSent,
                           inputFormatters: const [_PhoneMask()],
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: AppTheme.monoFamily,
                             fontSize: 15,
                             letterSpacing: 0.6,
-                            color: AppColors.text1,
+                            color: context.colors.text1,
                           ),
-                          cursorColor: AppColors.statusDone,
-                          decoration: const InputDecoration(
+                          cursorColor: context.colors.statusDone,
+                          decoration: InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(vertical: 13),
                             border: InputBorder.none,
@@ -209,7 +209,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                             hintStyle: TextStyle(
                               fontFamily: AppTheme.monoFamily,
                               fontSize: 15,
-                              color: AppColors.text3,
+                              color: context.colors.text3,
                             ),
                           ),
                         ),
@@ -233,8 +233,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   const SizedBox(height: 10),
                   Text(
                     _error!,
-                    style: const TextStyle(
-                      color: AppColors.statusDefect,
+                    style: TextStyle(
+                      color: context.colors.statusDefect,
                       fontSize: 12,
                     ),
                   ),
@@ -265,33 +265,33 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(top: 1),
                       child: Icon(
                         Icons.info_outline,
                         size: 14,
-                        color: AppColors.text3,
+                        color: context.colors.text3,
                       ),
                     ),
                     const SizedBox(width: 9),
                     Expanded(
                       child: Text.rich(
-                        const TextSpan(
+                        TextSpan(
                           children: [
                             TextSpan(text: 'Заказать подбор можно сразу после входа. '),
                             TextSpan(
                               text: 'Брать заказы',
                               style: TextStyle(
-                                color: AppColors.text1,
+                                color: context.colors.text1,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             TextSpan(text: ' пока тоже можно без проверок.'),
                           ],
                         ),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
-                          color: AppColors.text2,
+                          color: context.colors.text2,
                           height: 1.45,
                         ),
                       ),
@@ -300,13 +300,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ),
 
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'Продолжая, вы соглашаетесь с условиями сервиса '
                   'и политикой конфиденциальности',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 10.5,
-                    color: AppColors.text3,
+                    color: context.colors.text3,
                     height: 1.5,
                   ),
                 ),

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../models/inspection_verdict.dart';
+import '../data/auth_service.dart';
 import '../models/order.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/inspection_order_parts.dart';
 import '../widgets/response_card.dart';
+import 'inspection_report_screen.dart';
 
 /// Кадр 04 макета order-types.html — деталь заказа-осмотра: сводка,
 /// цена заказчика, отклики с разницей от неё, после назначения —
@@ -24,10 +25,15 @@ class InspectionOrderDetailScreen extends StatefulWidget {
     required this.store,
     required this.orderId,
     this.viewerIsCustomer = true,
+    this.auth,
   });
 
   final OrderStore store;
   final int orderId;
+
+  /// Нужен, чтобы открыть полный отчёт через API. Без него (в тестах)
+  /// кнопки отчёта нет.
+  final AuthService? auth;
 
   /// Только заказчик выбирает исполнителя из откликов.
   final bool viewerIsCustomer;
@@ -72,7 +78,9 @@ class _InspectionOrderDetailScreenState
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _accepting = false);
@@ -95,7 +103,7 @@ class _InspectionOrderDetailScreenState
                   ? null
                   : Pill(
                       order.status.labelFor(order.kind),
-                      color: order.status.pillColor,
+                      color: order.status.pillColor(context.colors),
                     ),
             ),
             Expanded(child: _body(order)),
@@ -112,15 +120,15 @@ class _InspectionOrderDetailScreenState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Не удалось загрузить заказ',
-              style: TextStyle(fontSize: 14, color: AppColors.text1),
+              style: TextStyle(fontSize: 14, color: context.colors.text1),
             ),
             const SizedBox(height: 6),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.text3),
+              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
             ),
             const SizedBox(height: 10),
             CtaGhost(label: 'Повторить', onPressed: _load),
@@ -136,18 +144,31 @@ class _InspectionOrderDetailScreenState
     final pending = order.responses
         .where((r) => r.status == OrderResponseStatus.pending)
         .toList();
-    final canPick = widget.viewerIsCustomer &&
+    final canPick =
+        widget.viewerIsCustomer &&
         order.status == OrderStatus.awaitingExecutor &&
         !_accepting;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
       children: [
-        _Summary(order: order),
+        InspectionOrderSummary(
+          order: order,
+          priceLabel: 'Ваша цена',
+          price: order.askingPrice,
+        ),
         if (order.verdict != null) ...[
           const SizedBox(height: 22),
           const SectionHead('Итог осмотра'),
-          _VerdictBox(order: order),
+          InspectionVerdictBox(order: order),
+          if (widget.auth != null && hasInspectionReport(order)) ...[
+            const SizedBox(height: 8),
+            CtaGhost(
+              label: 'Полный отчёт',
+              onPressed: () =>
+                  openInspectionReport(context, widget.auth!, order),
+            ),
+          ],
         ],
         if (order.executor != null) ...[
           const SizedBox(height: 22),
@@ -166,114 +187,12 @@ class _InspectionOrderDetailScreenState
         ] else if (order.status == OrderStatus.awaitingExecutor) ...[
           const SizedBox(height: 22),
           const SectionHead('Отклики'),
-          const Text(
+          Text(
             'Пока никто не откликнулся',
-            style: TextStyle(fontSize: 12.5, color: AppColors.text2),
+            style: TextStyle(fontSize: 12.5, color: context.colors.text2),
           ),
         ],
       ],
-    );
-  }
-}
-
-/// .summary — дата, адрес, пробег и объявление, внизу цена заказчика.
-class _Summary extends StatelessWidget {
-  const _Summary({required this.order});
-
-  final Order order;
-
-  @override
-  Widget build(BuildContext context) {
-    final listing = order.listingUrl;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SummaryRow(
-            icon: Icons.calendar_today_outlined,
-            text: whenLabel(order.inspectOn, order.timeSlot, order.inspectTime),
-            strong: true,
-          ),
-          if (order.address != null)
-            _SummaryRow(icon: Icons.location_on_outlined, text: order.address!),
-          _SummaryRow(
-            icon: Icons.link,
-            text: [
-              if (order.mileageTo != null) '${money(order.mileageTo!)} км',
-              // ссылка — просто текст: разбор объявления не делаем
-              if (listing != null && listing.isNotEmpty) listing,
-            ].join(' · '),
-          ),
-          if (order.askingPrice != null) ...[
-            const SizedBox(height: 11),
-            Container(height: 1, color: AppColors.line),
-            const SizedBox(height: 11),
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Ваша цена',
-                    style: TextStyle(fontSize: 11.5, color: AppColors.text2),
-                  ),
-                ),
-                Text(
-                  '${money(order.askingPrice!)} ₽',
-                  style: const TextStyle(
-                    fontFamily: AppTheme.monoFamily,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text1,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// .summary-row
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.icon, required this.text, this.strong = false});
-
-  final IconData icon;
-  final String text;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(icon, size: 15, color: AppColors.text3),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.4,
-                fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
-                color: strong ? AppColors.text1 : AppColors.text2,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -292,8 +211,8 @@ class _ExecutorBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -308,16 +227,19 @@ class _ExecutorBox extends StatelessWidget {
                   children: [
                     Text(
                       executor.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                     if (order.status == OrderStatus.scheduled)
-                      const Text(
+                      Text(
                         'приедет на осмотр',
-                        style: TextStyle(fontSize: 11.5, color: AppColors.text2),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: context.colors.text2,
+                        ),
                       ),
                   ],
                 ),
@@ -325,101 +247,41 @@ class _ExecutorBox extends StatelessWidget {
               if (order.price != null)
                 Text(
                   '${money(order.price!)} ₽',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
             ],
           ),
           if (order.sellerPhone != null && order.sellerPhone!.isNotEmpty) ...[
             const SizedBox(height: 11),
-            Container(height: 1, color: AppColors.line),
+            Container(height: 1, color: context.colors.line),
             const SizedBox(height: 11),
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Телефон продавца',
-                    style: TextStyle(fontSize: 11.5, color: AppColors.text2),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: context.colors.text2,
+                    ),
                   ),
                 ),
                 Text(
                   order.sellerPhone!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 13,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
               ],
             ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Вердикт с ссылкой на отчёт — то, ради чего заказ и делался.
-class _VerdictBox extends StatelessWidget {
-  const _VerdictBox({required this.order});
-
-  final Order order;
-
-  @override
-  Widget build(BuildContext context) {
-    final verdict = order.verdict!;
-    final comment = order.cars.first.verdictComment;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: verdict.color.withValues(alpha: 0.35)),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              color: verdict.color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: Icon(verdict.icon, size: 15, color: verdict.color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  verdict.label,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: verdict.color,
-                  ),
-                ),
-                if (comment != null && comment.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    comment,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.text2,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
         ],
       ),
     );

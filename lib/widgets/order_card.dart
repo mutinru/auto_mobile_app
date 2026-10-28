@@ -18,6 +18,7 @@ class OrderCard extends StatelessWidget {
     required this.order,
     required this.onTap,
     this.onRepeat,
+    this.onReport,
   });
 
   final Order order;
@@ -25,6 +26,9 @@ class OrderCard extends StatelessWidget {
 
   /// «Осмотреть другую машину» под завершённым осмотром (кадр 05).
   final VoidCallback? onRepeat;
+
+  /// «Посмотреть полный отчёт» под вердиктом завершённого осмотра.
+  final VoidCallback? onReport;
 
   bool get _isDone =>
       order.status == OrderStatus.completed || order.status == OrderStatus.cancelled;
@@ -41,8 +45,8 @@ class OrderCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 9),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.bg1,
-          border: Border.all(color: AppColors.line),
+          color: context.colors.bg1,
+          border: Border.all(color: context.colors.line),
           borderRadius: BorderRadius.circular(15),
         ),
         child: Column(
@@ -54,7 +58,7 @@ class OrderCard extends StatelessWidget {
               children: [
                 Pill(
                   order.status.labelFor(order.kind),
-                  color: order.status.pillColor,
+                  color: order.status.pillColor(context.colors),
                 ),
                 _KindTag(kind: order.kind, id: order.id),
               ],
@@ -69,23 +73,24 @@ class OrderCard extends StatelessWidget {
                     if (_city(order.address) != null) _city(order.address)!,
                     pastDate(order.inspectOn),
                   ].join(' · '),
-                  style: AppText.orderMeta,
+                  style: context.text.orderMeta,
                 ),
                 if (order.verdict != null)
                   _VerdictRow(
                     verdict: order.verdict!,
                     comment: order.cars.first.verdictComment,
                   ),
+                if (onReport != null) _ReportButton(onTap: onReport!),
                 if (onRepeat != null) _AgainButton(onTap: onRepeat!),
               ] else
                 _WhenRow(order: order),
             ] else ...[
               const SizedBox(height: 5),
-              Text(_selectionMeta(order), style: AppText.orderMeta),
+              Text(_selectionMeta(order), style: context.text.orderMeta),
             ],
             const SizedBox(height: 12),
             // .order-foot
-            Container(height: 1, color: AppColors.line),
+            Container(height: 1, color: context.colors.line),
             const SizedBox(height: 12),
             OrderFoot(order: order),
           ],
@@ -123,18 +128,18 @@ class _KindTag extends StatelessWidget {
         Icon(
           kind.isInspection ? Icons.assignment_outlined : Icons.search,
           size: 12,
-          color: AppColors.text3,
+          color: context.colors.text3,
         ),
         const SizedBox(width: 5),
         Text(
           kind.label.toUpperCase(),
-          style: AppText.orderId.copyWith(
-            color: AppColors.text2,
+          style: context.text.orderId.copyWith(
+            color: context.colors.text2,
             letterSpacing: 0.63,
           ),
         ),
         const SizedBox(width: 4),
-        Text('#$id', style: AppText.orderId),
+        Text('#$id', style: context.text.orderId),
       ],
     );
   }
@@ -152,7 +157,7 @@ class _CarTitle extends StatelessWidget {
         ? ' · ${money(order.mileageTo!)} км'
         : null;
 
-    if (km == null) return Text(order.carTitle, style: AppText.orderCar);
+    if (km == null) return Text(order.carTitle, style: context.text.orderCar);
 
     // .order-car .km — пробег тем же кеглем, но серым
     return Text.rich(
@@ -161,14 +166,14 @@ class _CarTitle extends StatelessWidget {
         children: [
           TextSpan(
             text: km,
-            style: const TextStyle(
-              color: AppColors.text2,
+            style: TextStyle(
+              color: context.colors.text2,
               fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
-      style: AppText.orderCar,
+      style: context.text.orderCar,
     );
   }
 }
@@ -188,13 +193,13 @@ class _WhenRow extends StatelessWidget {
                 DateTime.now().day))
             .inDays <=
             1;
-    final color = soon ? AppColors.statusProgress : AppColors.statusInfo;
+    final color = soon ? context.colors.statusProgress : context.colors.statusInfo;
 
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.bg0,
+        color: context.colors.bg0,
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
@@ -215,10 +220,10 @@ class _WhenRow extends StatelessWidget {
               children: [
                 Text(
                   whenLabel(order.inspectOn, order.timeSlot, order.inspectTime),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
                 if (order.address != null) ...[
@@ -227,7 +232,7 @@ class _WhenRow extends StatelessWidget {
                     order.address!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11.5, color: AppColors.text2),
+                    style: TextStyle(fontSize: 11.5, color: context.colors.text2),
                   ),
                 ],
               ],
@@ -252,7 +257,7 @@ class _VerdictRow extends StatelessWidget {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.bg0,
+        color: context.colors.bg0,
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
@@ -261,10 +266,10 @@ class _VerdictRow extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: verdict.color.withValues(alpha: 0.14),
+              color: verdict.color(context.colors).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(verdict.icon, size: 15, color: verdict.color),
+            child: Icon(verdict.icon, size: 15, color: verdict.color(context.colors)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -276,38 +281,56 @@ class _VerdictRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    color: verdict.color,
+                    color: verdict.color(context.colors),
                   ),
                 ),
                 if (comment != null && comment!.isNotEmpty)
                   Text(
                     comment!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: AppColors.text2,
+                      color: context.colors.text2,
                       height: 1.4,
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // .verdict-link — сам отчёт открывается тапом по карточке
-          const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Отчёт',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text1,
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 13, color: AppColors.text1),
-            ],
-          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Полный отчёт — главное действие у завершённого осмотра, поэтому
+/// выше повтора и в мягком акценте; залитый зелёный спорил бы
+/// с «Новым заказом» внизу экрана.
+class _ReportButton extends StatelessWidget {
+  const _ReportButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: onTap,
+          icon: const Icon(Icons.description_outlined, size: 14),
+          label: const Text(
+            'Посмотреть полный отчёт',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+          ),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: context.colors.buySoft,
+            foregroundColor: context.colors.modeBuy,
+            side: BorderSide(color: context.colors.buyEdge),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+          ),
+        ),
       ),
     );
   }
@@ -333,8 +356,8 @@ class _AgainButton extends StatelessWidget {
             style: TextStyle(fontSize: 12),
           ),
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.text2,
-            side: const BorderSide(color: AppColors.line),
+            foregroundColor: context.colors.text2,
+            side: BorderSide(color: context.colors.line),
             padding: const EdgeInsets.symmetric(vertical: 9),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
           ),
@@ -365,13 +388,13 @@ class OrderFoot extends StatelessWidget {
             width: 26,
             height: 26,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.bg3,
+            decoration: BoxDecoration(
+              color: context.colors.bg3,
               shape: BoxShape.circle,
             ),
             child: Text(
               '?',
-              style: AppText.avatar.copyWith(color: AppColors.text3),
+              style: context.text.avatar.copyWith(color: context.colors.text3),
             ),
           ),
         const SizedBox(width: 9),
@@ -380,8 +403,8 @@ class OrderFoot extends StatelessWidget {
               ? Text.rich(
                   TextSpan(
                     text: executor.name,
-                    style: const TextStyle(
-                      color: AppColors.text1,
+                    style: TextStyle(
+                      color: context.colors.text1,
                       fontWeight: FontWeight.w600,
                     ),
                     children: [
@@ -390,15 +413,15 @@ class OrderFoot extends StatelessWidget {
                         const TextSpan(text: ' · приедет'),
                     ],
                   ),
-                  style: AppText.orderExec,
+                  style: context.text.orderExec,
                 )
               : Text(_responsesLabel(order.responses.length, order.isInspection),
-                  style: AppText.orderExec),
+                  style: context.text.orderExec),
         ),
         if (_price(order) != null)
           Text(
             _price(order)!,
-            style: AppText.orderPrice.copyWith(fontFamily: AppTheme.monoFamily),
+            style: context.text.orderPrice.copyWith(fontFamily: AppTheme.monoFamily),
           ),
       ],
     );

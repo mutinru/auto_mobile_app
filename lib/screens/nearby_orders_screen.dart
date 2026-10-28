@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
 import '../data/verification_repository.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
+import '../models/order_kind.dart';
+import '../state/nearby_filter_store.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/nearby_filter_sheet.dart';
 import '../widgets/respond_sheet.dart';
 import 'available_orders_screen.dart';
 import 'verification_screen.dart';
@@ -25,6 +29,8 @@ class NearbyOrdersScreen extends StatefulWidget {
     required this.store,
     required this.verification,
     this.auth,
+    this.onProfile,
+    this.filters,
   });
 
   final OrderStore store;
@@ -32,6 +38,12 @@ class NearbyOrdersScreen extends StatefulWidget {
 
   /// Нужен только экрану верификации, на который ведёт гейт.
   final AuthService? auth;
+
+  /// Иконка профиля в шапке. null — иконки нет.
+  final VoidCallback? onProfile;
+
+  /// Фильтры шторки. null — свои, без сохранения между запусками.
+  final NearbyFilterStore? filters;
 
   @override
   State<NearbyOrdersScreen> createState() => _NearbyOrdersScreenState();
@@ -42,6 +54,8 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
 
   /// true — показываем только заказы с малым числом откликов.
   bool _fewResponsesOnly = false;
+
+  late final NearbyFilterStore _filters = widget.filters ?? NearbyFilterStore();
 
   @override
   void initState() {
@@ -61,16 +75,53 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     }
   }
 
-  bool get _canRespond => _verification?.complete ?? false;
+  bool get _canRespond => _verification?.canTakeOrders ?? false;
 
-  List<Order> _visible(List<Order> orders) => _fewResponsesOnly
-      ? orders.where((o) => o.responses.length <= 2).toList()
-      : orders;
+  List<Order> _visible(List<Order> orders, NearbyFilter filter) {
+    final filtered = applyNearbyFilter(orders, filter);
+    return _fewResponsesOnly
+        ? filtered.where((o) => o.responses.length <= 2).toList()
+        : filtered;
+  }
+
+  Future<void> _openFilters() async {
+    final all = widget.store.availableOrders;
+    final next = await showNearbyFilterSheet(
+      context,
+      current: _filters.filter,
+      orders: all,
+      countFor: (f) => _visible(all, f).length,
+    );
+    if (next != null) _filters.set(next);
+  }
+
+  void _resetFilters() {
+    setState(() => _fewResponsesOnly = false);
+    _filters.set(NearbyFilter(sort: _filters.filter.sort));
+  }
+
+  /// Включённые фильтры шторки — чипами с крестиком под шапкой, чтобы было
+  /// видно, почему список короткий. Тап снимает фильтр.
+  List<(String, NearbyFilter)> _activeChips(NearbyFilter f) => [
+    if (f.kind != null)
+      (
+        f.kind!.isInspection ? 'Осмотр' : 'Подбор',
+        f.copyWith(kind: () => null),
+      ),
+    for (final city in f.cities)
+      (city, f.copyWith(cities: {...f.cities}..remove(city))),
+    if (f.when != NearbyWhen.any)
+      (f.when.label, f.copyWith(when: NearbyWhen.any)),
+    if (f.minPrice != null)
+      ('от ${money(f.minPrice!)} ₽', f.copyWith(minPrice: () => null)),
+    for (final brand in f.brands)
+      (brand, f.copyWith(brands: {...f.brands}..remove(brand))),
+  ];
 
   Future<void> _respond(Order order) async {
     final result = await showModalBottomSheet<(int, String?)>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -80,16 +131,21 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     if (result == null) return;
 
     try {
-      await widget.store
-          .respondToOrder(order.id, proposedPrice: result.$1, message: result.$2);
+      await widget.store.respondToOrder(
+        order.id,
+        proposedPrice: result.$1,
+        message: result.$2,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Отклик отправлен')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Отклик отправлен')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$e')));
       }
     }
   }
@@ -97,14 +153,16 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   void _openVerification() {
     final auth = widget.auth;
     if (auth == null) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => VerificationScreen(auth: auth)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => VerificationScreen(auth: auth)));
   }
 
   void _openMap() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => AvailableOrdersScreen(store: widget.store)),
+      MaterialPageRoute(
+        builder: (_) => AvailableOrdersScreen(store: widget.store),
+      ),
     );
   }
 
@@ -113,10 +171,11 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: widget.store,
+          listenable: Listenable.merge([widget.store, _filters]),
           builder: (context, _) {
             final all = widget.store.availableOrders;
-            final orders = _visible(all);
+            final filter = _filters.filter;
+            final orders = _visible(all, filter);
 
             return Column(
               children: [
@@ -126,32 +185,67 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                   onBack: Navigator.of(context).canPop()
                       ? () => Navigator.of(context).pop()
                       : null,
-                  trailing: SquareIconButton(icon: Icons.tune, onTap: () {}),
-                ),
-
-                // .filter-row — только фильтры, работающие на живых данных
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
-                  child: Row(
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      AppChip(
-                        label: 'Все · ${all.length}',
-                        on: !_fewResponsesOnly,
-                        activeColor: AppColors.modeWork,
-                        onTap: () => setState(() => _fewResponsesOnly = false),
+                      _BadgeIcon(
+                        count: filter.activeCount,
+                        child: SquareIconButton(
+                          icon: Icons.tune,
+                          onTap: _openFilters,
+                        ),
                       ),
-                      const SizedBox(width: 6),
-                      AppChip(
-                        label: 'Мало откликов',
-                        on: _fewResponsesOnly,
-                        activeColor: AppColors.modeWork,
-                        onTap: () => setState(() => _fewResponsesOnly = true),
-                      ),
+                      if (widget.onProfile != null) ...[
+                        const SizedBox(width: 8),
+                        SquareIconButton(
+                          icon: Icons.person_outline,
+                          onTap: widget.onProfile!,
+                        ),
+                      ],
                     ],
                   ),
                 ),
 
-                Expanded(child: _body(orders)),
+                // .filter-row — быстрые фильтры и включённые из шторки.
+                // Align — иначе короткий ряд встаёт по центру колонки
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
+                    child: Row(
+                      children: [
+                        AppChip(
+                          label: 'Все · ${all.length}',
+                          on: !_fewResponsesOnly,
+                          activeColor: context.colors.modeWork,
+                          onTap: () =>
+                              setState(() => _fewResponsesOnly = false),
+                        ),
+                        const SizedBox(width: 6),
+                        AppChip(
+                          label: 'Мало откликов',
+                          on: _fewResponsesOnly,
+                          activeColor: context.colors.modeWork,
+                          onTap: () => setState(() => _fewResponsesOnly = true),
+                        ),
+                        for (final (label, without) in _activeChips(
+                          filter,
+                        )) ...[
+                          const SizedBox(width: 6),
+                          AppChip(
+                            label: '$label  ✕',
+                            on: true,
+                            activeColor: context.colors.modeWork,
+                            onTap: () => _filters.set(without),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                Expanded(child: _body(orders, hiddenByFilter: all.isNotEmpty)),
 
                 BottomCta(
                   children: [
@@ -170,7 +264,9 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     );
   }
 
-  Widget _body(List<Order> orders) {
+  /// [hiddenByFilter] — заказы есть, и если список пуст, его опустошили
+  /// фильтры, а не сервер.
+  Widget _body(List<Order> orders, {required bool hiddenByFilter}) {
     final error = widget.store.availableError;
     if (error != null) {
       return Padding(
@@ -178,15 +274,15 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Не удалось загрузить заказы',
-              style: TextStyle(fontSize: 14, color: AppColors.text1),
+              style: TextStyle(fontSize: 14, color: context.colors.text1),
             ),
             const SizedBox(height: 6),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11.5, color: AppColors.text3),
+              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
             ),
             const SizedBox(height: 10),
             CtaGhost(
@@ -203,7 +299,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     }
 
     final gate = _verification;
-    final showGate = gate == null || !gate.complete;
+    final showGate = gate == null || !gate.canTakeOrders;
 
     return RefreshIndicator(
       onRefresh: () => widget.store.loadAvailableOrders(),
@@ -215,13 +311,27 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
               summary: gate,
               onTap: widget.auth == null ? null : _openVerification,
             ),
-          if (orders.isEmpty)
-            const Padding(
+          if (orders.isEmpty && hiddenByFilter)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Column(
+                children: [
+                  Text(
+                    'Под фильтр ничего не подошло',
+                    style: TextStyle(fontSize: 13, color: context.colors.text2),
+                  ),
+                  const SizedBox(height: 6),
+                  CtaGhost(label: 'Сбросить фильтры', onPressed: _resetFilters),
+                ],
+              ),
+            )
+          else if (orders.isEmpty)
+            Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(
                 child: Text(
                   'Свободных заказов сейчас нет',
-                  style: TextStyle(fontSize: 13, color: AppColors.text2),
+                  style: TextStyle(fontSize: 13, color: context.colors.text2),
                 ),
               ),
             ),
@@ -253,8 +363,10 @@ class _VerificationGate extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 11),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.modeWork.withValues(alpha: 0.35)),
+        color: context.colors.bg1,
+        border: Border.all(
+          color: context.colors.modeWork.withValues(alpha: 0.35),
+        ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -266,13 +378,13 @@ class _VerificationGate extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.modeWork.withValues(alpha: 0.16),
+                  color: context.colors.modeWork.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.lock_outline,
                   size: 17,
-                  color: AppColors.modeWork,
+                  color: context.colors.modeWork,
                 ),
               ),
               const SizedBox(width: 11),
@@ -280,13 +392,13 @@ class _VerificationGate extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Смотреть можно, откликаться — нет',
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.14,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -294,10 +406,10 @@ class _VerificationGate extends StatelessWidget {
                       summary == null
                           ? 'Нужна верификация: вход, опыт, тест на дефекты · ~20 минут'
                           : 'Нужна верификация: пройдено ${summary!.passed} из '
-                              '${summary!.total} шагов · ~20 минут',
-                      style: const TextStyle(
+                                '${summary!.total} шагов · ~20 минут',
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: AppColors.text2,
+                        color: context.colors.text2,
                         height: 1.35,
                       ),
                     ),
@@ -313,8 +425,8 @@ class _VerificationGate extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 4,
-              backgroundColor: AppColors.bg0,
-              valueColor: const AlwaysStoppedAnimation(AppColors.modeWork),
+              backgroundColor: context.colors.bg0,
+              valueColor: AlwaysStoppedAnimation(context.colors.modeWork),
             ),
           ),
           const SizedBox(height: 11),
@@ -324,9 +436,9 @@ class _VerificationGate extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.modeWork,
-                foregroundColor: AppColors.modeWorkInk,
-                disabledBackgroundColor: AppColors.bg3,
+                backgroundColor: context.colors.modeWork,
+                foregroundColor: context.colors.modeWorkInk,
+                disabledBackgroundColor: context.colors.bg3,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(11),
@@ -404,8 +516,10 @@ class _JobCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.modeWork.withValues(alpha: 0.045),
-        border: Border.all(color: AppColors.modeWork.withValues(alpha: 0.35)),
+        color: context.colors.modeWork.withValues(alpha: 0.045),
+        border: Border.all(
+          color: context.colors.modeWork.withValues(alpha: 0.35),
+        ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -413,7 +527,7 @@ class _JobCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Pill('свободен', color: AppColors.modeWork),
+              Pill('свободен', color: context.colors.modeWork),
               const SizedBox(width: 8),
               // в макете здесь «Химки · 8 км» — расстояний в API нет.
               // У осмотра вместо города показываем адрес выезда.
@@ -425,22 +539,22 @@ class _JobCard extends StatelessWidget {
                   textAlign: TextAlign.right,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.sectionExtra,
+                  style: context.text.sectionExtra,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(order.carTitle, style: AppText.orderCar),
+          Text(order.carTitle, style: context.text.orderCar),
           const SizedBox(height: 5),
-          Text(meta, style: AppText.orderMeta),
+          Text(meta, style: context.text.orderMeta),
 
           // .pay
           Container(
             margin: const EdgeInsets.only(top: 11),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.bg0,
+              color: context.colors.bg0,
               borderRadius: BorderRadius.circular(11),
             ),
             child: Row(
@@ -448,17 +562,17 @@ class _JobCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     payCaption,
-                    style: const TextStyle(fontSize: 11, color: AppColors.text2),
+                    style: TextStyle(fontSize: 11, color: context.colors.text2),
                   ),
                 ),
                 Text(
                   payValue,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.3,
-                    color: AppColors.modeWork,
+                    color: context.colors.modeWork,
                   ),
                 ),
               ],
@@ -473,10 +587,10 @@ class _JobCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: canRespond ? onRespond : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.modeWork,
-                foregroundColor: AppColors.modeWorkInk,
-                disabledBackgroundColor: AppColors.bg3,
-                disabledForegroundColor: AppColors.text3,
+                backgroundColor: context.colors.modeWork,
+                foregroundColor: context.colors.modeWorkInk,
+                disabledBackgroundColor: context.colors.bg3,
+                disabledForegroundColor: context.colors.text3,
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(11),
@@ -491,6 +605,51 @@ class _JobCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Число включённых фильтров поверх кнопки шапки. 0 — без бейджа.
+class _BadgeIcon extends StatelessWidget {
+  const _BadgeIcon({required this.count, required this.child});
+
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) return child;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          top: -4,
+          right: -4,
+          child: IgnorePointer(
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 17),
+              height: 17,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.colors.modeWork,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: context.colors.bg0, width: 2),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  color: context.colors.modeWorkInk,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

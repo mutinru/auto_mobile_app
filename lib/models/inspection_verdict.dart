@@ -12,10 +12,10 @@ extension InspectionVerdictX on InspectionVerdict {
         InspectionVerdict.notRecommended => 'Не рекомендую',
       };
 
-  Color get color => switch (this) {
-        InspectionVerdict.recommended => AppColors.statusDone,
-        InspectionVerdict.withReservations => AppColors.statusProgress,
-        InspectionVerdict.notRecommended => AppColors.statusDefect,
+  Color color(AppColors c) => switch (this) {
+        InspectionVerdict.recommended => c.statusDone,
+        InspectionVerdict.withReservations => c.statusProgress,
+        InspectionVerdict.notRecommended => c.statusDefect,
       };
 
   IconData get icon => switch (this) {

@@ -63,9 +63,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ApiClient(widget.auth!),
       inspectionId: inspectionId,
     );
+    // стор — до маршрута: builder перезапускается при смене темы
+    final store = InspectionStore(repo);
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => InspectionOverviewScreen(store: InspectionStore(repo)),
+        builder: (_) => InspectionOverviewScreen(store: store),
       ),
     );
     await _load();
@@ -107,8 +109,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.arrow_back, size: 18),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.bg1,
-                      foregroundColor: AppColors.text1,
+                      backgroundColor: context.colors.bg1,
+                      foregroundColor: context.colors.text1,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
                     ),
                   ),
@@ -116,10 +118,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   Expanded(
                     child: Text(
                       _order != null ? 'Заказ #${_order!.id}' : 'Заказ',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                   ),
@@ -145,7 +147,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         const SizedBox(height: 10),
         Text(
           order.carTitle,
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: AppColors.text1),
+          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: context.colors.text1),
         ),
         const SizedBox(height: 6),
         Text(
@@ -155,7 +157,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (order.budgetMin != null || order.budgetMax != null)
               '${order.budgetMin ?? 0} — ${order.budgetMax ?? '?'} ₽',
           ].join(' · '),
-          style: const TextStyle(fontSize: 12.5, color: AppColors.text2),
+          style: TextStyle(fontSize: 12.5, color: context.colors.text2),
         ),
         if (order.requirements.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -167,17 +169,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.bg1,
+                    color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text(r, style: const TextStyle(fontSize: 11.5, color: AppColors.text2)),
+                  child: Text(r, style: TextStyle(fontSize: 11.5, color: context.colors.text2)),
                 ),
             ],
           ),
         ],
         if (order.comment != null && order.comment!.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text(order.comment!, style: const TextStyle(fontSize: 13, color: AppColors.text2)),
+          Text(order.comment!, style: TextStyle(fontSize: 13, color: context.colors.text2)),
         ],
         if (order.executor != null) ...[
           const SizedBox(height: 22),
@@ -217,19 +219,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(color: AppColors.bg1, borderRadius: BorderRadius.circular(13)),
+              decoration: BoxDecoration(color: context.colors.bg1, borderRadius: BorderRadius.circular(13)),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(r.executor.name, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.text1)),
+                        Text(r.executor.name, style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.text1)),
                         const SizedBox(height: 2),
-                        Text('${r.proposedPrice} ₽', style: const TextStyle(fontSize: 12, color: AppColors.text2)),
+                        Text('${r.proposedPrice} ₽', style: TextStyle(fontSize: 12, color: context.colors.text2)),
                         if (r.message != null) ...[
                           const SizedBox(height: 4),
-                          Text(r.message!, style: const TextStyle(fontSize: 11.5, color: AppColors.text3)),
+                          Text(r.message!, style: TextStyle(fontSize: 11.5, color: context.colors.text3)),
                         ],
                       ],
                     ),
@@ -238,8 +240,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ElevatedButton(
                       onPressed: _accepting ? null : () => _accept(r.id),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.statusDone,
-                        foregroundColor: const Color(0xFF07150E),
+                        backgroundColor: context.colors.statusDone,
+                        foregroundColor: context.colors.modeBuyInk,
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
@@ -248,7 +250,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   else
                     Text(
                       r.status == OrderResponseStatus.accepted ? 'принят' : 'отклонён',
-                      style: const TextStyle(fontSize: 11, color: AppColors.text3),
+                      style: TextStyle(fontSize: 11, color: context.colors.text3),
                     ),
                 ],
               ),
@@ -267,7 +269,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(fontSize: 10, letterSpacing: 1.2, color: AppColors.text3, fontWeight: FontWeight.w600),
+      style: TextStyle(fontSize: 10, letterSpacing: 1.2, color: context.colors.text3, fontWeight: FontWeight.w600),
     );
   }
 }
@@ -286,16 +288,16 @@ class _InfoRow extends StatelessWidget {
       child: Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-      decoration: BoxDecoration(color: AppColors.bg1, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: context.colors.bg1, borderRadius: BorderRadius.circular(12)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text1)),
+          Text(label, style: TextStyle(fontSize: 13, color: context.colors.text1)),
           if (trailing != null)
-            Text(trailing!, style: const TextStyle(fontSize: 12, color: AppColors.text2)),
+            Text(trailing!, style: TextStyle(fontSize: 12, color: context.colors.text2)),
           if (onTap != null) ...[
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right, size: 16, color: AppColors.text3),
+            Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
           ],
         ],
       ),

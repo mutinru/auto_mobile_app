@@ -31,22 +31,22 @@ extension OrderStatusX on OrderStatus {
         OrderStatus.cancelled => 'отменён',
       };
 
-  Color get color => switch (this) {
-        OrderStatus.awaitingExecutor => AppColors.text2,
-        OrderStatus.sourcing => AppColors.statusProgress,
-        OrderStatus.scheduled => AppColors.text1,
-        OrderStatus.inspecting => AppColors.statusInfo,
-        OrderStatus.completed => AppColors.statusDone,
-        OrderStatus.cancelled => AppColors.text3,
+  Color color(AppColors c) => switch (this) {
+        OrderStatus.awaitingExecutor => c.text2,
+        OrderStatus.sourcing => c.statusProgress,
+        OrderStatus.scheduled => c.text1,
+        OrderStatus.inspecting => c.statusInfo,
+        OrderStatus.completed => c.statusDone,
+        OrderStatus.cancelled => c.text3,
       };
 
   /// Цвет для .pill. null → нейтральный вариант (.pill без модификатора,
   /// фон bg-3) — в макете так выглядит «ждёт исполнителя».
-  Color? get pillColor => switch (this) {
+  Color? pillColor(AppColors c) => switch (this) {
         // .pill.planned в макете — тот же нейтральный фон, что и у
         // «ждёт исполнителя», но текст ярче
         OrderStatus.awaitingExecutor || OrderStatus.cancelled => null,
-        _ => color,
+        _ => color(c),
       };
 }
 

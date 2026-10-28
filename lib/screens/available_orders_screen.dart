@@ -40,7 +40,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
   Future<void> _respond(Order order) async {
     final result = await showModalBottomSheet<(int, String?)>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -110,7 +110,7 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(painter: const CityMapPainter()),
+                        child: CustomPaint(painter: CityMapPainter(context.colors.map)),
                       ),
                       // .map-me — точка «вы здесь» (52% / 50% в макете)
                       const Positioned.fill(
@@ -168,15 +168,15 @@ class _RegionButton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(11),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 15, color: AppColors.text3),
+            Icon(icon, size: 15, color: context.colors.text3),
             const SizedBox(width: 8),
           ],
           Column(
@@ -184,19 +184,19 @@ class _RegionButton extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.text1,
+                  color: context.colors.text1,
                 ),
               ),
               const SizedBox(height: 1),
-              Text(sub, style: const TextStyle(fontSize: 10, color: AppColors.text3)),
+              Text(sub, style: TextStyle(fontSize: 10, color: context.colors.text3)),
             ],
           ),
           if (chevron) ...[
             const SizedBox(width: 8),
-            const Icon(Icons.keyboard_arrow_down, size: 14, color: AppColors.text3),
+            Icon(Icons.keyboard_arrow_down, size: 14, color: context.colors.text3),
           ],
         ],
       ),
@@ -215,12 +215,12 @@ class _MeDot extends StatelessWidget {
       height: 14,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.statusInfo,
+          color: context.colors.statusInfo,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.bg0, width: 2.5),
+          border: Border.all(color: context.colors.bg0, width: 2.5),
           boxShadow: [
             BoxShadow(
-              color: AppColors.statusInfo.withValues(alpha: 0.16),
+              color: context.colors.statusInfo.withValues(alpha: 0.16),
               spreadRadius: 8,
             ),
           ],
@@ -255,14 +255,14 @@ class _Pin extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              color: hot ? AppColors.statusDone : AppColors.bg3,
+              color: hot ? context.colors.statusDone : context.colors.bg3,
               border: Border.all(
-                color: hot ? AppColors.statusDone : AppColors.line,
+                color: hot ? context.colors.statusDone : context.colors.line,
               ),
               borderRadius: BorderRadius.circular(999),
-              boxShadow: const [
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x80000000),
+                  color: context.colors.sheetShadow,
                   blurRadius: 12,
                   offset: Offset(0, 4),
                 ),
@@ -274,7 +274,7 @@ class _Pin extends StatelessWidget {
                 fontFamily: AppTheme.monoFamily,
                 fontSize: 11,
                 fontWeight: hot ? FontWeight.w700 : FontWeight.w500,
-                color: hot ? const Color(0xFF07150E) : AppColors.text1,
+                color: hot ? context.colors.modeBuyInk : context.colors.text1,
               ),
             ),
           ),
@@ -303,12 +303,12 @@ class _Sheet extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.42,
       ),
       padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
-      decoration: const BoxDecoration(
-        color: AppColors.bg0,
-        border: Border(top: BorderSide(color: AppColors.line)),
+      decoration: BoxDecoration(
+        color: context.colors.bg0,
+        border: Border(top: BorderSide(color: context.colors.line)),
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         boxShadow: [
-          BoxShadow(color: Color(0x8C000000), blurRadius: 40, offset: Offset(0, -18)),
+          BoxShadow(color: context.colors.sheetShadow, blurRadius: 40, offset: Offset(0, -18)),
         ],
       ),
       child: Column(
@@ -320,7 +320,7 @@ class _Sheet extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: AppColors.bg3,
+              color: context.colors.bg3,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -330,21 +330,21 @@ class _Sheet extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Рядом с вами',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.14,
-                  color: AppColors.text1,
+                  color: context.colors.text1,
                 ),
               ),
               Text(
                 '${orders.length} заказов',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.monoFamily,
                   fontSize: 11,
-                  color: AppColors.text3,
+                  color: context.colors.text3,
                 ),
               ),
             ],
@@ -357,11 +357,11 @@ class _Sheet extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   )
                 : orders.isEmpty
-                    ? const Padding(
+                    ? Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Text(
                           'Рядом пока пусто',
-                          style: TextStyle(color: AppColors.text3, fontSize: 12),
+                          style: TextStyle(color: context.colors.text3, fontSize: 12),
                         ),
                       )
                     : ListView.builder(
@@ -405,8 +405,8 @@ class _JobCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -420,22 +420,22 @@ class _JobCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   order.carTitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.14,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
               ),
               if (order.budgetMax != null)
                 Text(
                   '${money(order.budgetMax!)} ₽',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.statusDone,
+                    color: context.colors.statusDone,
                   ),
                 ),
             ],
@@ -443,7 +443,7 @@ class _JobCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             meta.join('   '),
-            style: const TextStyle(fontSize: 11.5, color: AppColors.text2),
+            style: TextStyle(fontSize: 11.5, color: context.colors.text2),
           ),
           const SizedBox(height: 11),
           SizedBox(
@@ -451,8 +451,8 @@ class _JobCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: onRespond,
               style: ElevatedButton.styleFrom(
-                backgroundColor: first ? AppColors.statusDone : AppColors.bg3,
-                foregroundColor: first ? const Color(0xFF07150E) : AppColors.text1,
+                backgroundColor: first ? context.colors.statusDone : context.colors.bg3,
+                foregroundColor: first ? context.colors.modeBuyInk : context.colors.text1,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

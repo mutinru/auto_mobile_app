@@ -1,6 +1,6 @@
 # auto_podbor_mobile
 
-Мобильное приложение «Auto Podbor» — маркетплейс подбора автомобиля. Заказчик
+Мобильное приложение «БитНеБит» — маркетплейс подбора автомобиля. Заказчик
 размещает заказ, исполнитель откликается, находит кандидатов и проводит осмотр
 кузова по 13 деталям.
 
@@ -18,17 +18,35 @@ flutter run -d chrome          # веб тоже собирается
 Бекенд нужен на `:8083` (docker compose: nginx + php-fpm + MySQL), с накатанными
 миграциями и сидерами — иначе списки заказов пустые, а вход не пройдёт.
 
-### Адрес бекенда
+### Сборки и адрес бекенда
 
-`lib/config/api_config.dart` зашивает хост:
+Приложение собирается в двух вариантах — `dev` и `prod` — через Flutter flavors.
+Адрес API выбирается автоматически в `lib/config/api_config.dart`:
 
-| Платформа | Адрес |
-| --- | --- |
-| Android | `http://10.0.2.2:8083/api` — внутри эмулятора `localhost` это сам эмулятор, машина разработчика доступна по `10.0.2.2` |
-| Остальные | `http://localhost:8083/api` |
+| Flavor | applicationId (Android) | bundle ID (iOS) | API |
+| --- | --- | --- | --- |
+| `dev` | `com.bitnebit.dev` | `com.bitnebit.dev` | локальный бекенд: `http://10.0.2.2:8083/api` (Android-эмулятор), `http://localhost:8083/api` (iOS-симулятор) |
+| `prod` | `com.bitnebit.app` | `com.bitnebit.app` | `https://bitnebit.com/api` |
 
-Для запуска на **реальном телефоне** подставьте туда LAN-адрес машины с бекендом
-(`http://192.168.1.5:8083/api`), телефон должен быть в той же сети.
+Dev и prod имеют разный `applicationId`/`bundle ID`, поэтому могут стоять на одном телефоне рядом.
+
+Основные команды (`Makefile`):
+
+```bash
+make run-dev               # локальная разработка
+make run-prod              # проверка прод-сборки
+make build-apk-dev         # dev APK
+make build-apk-prod        # prod APK для установки на телефон
+make build-appbundle-prod  # AAB для Google Play
+make analyze
+make test
+```
+
+Под капотом: `flutter run --flavor dev` / `flutter build apk --flavor prod`.
+
+Для запуска dev-сборки на **реальном телефоне** в той же сети с компьютером
+подставьте в `lib/config/api_config.dart` LAN-адрес машины с бекендом
+(`http://192.168.1.5:8083/api`) вместо `10.0.2.2`/`localhost`.
 
 ### Демо-аккаунты
 
@@ -47,7 +65,7 @@ flutter run -d chrome          # веб тоже собирается
 
 ```bash
 flutter analyze
-flutter test                                    # 7 suites на мок-репозиториях, бекенд не нужен
+flutter test                                    # 8 suites на мок-репозиториях, бекенд не нужен
 flutter test test/vin_test.dart --plain-name 'обрезает до 17 знаков'
 ```
 
@@ -63,13 +81,13 @@ flutter test test/vin_test.dart --plain-name 'обрезает до 17 знак�
 
 ```
 lib/
-  config/     ApiConfig — адрес бекенда
+  config/     ApiConfig — адрес бекенда, SupportConfig — контакты поддержки
   data/       репозитории (api_* и mock_*), ApiClient, AuthService
   models/     доменные модели и enum'ы, зеркала PHP-энамов
   state/      OrderStore, InspectionStore — ChangeNotifier
   screens/    экраны
   widgets/    переиспользуемые блоки макета
-  theme/      палитра и тема
+  theme/      палитры (тёмная и светлая), тема, ThemeController
 design/       HTML-макеты — источник правды по дизайну, см. design/README.md
 fonts/        Inter и JetBrains Mono, зашиты чтобы не зависеть от сети
 ```
@@ -85,6 +103,21 @@ fonts/        Inter и JetBrains Mono, зашиты чтобы не зависе
 `AuthService` хранит токен в `flutter_secure_storage` (Keystore на Android,
 Keychain на iOS) и восстанавливает сессию при старте, так что вход переживает
 перезапуск.
+
+### Темы
+
+Две палитры — `AppColors.dark` и `AppColors.light` в `lib/theme/app_colors.dart`,
+значения из `design/first-launch-screen.html`. Палитра и типографика (`AppText`)
+лежат в `ThemeData` как `ThemeExtension`, экраны читают их через
+`context.colors.*` и `context.text.*`. Захардкоженных `Color(0x…)` в экранах нет:
+что меняется между темами — токен палитры, включая цвета схемы кузова
+(`SchematicColors`) и карты (`MapColors`). Видоискатель VIN всегда тёмный.
+
+`ThemeController` хранит выбор в `flutter_secure_storage` (ключ `app_theme`),
+по умолчанию тёмная. Переключатель (`ThemeSwitch`) — на стартовом экране и в
+профиле. Смена темы перестраивает `MaterialApp`, стек маршрутов живёт дальше, но
+`builder` у `MaterialPageRoute` вызывается заново, поэтому сторы и прочее
+состояние создавайте **до** маршрута, а не внутри `builder`.
 
 ## Что стоит знать о домене
 
@@ -172,3 +205,7 @@ IntentScreen (корень)
 - **Осмотры на бекенде не защищены проверкой владельца** — любой авторизованный
   пользователь может прочитать и изменить чужой осмотр по id. Дыра известная, не
   закладывайтесь на то, что сервер прикроет.
+- **Поддержка — без чата.** Шторка поддержки (`lib/widgets/support_sheet.dart`)
+  ведёт в Telegram и на звонок; «Написать в чат» пока открывает тот же Telegram —
+  на бекенде чата нет. Телефон и ник в `lib/config/support_config.dart` —
+  заглушки из макета.

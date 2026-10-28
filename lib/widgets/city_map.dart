@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 /// Декоративная карта города из макета (.map-svg, viewBox 0 0 340 300).
 /// Формы перенесены из SVG один в один — это оформление, а не реальная
 /// картография: у заказов на бекенде нет координат.
 class CityMapPainter extends CustomPainter {
-  const CityMapPainter();
+  const CityMapPainter(this.colors);
+
+  final MapColors colors;
 
   static const _w = 340.0;
   static const _h = 300.0;
@@ -25,11 +29,11 @@ class CityMapPainter extends CustomPainter {
     // фон
     canvas.drawRect(
       const Rect.fromLTWH(0, 0, _w, _h),
-      Paint()..color = const Color(0xFF0F1216),
+      Paint()..color = colors.ground,
     );
 
     // парковые зоны
-    final park = Paint()..color = const Color(0xFF131B18);
+    final park = Paint()..color = colors.park;
     canvas.drawPath(
       Path()
         ..moveTo(-10, 210)
@@ -60,11 +64,11 @@ class CityMapPainter extends CustomPainter {
         ..cubicTo(260, 220, 230, 172, 162, 182)
         ..cubicTo(92, 192, 62, 132, -10, 152)
         ..close(),
-      Paint()..color = const Color(0xFF12202B),
+      Paint()..color = colors.river,
     );
 
     // кварталы
-    final block = Paint()..color = const Color(0xFF161A20);
+    final block = Paint()..color = colors.block;
     const blocks = [
       Rect.fromLTWH(18, 20, 72, 54),
       Rect.fromLTWH(104, 14, 58, 60),
@@ -86,7 +90,7 @@ class CityMapPainter extends CustomPainter {
 
     // дороги
     final road = Paint()
-      ..color = const Color(0xFF1D232B)
+      ..color = colors.road
       ..style = PaintingStyle.stroke
       ..strokeWidth = 7;
     canvas.drawLine(const Offset(0, 82), const Offset(340, 82), road);
@@ -95,7 +99,7 @@ class CityMapPainter extends CustomPainter {
     canvas.drawLine(const Offset(206, 0), const Offset(206, 300), road);
 
     final thin = Paint()
-      ..color = const Color(0xFF1D232B)
+      ..color = colors.road
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
     canvas.drawLine(const Offset(0, 145), const Offset(340, 145), thin);
@@ -105,7 +109,7 @@ class CityMapPainter extends CustomPainter {
       const Offset(20, 0),
       const Offset(340, 265),
       Paint()
-        ..color = const Color(0xFF1D232B)
+        ..color = colors.road
         ..style = PaintingStyle.stroke
         ..strokeWidth = 5,
     );
@@ -115,7 +119,7 @@ class CityMapPainter extends CustomPainter {
       const Offset(170, 150),
       118,
       Paint()
-        ..color = const Color(0xFF232A33)
+        ..color = colors.ring
         ..style = PaintingStyle.stroke
         ..strokeWidth = 5,
     );
@@ -124,5 +128,6 @@ class CityMapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CityMapPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CityMapPainter oldDelegate) =>
+      oldDelegate.colors != colors;
 }

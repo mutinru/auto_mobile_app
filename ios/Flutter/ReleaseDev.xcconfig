@@ -1,0 +1,4 @@
+#include "Release.xcconfig"
+
+FLUTTER_APP_FLAVOR=dev
+PRODUCT_BUNDLE_IDENTIFIER=com.bitnebit.dev

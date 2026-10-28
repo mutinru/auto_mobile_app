@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#ECE9E2;font-family:Manrope,Helvetica,sans-serif;color:#102b49}a{color:#fc4e0a}a:hover{color:#102b49}</style>
+</helmet>
+<sc-for list="{{ turns }}" as="t" hint-placeholder-count="2">
+<section style="padding:64px 64px 24px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-size:36px;font-weight:800;letter-spacing:-0.02em">{{ t.title }}</div>
+    <div style="font-size:18px;opacity:.75;max-width:760px;text-wrap:pretty">{{ t.sub }}</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+    <sc-for list="{{ t.variants }}" as="v" hint-placeholder-count="3">
+      <div id="{{ v.id }}" style="width:520px;background:#FBFAF7;border-radius:28px;padding:36px;display:flex;flex-direction:column;gap:32px;box-shadow:0 1px 0 rgba(16,43,73,.08)">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:14px;background:#102b49;color:#FBFAF7;padding:4px 10px;border-radius:999px">{{ v.id }}</div>
+          <div style="font-size:20px;font-weight:600">{{ v.name }}</div>
+        </div>
+        <div style="display:flex;gap:28px;align-items:flex-end">
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+            <img src="{{ v.ios }}" style="width:220px;height:220px;border-radius:50px;box-shadow:0 10px 30px rgba(16,43,73,.18)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;opacity:.6">iOS</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+            <img src="{{ v.round }}" style="width:180px;height:180px;border-radius:50%;box-shadow:0 10px 30px rgba(16,43,73,.18)">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;opacity:.6">Android</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:18px;align-items:flex-end;padding:22px;border-radius:20px;background:{{ v.wall }}">
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+            <img src="{{ v.ios }}" style="width:60px;height:60px;border-radius:14px">
+            <div style="font-size:12px;color:#fff">Авто</div>
+          </div>
+          <img src="{{ v.ios }}" style="width:40px;height:40px;border-radius:9px;margin-bottom:22px">
+          <img src="{{ v.ios }}" style="width:29px;height:29px;border-radius:7px;margin-bottom:22px">
+          <img src="{{ v.ios }}" style="width:20px;height:20px;border-radius:5px;margin-bottom:22px">
+          <div style="flex:1"></div>
+          <img src="{{ v.round }}" style="width:48px;height:48px;border-radius:50%;margin-bottom:22px">
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</sc-for>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (id, key, name, wall) => ({ id, name, wall,
+      ios: `icons/${key}/ios/AppIcon-1024.png`,
+      round: `icons/${key}/android/mipmap-xxxhdpi/ic_launcher_round.png` });
+    const blue = 'linear-gradient(160deg,#3d5a80,#1b2a41)', grey = 'linear-gradient(160deg,#9aa7b8,#5d6b7f)';
+    return { turns: [
+      { title: 'Вариант 2 — цвета приложения', sub: 'Зелёный и жёлтый взяты с экрана приложения. Файлы: icons/v2-*.', variants: [
+        mk('2a', 'v2-classic-green', 'Светлый, зелёная галочка', blue),
+        mk('2b', 'v2-dark-yellow', 'Тёмный фон приложения, жёлтый', grey),
+        mk('2c', 'v2-yellow', 'Жёлтый', blue)
+      ]},
+      { title: 'Вариант 1', sub: 'Исходные цвета рисунка. Файлы: icons/classic, icons/navy, icons/orange.', variants: [
+        mk('1a', 'classic', 'Светлый — как в оригинале', blue),
+        mk('1b', 'navy', 'Тёмно-синий', grey),
+        mk('1c', 'orange', 'Оранжевый', blue)
+      ]}
+    ]};
+  }
+}
+</script>
+</body>
+</html>

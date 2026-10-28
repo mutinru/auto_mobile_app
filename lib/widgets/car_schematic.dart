@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/panel_status.dart';
+import '../theme/app_colors.dart';
 
 /// Схема кузова из макета (экран 06): SVG viewBox 0 0 360 720.
 /// Пути перенесены из design/app_auto_podbor.html один в один,
@@ -42,7 +43,13 @@ class CarSchematic extends StatelessWidget {
           },
           child: CustomPaint(
             size: Size(c.maxWidth, c.maxHeight),
-            painter: _CarPainter(statuses: statuses, scale: scale, dx: dx, dy: dy),
+            painter: _CarPainter(
+              statuses: statuses,
+              colors: context.colors,
+              scale: scale,
+              dx: dx,
+              dy: dy,
+            ),
           ),
         );
       },
@@ -53,12 +60,14 @@ class CarSchematic extends StatelessWidget {
 class _CarPainter extends CustomPainter {
   _CarPainter({
     required this.statuses,
+    required this.colors,
     required this.scale,
     required this.dx,
     required this.dy,
   });
 
   final Map<String, PanelStatus> statuses;
+  final AppColors colors;
   final double scale;
   final double dx;
   final double dy;
@@ -68,11 +77,12 @@ class _CarPainter extends CustomPainter {
     canvas.save();
     canvas.translate(dx, dy);
     canvas.scale(scale);
+    final s = colors.schematic;
 
     // колёса
-    final wheel = Paint()..color = const Color(0xFF0B0E11);
+    final wheel = Paint()..color = s.wheel;
     final wheelStroke = Paint()
-      ..color = const Color(0xFF232B34)
+      ..color = s.wheelStroke
       ..style = PaintingStyle.stroke;
     for (final r in const [
       Rect.fromLTWH(30, 150, 30, 90),
@@ -86,38 +96,38 @@ class _CarPainter extends CustomPainter {
     }
 
     // корпус
-    canvas.drawPath(_bodyPath, Paint()..color = const Color(0xFF141A20));
+    canvas.drawPath(_bodyPath, Paint()..color = s.body);
     canvas.drawPath(
       _bodyPath,
       Paint()
-        ..color = const Color(0xFF242D37)
+        ..color = s.bodyStroke
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
 
     // детали: заливка по статусу + обводка цветом фона, как stroke: var(--bg-0)
     final panelStroke = Paint()
-      ..color = const Color(0xFF0B0D10)
+      ..color = s.panelStroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     for (final entry in carPanelPaths.entries) {
       final status = statuses[entry.key] ?? PanelStatus.none;
-      canvas.drawPath(entry.value, Paint()..color = status.color);
+      canvas.drawPath(entry.value, Paint()..color = status.color(colors));
       canvas.drawPath(entry.value, panelStroke);
     }
 
     // фары и фонари
-    final lamp = Paint()..color = const Color(0xFF2C3946);
+    final lamp = Paint()..color = s.lamp;
     canvas.drawPath(_poly([84, 96, 128, 78, 134, 92, 92, 112]), lamp);
     canvas.drawPath(_poly([276, 96, 232, 78, 226, 92, 268, 112]), lamp);
-    final tail = Paint()..color = const Color(0xFF3A2530);
+    final tail = Paint()..color = s.tail;
     canvas.drawPath(_poly([92, 640, 146, 632, 148, 646, 96, 655]), tail);
     canvas.drawPath(_poly([268, 640, 214, 632, 212, 646, 264, 655]), tail);
 
     // стёкла
-    final glass = Paint()..color = const Color(0xFF15181D);
+    final glass = Paint()..color = s.glass;
     final glassStroke = Paint()
-      ..color = const Color(0xFF0B0D10)
+      ..color = s.panelStroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     for (final g in [_windshield, _rearWindow]) {
@@ -126,7 +136,7 @@ class _CarPainter extends CustomPainter {
     }
 
     // зеркала
-    final mirror = Paint()..color = const Color(0xFF2C3946);
+    final mirror = Paint()..color = s.lamp;
     canvas.drawPath(
       Path()
         ..moveTo(56, 258)
@@ -150,9 +160,9 @@ class _CarPainter extends CustomPainter {
         const Rect.fromLTWH(138, 336, 84, 58),
         const Radius.circular(10),
       ),
-      Paint()..color = const Color(0xFF10161C),
+      Paint()..color = s.sunroof,
     );
-    final handle = Paint()..color = const Color(0x8C0F1317);
+    final handle = Paint()..color = s.handle;
     for (final r in const [
       Rect.fromLTWH(84, 268, 12, 4),
       Rect.fromLTWH(264, 268, 12, 4),
@@ -170,7 +180,9 @@ class _CarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CarPainter old) =>
-      old.statuses != statuses || old.scale != scale;
+      old.statuses != statuses ||
+      old.colors != colors ||
+      old.scale != scale;
 }
 
 Path _poly(List<double> xy) {

@@ -82,8 +82,8 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                             child: Text(
                               'Не удалось загрузить заказ:\n$_error',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.text3,
+                              style: TextStyle(
+                                color: context.colors.text3,
                                 fontSize: 12,
                               ),
                             ),
@@ -94,20 +94,20 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
             // .join-bar
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.line)),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: context.colors.line)),
               ),
               child: Column(
                 children: [
                   CtaPrimary(label: 'Хочу такой же подбор', onPressed: widget.onRepeatSelection),
                   const SizedBox(height: 9),
-                  const Text(
+                  Text(
                     'Или войдите, чтобы открыть отчёт целиком '
                     'и написать исполнителю',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                       height: 1.45,
                     ),
                   ),
@@ -128,8 +128,8 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.bg1,
-            border: Border.all(color: AppColors.line),
+            color: context.colors.bg1,
+            border: Border.all(color: context.colors.line),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -152,7 +152,7 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                 ],
               ),
               const SizedBox(height: 13),
-              Container(height: 1, color: AppColors.line),
+              Container(height: 1, color: context.colors.line),
               const SizedBox(height: 13),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -161,7 +161,7 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                   _Hero(
                     label: 'Отклонено',
                     value: '${order.carsRejected}',
-                    color: order.carsRejected > 0 ? AppColors.statusDefect : null,
+                    color: order.carsRejected > 0 ? context.colors.statusDefect : null,
                     alignEnd: true,
                   ),
                 ],
@@ -181,12 +181,12 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
-                    color: AppColors.bg1,
+                    color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     r,
-                    style: const TextStyle(fontSize: 12, color: AppColors.text2),
+                    style: TextStyle(fontSize: 12, color: context.colors.text2),
                   ),
                 ),
             ],
@@ -213,10 +213,10 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                 opacity: 0.5,
                 child: Row(
                   children: [
-                    for (final c in const [
-                      [Color(0xFF5A6470), Color(0xFF2C3138)],
-                      [Color(0xFF4A5260), Color(0xFF1F242C)],
-                      [Color(0xFF667080), Color(0xFF23282F)],
+                    for (final c in [
+                      [context.colors.avatarFrom, context.colors.avatarTo],
+                      [context.colors.avatarTo, context.colors.avatarFrom],
+                      [context.colors.avatarFrom, context.colors.bg3],
                     ]) ...[
                       Expanded(
                         child: Container(
@@ -244,22 +244,22 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: AppColors.bg3,
-                    border: Border.all(color: AppColors.line),
+                    color: context.colors.bg3,
+                    border: Border.all(color: context.colors.line),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.lock_outline,
                     size: 15,
-                    color: AppColors.text2,
+                    color: context.colors.text2,
                   ),
                 ),
                 const SizedBox(height: 7),
-                const Text(
+                Text(
                   'Полный отчёт и фото — после входа',
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: AppColors.text2,
+                    color: context.colors.text2,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -274,8 +274,8 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.bg1,
-              border: Border.all(color: AppColors.line),
+              color: context.colors.bg1,
+              border: Border.all(color: context.colors.line),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -288,19 +288,19 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                     children: [
                       Text(
                         order.executorName!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           letterSpacing: -0.32,
-                          color: AppColors.text1,
+                          color: context.colors.text1,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         '${order.executorCompleted ?? 0} заказов выполнено',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.text2,
+                          color: context.colors.text2,
                         ),
                       ),
                     ],
@@ -337,7 +337,7 @@ class _Hero extends StatelessWidget {
       crossAxisAlignment:
           alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.text3)),
+        Text(label, style: TextStyle(fontSize: 11, color: context.colors.text3)),
         const SizedBox(height: 3),
         Text(
           value,
@@ -346,7 +346,7 @@ class _Hero extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.15,
-            color: color ?? AppColors.text1,
+            color: color ?? context.colors.text1,
           ),
         ),
       ],
@@ -373,17 +373,17 @@ class _TimelineItem extends StatelessWidget {
                 width: 17,
                 height: 17,
                 decoration: BoxDecoration(
-                  color: step.done ? AppColors.statusDone : AppColors.bg3,
+                  color: step.done ? context.colors.statusDone : context.colors.bg3,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.bg0, width: 2),
+                  border: Border.all(color: context.colors.bg0, width: 2),
                 ),
                 child: step.done
-                    ? const Icon(Icons.check, size: 9, color: Color(0xFF07150E))
+                    ? Icon(Icons.check, size: 9, color: context.colors.modeBuyInk)
                     : null,
               ),
               if (!last)
                 Expanded(
-                  child: Container(width: 1.5, color: AppColors.line),
+                  child: Container(width: 1.5, color: context.colors.line),
                 ),
             ],
           ),
@@ -396,20 +396,20 @@ class _TimelineItem extends StatelessWidget {
                 children: [
                   Text(
                     step.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.text1,
+                      color: context.colors.text1,
                     ),
                   ),
                   if (step.at != null) ...[
                     const SizedBox(height: 3),
                     Text(
                       '${step.at!.day}.${step.at!.month.toString().padLeft(2, '0')}.${step.at!.year}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: AppTheme.monoFamily,
                         fontSize: 10.5,
-                        color: AppColors.text3,
+                        color: context.colors.text3,
                       ),
                     ),
                   ],

@@ -10,7 +10,7 @@ import '../theme/app_theme.dart';
 Future<OrderKind?> showOrderKindSheet(BuildContext context) {
   return showModalBottomSheet<OrderKind>(
     context: context,
-    backgroundColor: AppColors.bg0,
+    backgroundColor: context.colors.bg0,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -37,31 +37,31 @@ class _OrderKindSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 14),
               decoration: BoxDecoration(
-                color: AppColors.bg3,
+                color: context.colors.bg3,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-          const Text(
+          Text(
             'Что нужно сделать?',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.34,
-              color: AppColors.text1,
+              color: context.colors.text1,
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'От этого зависит форма заказа и кто откликнется',
-            style: TextStyle(fontSize: 12, color: AppColors.text2),
+            style: TextStyle(fontSize: 12, color: context.colors.text2),
           ),
           const SizedBox(height: 14),
           _KindOption(
             kind: OrderKind.selection,
             icon: Icons.search,
-            iconBg: AppColors.modeBuy,
-            iconInk: AppColors.modeBuyInk,
+            iconBg: context.colors.modeBuy,
+            iconInk: context.colors.modeBuyInk,
             name: 'Подобрать автомобиль',
             description: 'Знаю, чего хочу, но машины ещё нет. '
                 'Подборщик найдёт варианты и проверит лучшие.',
@@ -70,8 +70,8 @@ class _OrderKindSheet extends StatelessWidget {
           _KindOption(
             kind: OrderKind.inspection,
             icon: Icons.assignment_outlined,
-            iconBg: AppColors.statusInfo,
-            iconInk: const Color(0xFF06121F),
+            iconBg: context.colors.statusInfo,
+            iconInk: context.colors.infoInk,
             name: 'Осмотреть конкретную машину',
             description: 'Нашёл объявление. Специалист приедет по адресу, '
                 'проверит кузов по 13 деталям и пришлёт отчёт.',
@@ -113,8 +113,8 @@ class _KindOption extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.bg1,
-            border: Border.all(color: AppColors.line, width: 1.5),
+            color: context.colors.bg1,
+            border: Border.all(color: context.colors.line, width: 1.5),
             borderRadius: BorderRadius.circular(17),
           ),
           child: Row(
@@ -136,19 +136,19 @@ class _KindOption extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.145,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       description,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11.5,
-                        color: AppColors.text2,
+                        color: context.colors.text2,
                         height: 1.42,
                       ),
                     ),
@@ -165,15 +165,15 @@ class _KindOption extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.bg0,
+                              color: context.colors.bg0,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               fact,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppTheme.monoFamily,
                                 fontSize: 10.5,
-                                color: AppColors.text2,
+                                color: context.colors.text2,
                               ),
                             ),
                           ),

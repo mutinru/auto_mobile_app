@@ -56,7 +56,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _pickCar() async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -145,10 +145,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     value: _carLabel,
                     placeholder: _brandController.text.trim().isEmpty,
                     onTap: _pickCar,
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.keyboard_arrow_down,
                       size: 15,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                     ),
                   ),
                   // .field-pair — две колонки
@@ -183,12 +183,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   // .budget-val
                   Text(
                     '${money(_budget.start.round())} — ${money(_budget.end.round())} ₽',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.36,
-                      color: AppColors.text1,
+                      color: context.colors.text1,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -196,10 +196,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 4,
-                      activeTrackColor: AppColors.statusDone,
-                      inactiveTrackColor: AppColors.bg1,
-                      thumbColor: AppColors.text1,
-                      overlayColor: AppColors.statusDone.withValues(alpha: 0.12),
+                      activeTrackColor: context.colors.statusDone,
+                      inactiveTrackColor: context.colors.bg1,
+                      thumbColor: context.colors.text1,
+                      overlayColor: context.colors.statusDone.withValues(alpha: 0.12),
                       // в макете дорожка гладкая — деления не показываем
                       activeTickMarkColor: Colors.transparent,
                       inactiveTickMarkColor: Colors.transparent,

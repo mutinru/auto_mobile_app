@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'data/api_client.dart';
 import 'data/api_order_repository.dart';
@@ -14,24 +15,51 @@ import 'screens/new_order_screen.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
 import 'screens/profile_screen.dart';
+import 'state/nearby_filter_store.dart';
 import 'state/order_store.dart';
 import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'widgets/order_kind_sheet.dart';
 
-void main() {
-  runApp(const AutoPodborApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // тему читаем до первого кадра, иначе светлая мигнёт тёмной
+  final theme = ThemeController();
+  await theme.load();
+  runApp(AutoPodborApp(theme: theme));
 }
 
 class AutoPodborApp extends StatelessWidget {
-  const AutoPodborApp({super.key});
+  const AutoPodborApp({super.key, required this.theme});
+
+  final ThemeController theme;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Auto Podbor',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: const _RootGate(),
+    // смена темы перестраивает только MaterialApp: стек маршрутов и
+    // _RootGate с AuthService живут дальше, открытые экраны
+    // перекрашиваются сами — они читают цвета через context.colors
+    return ThemeScope(
+      controller: theme,
+      child: ListenableBuilder(
+        listenable: theme,
+        builder: (_, _) => MaterialApp(
+          title: 'БитНеБит',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: theme.mode,
+          // у экранов нет AppBar, поэтому иконки статус-бара красим здесь:
+          // тёмные на светлой теме, светлые на тёмной
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: theme.isLight
+                ? SystemUiOverlayStyle.dark
+                : SystemUiOverlayStyle.light,
+            child: child!,
+          ),
+          home: const _RootGate(),
+        ),
+      ),
     );
   }
 }
@@ -40,8 +68,9 @@ class AutoPodborApp extends StatelessWidget {
 /// макета car-storefront-modes.html), за ним экран выбранного режима:
 /// «Ищу автомобиль» → [MyOrdersScreen], «Беру заказы» → [NearbyOrdersScreen],
 /// «Просто посмотрю» → [PublicFeedScreen]. Первые два требуют токен, поэтому
-/// гостя ведут через вход. Держит [AuthService] и отдаёт [OrderStore] на
-/// реальном API в профиль.
+/// гостя ведут через вход. Выбранный раздел встаёт на место вопроса (см.
+/// [_RootGateState._switchTo]), витрина — поверх него. Держит [AuthService]
+/// и отдаёт [OrderStore] на реальном API в разделы.
 ///
 /// Экраны одиночного осмотра (InspectionOverviewScreen) остаются
 /// самостоятельным модулем — из этого хаба пока не достижимы напрямую,
@@ -72,37 +101,30 @@ class _RootGateState extends State<_RootGate> {
   }
 
   Route<void> _feedRoute() => MaterialPageRoute(
-        builder: (_) => PublicFeedScreen(
-          onPlaceOrder: _placeOrder,
-          onRepeatSelection: () => _startOrder(OrderKind.selection),
-        ),
-      );
+    builder: (_) => PublicFeedScreen(
+      onPlaceOrder: _placeOrder,
+      onRepeatSelection: () => _startOrder(OrderKind.selection),
+    ),
+  );
 
   /// «Ищу автомобиль» ведёт в мои заказы. /orders/mine требует токен, а
   /// экран на ошибке загрузки висит на спиннере — поэтому гостя сначала
   /// проводим через вход.
-  void _openMyOrders() {
+  void _openMyOrders() => _openSection(_Section.myOrders);
+
+  /// «Беру заказы на подбор» ведёт в «Заказы рядом». /orders/available
+  /// требует токен, поэтому гостя, как и в «Ищу автомобиль», сначала
+  /// проводим через вход.
+  void _openNearbyOrders() => _openSection(_Section.nearby);
+
+  void _openSection(_Section section) {
     if (_auth.isAuthenticated) {
-      Navigator.of(context).push(_myOrdersRoute());
+      _switchTo(section);
     } else {
       // вход открыт с вопроса о намерении, а не с витрины: «без входа»
       // подменяем витриной, чтобы «назад» с неё вёл к вопросу
       _pushLogin(
-        then: _myOrdersRoute,
-        onBrowse: () => Navigator.of(context).pushReplacement(_feedRoute()),
-      );
-    }
-  }
-
-  /// «Беру заказы на подбор» ведёт в «Заказы рядом». /orders/available
-  /// требует токен, поэтому гостя, как и в «Ищу автомобиль», сначала
-  /// проводим через вход, а «без входа» подменяем витриной.
-  void _openNearbyOrders() {
-    if (_auth.isAuthenticated) {
-      Navigator.of(context).push(_nearbyOrdersRoute());
-    } else {
-      _pushLogin(
-        then: _nearbyOrdersRoute,
+        onLoggedIn: () => _switchTo(section),
         onBrowse: () => Navigator.of(context).pushReplacement(_feedRoute()),
       );
     }
@@ -149,22 +171,21 @@ class _RootGateState extends State<_RootGate> {
         ? await navigator.pushReplacement<Order, void>(route)
         : await navigator.push(route);
     if (created != null && mounted) {
-      navigator.push(_myOrdersRoute(store));
+      _switchTo(_Section.myOrders, store: store);
     }
   }
 
-  /// После входа сразу открываем экран [then] — гость нажимал кнопку ради
-  /// действия, возвращать его назад значит терять этот шаг. Экран входа
-  /// подменяем, чтобы «назад» с [then] не возвращал на вход.
+  /// После входа сразу выполняем [onLoggedIn] — гость нажимал кнопку ради
+  /// действия, возвращать его назад значит терять этот шаг.
   void _pushLogin({
-    required Route<void> Function() then,
+    required VoidCallback onLoggedIn,
     required VoidCallback onBrowse,
   }) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PhoneLoginScreen(
           auth: _auth,
-          onLoggedIn: () => Navigator.of(context).pushReplacement(then()),
+          onLoggedIn: onLoggedIn,
           onBrowse: onBrowse,
         ),
       ),
@@ -173,26 +194,48 @@ class _RootGateState extends State<_RootGate> {
 
   OrderStore _orderStore() => OrderStore(ApiOrderRepository(ApiClient(_auth)));
 
-  Route<void> _profileRoute() => MaterialPageRoute(
-        builder: (_) => ProfileScreen(auth: _auth, store: _orderStore()),
-      );
+  /// Открытый раздел. null — показываем вопрос о намерении.
+  Widget? _root;
 
-  Route<void> _myOrdersRoute([OrderStore? store]) => MaterialPageRoute(
-        builder: (_) => MyOrdersScreen(
-          auth: _auth,
-          store: store ?? _orderStore(),
-          // «Мои заказы» открываются только вошедшему — сразу в профиль
-          onProfile: () => Navigator.of(context).push(_profileRoute()),
-        ),
-      );
+  /// Переход в раздел «Мои заказы», «Заказы рядом» или «Профиль». Раздел
+  /// встаёт в корень стека вместо вопроса о намерении (и вместо другого
+  /// раздела), а всё, что было сверху — вход, витрина, форма, — снимается.
+  /// Поэтому у раздела нет стрелки «назад», а системное «назад» закрывает
+  /// приложение. Корневой маршрут не подменяем: вместе с ним умер бы
+  /// _RootGateState, а колбэки открытых экранов зовут его контекст.
+  void _switchTo(_Section section, {OrderStore? store}) {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() => _root = _sectionScreen(section, store: store));
+  }
 
-  Route<void> _nearbyOrdersRoute() => MaterialPageRoute(
-        builder: (_) => NearbyOrdersScreen(
-          store: _orderStore(),
-          verification: ApiVerificationRepository(ApiClient(_auth)),
-          auth: _auth,
-        ),
-      );
+  /// Экран раздела со свежими сторами. Сторы создаём здесь, а не в build:
+  /// build зовётся заново при каждой смене темы, и экран получил бы новый
+  /// пустой стор. UniqueKey — чтобы состояние не переезжало между разделами.
+  Widget _sectionScreen(_Section section, {OrderStore? store}) {
+    final orders = store ?? _orderStore();
+    final screen = switch (section) {
+      _Section.myOrders => MyOrdersScreen(
+        auth: _auth,
+        store: orders,
+        onProfile: () => _switchTo(_Section.profile),
+      ),
+      _Section.nearby => NearbyOrdersScreen(
+        store: orders,
+        verification: ApiVerificationRepository(ApiClient(_auth)),
+        auth: _auth,
+        onProfile: () => _switchTo(_Section.profile),
+        filters: NearbyFilterStore.persistent()..load(),
+      ),
+      _Section.profile => ProfileScreen(
+        auth: _auth,
+        store: orders,
+        verification: ApiVerificationRepository(ApiClient(_auth)),
+        onMyOrders: () => _switchTo(_Section.myOrders),
+        onNearbyOrders: () => _switchTo(_Section.nearby),
+      ),
+    };
+    return KeyedSubtree(key: UniqueKey(), child: screen);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,15 +245,19 @@ class _RootGateState extends State<_RootGate> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // вопрос о намерении — корень стека, показывается при каждом запуске,
-    // выбор нигде не сохраняется. «Ищу автомобиль» ведёт в мои заказы,
-    // «Беру заказы» — в «Заказы рядом», «Просто посмотрю» — на витрину
-    return IntentScreen(
-      onChoose: (intent) => switch (intent) {
-        AppIntent.buy => _openMyOrders(),
-        AppIntent.work => _openNearbyOrders(),
-        AppIntent.browse => _openFeed(),
-      },
-    );
+    // вопрос о намерении показывается при каждом запуске, выбор нигде не
+    // сохраняется. «Ищу автомобиль» ведёт в мои заказы, «Беру заказы» — в
+    // «Заказы рядом», «Просто посмотрю» — на витрину
+    return _root ??
+        IntentScreen(
+          onChoose: (intent) => switch (intent) {
+            AppIntent.buy => _openMyOrders(),
+            AppIntent.work => _openNearbyOrders(),
+            AppIntent.browse => _openFeed(),
+          },
+        );
   }
 }
+
+/// Разделы, между которыми переключает [_RootGateState._switchTo].
+enum _Section { myOrders, nearby, profile }

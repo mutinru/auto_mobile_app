@@ -6,11 +6,12 @@ import '../theme/app_colors.dart';
 
 /// .score-ring — кольцо прогресса из макета (r=34, ширина 6, скруглённый конец).
 class ScoreRing extends StatelessWidget {
-  const ScoreRing({super.key, required this.percent, this.color = AppColors.statusDone});
+  const ScoreRing({super.key, required this.percent, this.color});
 
   /// 0..100
   final int percent;
-  final Color color;
+  /// null — зелёный statusDone текущей темы.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -18,17 +19,26 @@ class ScoreRing extends StatelessWidget {
       width: 78,
       height: 78,
       child: CustomPaint(
-        painter: _RingPainter(percent: percent, color: color),
+        painter: _RingPainter(
+          percent: percent,
+          color: color ?? context.colors.statusDone,
+          track: context.colors.bg3,
+        ),
       ),
     );
   }
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter({required this.percent, required this.color});
+  _RingPainter({
+    required this.percent,
+    required this.color,
+    required this.track,
+  });
 
   final int percent;
   final Color color;
+  final Color track;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -39,7 +49,7 @@ class _RingPainter extends CustomPainter {
       center,
       r,
       Paint()
-        ..color = AppColors.bg3
+        ..color = track
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6,
     );
@@ -59,5 +69,5 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter old) =>
-      old.percent != percent || old.color != color;
+      old.percent != percent || old.color != color || old.track != track;
 }

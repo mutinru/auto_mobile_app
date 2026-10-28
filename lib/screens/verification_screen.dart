@@ -90,8 +90,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       ? Center(
                           child: Text(
                             'Не удалось загрузить: $_error',
-                            style: const TextStyle(
-                              color: AppColors.text3,
+                            style: TextStyle(
+                              color: context.colors.text3,
                               fontSize: 12,
                             ),
                           ),
@@ -116,8 +116,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
         Container(
           padding: const EdgeInsets.all(17),
           decoration: BoxDecoration(
-            color: AppColors.bg1,
-            border: Border.all(color: AppColors.line),
+            color: context.colors.bg1,
+            border: Border.all(color: context.colors.line),
             borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
@@ -125,15 +125,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  ScoreRing(percent: percent, color: AppColors.statusInfo),
+                  ScoreRing(percent: percent, color: context.colors.statusInfo),
                   Text(
                     '$percent%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
-                      color: AppColors.text1,
+                      color: context.colors.text1,
                     ),
                   ),
                 ],
@@ -147,20 +147,20 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       passed == total
                           ? 'Верификация пройдена'
                           : 'Осталось шагов: ${total - passed}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.15,
-                        color: AppColors.text1,
+                        color: context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'После проверки вы получите доступ к заказам '
                       'и значок «Верифицирован» в профиле.',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: AppColors.text2,
+                        color: context.colors.text2,
                         height: 1.45,
                       ),
                     ),
@@ -197,12 +197,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
                   decoration: BoxDecoration(
                     color: (l['reached'] as bool)
-                        ? AppColors.statusDone.withValues(alpha: 0.07)
-                        : AppColors.bg1,
+                        ? context.colors.statusDone.withValues(alpha: 0.07)
+                        : context.colors.bg1,
                     border: Border.all(
                       color: (l['reached'] as bool)
-                          ? AppColors.statusDone
-                          : AppColors.line,
+                          ? context.colors.statusDone
+                          : context.colors.line,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -210,19 +210,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     children: [
                       Text(
                         l['name'] as String,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.text1,
+                          color: context.colors.text1,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         l['caption'] as String,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 9.5,
-                          color: AppColors.text3,
+                          color: context.colors.text3,
                           height: 1.3,
                         ),
                       ),
@@ -239,14 +239,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            color: AppColors.statusInfo.withValues(alpha: 0.07),
-            border: Border.all(color: AppColors.statusInfo.withValues(alpha: 0.25)),
+            color: context.colors.statusInfo.withValues(alpha: 0.07),
+            border: Border.all(color: context.colors.statusInfo.withValues(alpha: 0.25)),
             borderRadius: BorderRadius.circular(13),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, size: 15, color: AppColors.statusInfo),
+              Icon(Icons.info_outline, size: 15, color: context.colors.statusInfo),
               SizedBox(width: 11),
               Expanded(
                 child: Text(
@@ -254,7 +254,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   'заказы можно без верификации.',
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: AppColors.text2,
+                    color: context.colors.text2,
                     height: 1.45,
                   ),
                 ),
@@ -282,12 +282,12 @@ class _StepRow extends StatelessWidget {
     final inReview = status == 'in_review';
 
     final (markColor, markFg) = switch (status) {
-      'passed' => (AppColors.statusDone, const Color(0xFF07150E)),
+      'passed' => (context.colors.statusDone, context.colors.modeBuyInk),
       'in_review' => (
-          AppColors.statusProgress.withValues(alpha: 0.16),
-          AppColors.statusProgress
+          context.colors.statusProgress.withValues(alpha: 0.16),
+          context.colors.statusProgress
         ),
-      _ => (AppColors.bg3, AppColors.text3),
+      _ => (context.colors.bg3, context.colors.text3),
     };
 
     return InkWell(
@@ -298,12 +298,12 @@ class _StepRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
         color: inReview
-            ? AppColors.statusInfo.withValues(alpha: 0.05)
-            : AppColors.bg1,
+            ? context.colors.statusInfo.withValues(alpha: 0.05)
+            : context.colors.bg1,
         border: Border.all(
           color: inReview
-              ? AppColors.statusInfo.withValues(alpha: 0.5)
-              : AppColors.line,
+              ? context.colors.statusInfo.withValues(alpha: 0.5)
+              : context.colors.line,
         ),
         borderRadius: BorderRadius.circular(14),
       ),
@@ -338,18 +338,18 @@ class _StepRow extends StatelessWidget {
               children: [
                 Text(
                   step['name'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   step['description'] as String,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
-                    color: AppColors.text2,
+                    color: context.colors.text2,
                     height: 1.4,
                   ),
                 ),
@@ -366,10 +366,10 @@ class _StepRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
                     color: switch (status) {
-                      'passed' => AppColors.statusDone,
-                      'in_review' => AppColors.statusProgress,
-                      'failed' => AppColors.statusDefect,
-                      _ => AppColors.text3,
+                      'passed' => context.colors.statusDone,
+                      'in_review' => context.colors.statusProgress,
+                      'failed' => context.colors.statusDefect,
+                      _ => context.colors.text3,
                     },
                   ),
                 ),

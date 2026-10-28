@@ -13,9 +13,16 @@ import 'panel_list_view.dart';
 
 /// Экраны 06 и 07 макета — «схема» и «список» под одним переключателем.
 class InspectionOverviewScreen extends StatefulWidget {
-  const InspectionOverviewScreen({super.key, required this.store});
+  const InspectionOverviewScreen({
+    super.key,
+    required this.store,
+    this.onSendReport,
+  });
 
   final InspectionStore store;
+
+  /// Пробрасывается в [InspectionSummaryScreen] — см. там.
+  final VoidCallback? onSendReport;
 
   @override
   State<InspectionOverviewScreen> createState() =>
@@ -34,7 +41,8 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
   Future<void> _openPanel(String panelId) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PanelDetailScreen(store: widget.store, panelId: panelId),
+        builder: (_) =>
+            PanelDetailScreen(store: widget.store, panelId: panelId),
       ),
     );
     setState(() {});
@@ -47,7 +55,9 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
       builder: (context, _) {
         final store = widget.store;
         if (store.isLoading || store.car == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
         final car = store.car!;
 
@@ -64,13 +74,13 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: AppColors.bg1,
+                          color: context.colors.bg1,
                           borderRadius: BorderRadius.circular(11),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.directions_car_filled_outlined,
                           size: 20,
-                          color: AppColors.text2,
+                          color: context.colors.text2,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -80,20 +90,20 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                           children: [
                             Text(
                               car.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: -0.15,
-                                color: AppColors.text1,
+                                color: context.colors.text1,
                               ),
                             ),
                             const SizedBox(height: 3),
                             Text(
                               'VIN ${car.vinMasked} · ${car.mileageLabel}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: AppTheme.monoFamily,
                                 fontSize: 11,
-                                color: AppColors.text3,
+                                color: context.colors.text3,
                               ),
                             ),
                           ],
@@ -139,15 +149,17 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                     child: OutlinedButton(
                       onPressed: store.remainingCount == 0
                           ? () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      InspectionSummaryScreen(store: store),
+                              MaterialPageRoute(
+                                builder: (_) => InspectionSummaryScreen(
+                                  store: store,
+                                  onSendReport: widget.onSendReport,
                                 ),
-                              )
+                              ),
+                            )
                           : null,
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: AppColors.bg1,
-                        side: const BorderSide(color: AppColors.line),
+                        backgroundColor: context.colors.bg1,
+                        side: BorderSide(color: context.colors.line),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 18,
                           vertical: 15,
@@ -165,19 +177,19 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: store.remainingCount == 0
-                                  ? AppColors.text1
-                                  : AppColors.text3,
+                                  ? context.colors.text1
+                                  : context.colors.text3,
                             ),
                           ),
                           Text(
                             store.remainingCount == 0
                                 ? 'готово'
                                 : 'осталось ${store.remainingCount}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: AppTheme.monoFamily,
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.text3,
+                              color: context.colors.text3,
                             ),
                           ),
                         ],

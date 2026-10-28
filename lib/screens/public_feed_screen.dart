@@ -96,13 +96,13 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
                     _FStat(
                       '${_stats!.inProgress}',
                       'в работе сейчас',
-                      color: AppColors.statusProgress,
+                      color: context.colors.statusProgress,
                     ),
                     const SizedBox(width: 8),
                     _FStat(
                       '${_stats!.inspections}',
                       'осмотров проведено',
-                      color: AppColors.statusDone,
+                      color: context.colors.statusDone,
                     ),
                   ],
                 ),
@@ -122,19 +122,19 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
                             child: Text(
                               'Не удалось загрузить ленту:\n$_error',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.text3,
+                              style: TextStyle(
+                                color: context.colors.text3,
                                 fontSize: 12,
                               ),
                             ),
                           ),
                         )
                       : visible.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'Пока ничего не происходит',
                                 style: TextStyle(
-                                  color: AppColors.text3,
+                                  color: context.colors.text3,
                                   fontSize: 12,
                                 ),
                               ),
@@ -161,19 +161,19 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
             // .join-bar
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.line)),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: context.colors.line)),
               ),
               child: Column(
                 children: [
                   CtaPrimary(label: 'Разместить заказ', onPressed: widget.onPlaceOrder),
                   const SizedBox(height: 9),
-                  const Text(
+                  Text(
                     'Вход по номеру телефона · бесплатно, оплата только за результат',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                       height: 1.45,
                     ),
                   ),
@@ -201,7 +201,7 @@ class _FStat extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
         decoration: BoxDecoration(
-          color: AppColors.bg1,
+          color: context.colors.bg1,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -213,14 +213,14 @@ class _FStat extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.34,
-                color: color ?? AppColors.text1,
+                color: color ?? context.colors.text1,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               caption,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 9.5, color: AppColors.text3),
+              style: TextStyle(fontSize: 9.5, color: context.colors.text3),
             ),
           ],
         ),
@@ -247,8 +247,8 @@ class _FeedCardView extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -259,19 +259,19 @@ class _FeedCardView extends StatelessWidget {
             children: [
               Pill(
                 card.status.label,
-                color: done ? AppColors.statusDone : card.status.pillColor,
+                color: done ? context.colors.statusDone : card.status.pillColor(context.colors),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(card.car, style: AppText.orderCar),
+          Text(card.car, style: context.text.orderCar),
           const SizedBox(height: 5),
           Text(
             [
               if (card.city != null) card.city!,
               if (card.budgetMax != null) 'до ${money(card.budgetMax!)} ₽',
             ].join(' · '),
-            style: AppText.orderMeta,
+            style: context.text.orderMeta,
           ),
           // .feed-progress
           if (card.hasProgress) ...[
@@ -281,8 +281,8 @@ class _FeedCardView extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: card.progressFraction,
                 minHeight: 4,
-                backgroundColor: AppColors.bg0,
-                valueColor: const AlwaysStoppedAnimation(AppColors.statusProgress),
+                backgroundColor: context.colors.bg0,
+                valueColor: AlwaysStoppedAnimation(context.colors.statusProgress),
               ),
             ),
             const SizedBox(height: 7),
@@ -291,11 +291,11 @@ class _FeedCardView extends StatelessWidget {
               children: [
                 Text(
                   'Проверено ${card.assessed} из ${card.total} деталей',
-                  style: const TextStyle(fontSize: 11, color: AppColors.text3),
+                  style: TextStyle(fontSize: 11, color: context.colors.text3),
                 ),
                 Text(
                   '${card.carIndex}-й вариант',
-                  style: const TextStyle(fontSize: 11, color: AppColors.text3),
+                  style: TextStyle(fontSize: 11, color: context.colors.text3),
                 ),
               ],
             ),
@@ -303,7 +303,7 @@ class _FeedCardView extends StatelessWidget {
           // .feed-foot
           if (card.executorName != null) ...[
             const SizedBox(height: 12),
-            Container(height: 1, color: AppColors.line),
+            Container(height: 1, color: context.colors.line),
             const SizedBox(height: 11),
             Row(
               children: [
@@ -315,8 +315,8 @@ class _FeedCardView extends StatelessWidget {
                       children: [
                         TextSpan(
                           text: card.executorName,
-                          style: const TextStyle(
-                            color: AppColors.text1,
+                          style: TextStyle(
+                            color: context.colors.text1,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -324,7 +324,7 @@ class _FeedCardView extends StatelessWidget {
                           TextSpan(text: ' · ${card.executorCompleted} заказов'),
                       ],
                     ),
-                    style: AppText.orderExec,
+                    style: context.text.orderExec,
                   ),
                 ),
               ],

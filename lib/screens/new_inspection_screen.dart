@@ -85,7 +85,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   Future<void> _pickCar() async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
@@ -241,10 +241,10 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                     value: _carLabel,
                     placeholder: _brandController.text.trim().isEmpty,
                     onTap: _pickCar,
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.keyboard_arrow_down,
                       size: 15,
-                      color: AppColors.text3,
+                      color: context.colors.text3,
                     ),
                   ),
                   Row(
@@ -288,7 +288,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                         AppChip(
                           label: shortDate(option),
                           on: _sameDay(_date, option),
-                          activeColor: AppColors.statusDone,
+                          activeColor: context.colors.statusDone,
                           onTap: () => setState(() => _date = option),
                         ),
                       AppChip(
@@ -296,7 +296,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                             ? 'Другая дата'
                             : shortDate(_date),
                         on: !_dateOptions.any((d) => _sameDay(_date, d)),
-                        activeColor: AppColors.statusDone,
+                        activeColor: context.colors.statusDone,
                         onTap: _pickDate,
                       ),
                     ],
@@ -310,7 +310,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                         AppChip(
                           label: slot == TimeSlot.exact ? _exactTimeLabel : slot.label,
                           on: _slot == slot,
-                          activeColor: AppColors.statusDone,
+                          activeColor: context.colors.statusDone,
                           onTap: () => slot == TimeSlot.exact
                               ? _pickTime()
                               : setState(() => _slot = slot),
@@ -337,13 +337,13 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                         : null,
                     onPlus: () => setState(() => _price += _priceStep),
                   ),
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                       'Исполнители видят вашу цену и могут предложить свою. Выбираете вы.',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.text3,
+                        color: context.colors.text3,
                         height: 1.45,
                       ),
                     ),
@@ -373,19 +373,19 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Expanded(child: Divider(color: AppColors.line, height: 1)),
+          Expanded(child: Divider(color: context.colors.line, height: 1)),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               'или',
-              style: TextStyle(fontSize: 10.5, color: AppColors.text3),
+              style: TextStyle(fontSize: 10.5, color: context.colors.text3),
             ),
           ),
-          Expanded(child: Divider(color: AppColors.line, height: 1)),
+          Expanded(child: Divider(color: context.colors.line, height: 1)),
         ],
       ),
     );
@@ -405,8 +405,8 @@ class _PriceBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -414,12 +414,12 @@ class _PriceBox extends StatelessWidget {
           Expanded(
             child: Text(
               '${money(value)} ₽',
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppTheme.monoFamily,
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.66,
-                color: AppColors.text1,
+                color: context.colors.text1,
               ),
             ),
           ),
@@ -447,13 +447,13 @@ class _PriceStep extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: AppColors.bg3,
+          color: context.colors.bg3,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
           size: 14,
-          color: onTap == null ? AppColors.text3 : AppColors.text1,
+          color: onTap == null ? context.colors.text3 : context.colors.text1,
         ),
       ),
     );

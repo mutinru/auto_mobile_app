@@ -41,10 +41,10 @@ class RespondSheetState extends State<RespondSheet> {
         children: [
           Text(
             widget.order.carTitle,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.text1,
+              color: context.colors.text1,
             ),
           ),
           if (widget.order.askingPrice != null)
@@ -52,7 +52,7 @@ class RespondSheetState extends State<RespondSheet> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Заказчик назвал ${money(widget.order.askingPrice!)} ₽',
-                style: const TextStyle(fontSize: 11.5, color: AppColors.text2),
+                style: TextStyle(fontSize: 11.5, color: context.colors.text2),
               ),
             ),
           const SizedBox(height: 14),

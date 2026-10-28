@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Скриншоты эмулятора для проверки вёрстки — воспроизводимые артефакты.
+/screenshots/

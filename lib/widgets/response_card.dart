@@ -24,25 +24,25 @@ class ResponseCard extends StatelessWidget {
   final VoidCallback? onAccept;
 
   /// (подпись, цвет) для .resp-price-delta.
-  (String, Color)? get _delta {
+  (String, Color)? _delta(AppColors c) {
     if (askingPrice == null) return null;
     final diff = response.proposedPrice - askingPrice!;
-    if (diff == 0) return ('ваша цена', AppColors.text3);
+    if (diff == 0) return ('ваша цена', c.text3);
     return diff < 0
-        ? ('−${money(-diff)} ₽', AppColors.statusDone)
-        : ('+${money(diff)} ₽', AppColors.statusProgress);
+        ? ('−${money(-diff)} ₽', c.statusDone)
+        : ('+${money(diff)} ₽', c.statusProgress);
   }
 
   @override
   Widget build(BuildContext context) {
-    final delta = _delta;
+    final delta = _delta(context.colors);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.bg1,
-        border: Border.all(color: AppColors.line),
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.line),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -55,10 +55,10 @@ class ResponseCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   response.executor.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.text1,
+                    color: context.colors.text1,
                   ),
                 ),
               ),
@@ -67,11 +67,11 @@ class ResponseCard extends StatelessWidget {
                 children: [
                   Text(
                     '${money(response.proposedPrice)} ₽',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.text1,
+                      color: context.colors.text1,
                     ),
                   ),
                   if (delta != null) ...[
@@ -94,9 +94,9 @@ class ResponseCard extends StatelessWidget {
               padding: const EdgeInsets.only(top: 9),
               child: Text(
                 response.message!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11.5,
-                  color: AppColors.text2,
+                  color: context.colors.text2,
                   height: 1.4,
                 ),
               ),
@@ -109,8 +109,8 @@ class ResponseCard extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onAccept,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.modeBuy,
-                    foregroundColor: AppColors.modeBuyInk,
+                    backgroundColor: context.colors.modeBuy,
+                    foregroundColor: context.colors.modeBuyInk,
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),

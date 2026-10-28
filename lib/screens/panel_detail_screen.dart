@@ -31,7 +31,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
   Future<void> _addPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: AppColors.bg0,
+      backgroundColor: context.colors.bg0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -40,17 +40,17 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_camera_outlined,
-                  color: AppColors.text2),
-              title: const Text('Снять камерой',
-                  style: TextStyle(color: AppColors.text1)),
+              leading: Icon(Icons.photo_camera_outlined,
+                  color: context.colors.text2),
+              title: Text('Снять камерой',
+                  style: TextStyle(color: context.colors.text1)),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
             ListTile(
               leading:
-                  const Icon(Icons.photo_library_outlined, color: AppColors.text2),
-              title: const Text('Выбрать из галереи',
-                  style: TextStyle(color: AppColors.text1)),
+                  Icon(Icons.photo_library_outlined, color: context.colors.text2),
+              title: Text('Выбрать из галереи',
+                  style: TextStyle(color: context.colors.text1)),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
             const SizedBox(height: 8),
@@ -105,8 +105,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.arrow_back, size: 18),
                         style: IconButton.styleFrom(
-                          backgroundColor: AppColors.bg1,
-                          foregroundColor: AppColors.text1,
+                          backgroundColor: context.colors.bg1,
+                          foregroundColor: context.colors.text1,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(11),
                           ),
@@ -119,19 +119,19 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           children: [
                             Text(
                               panel.zone,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 letterSpacing: 1.2,
-                                color: AppColors.text3,
+                                color: context.colors.text3,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               panel.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 19,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.text1,
+                                color: context.colors.text1,
                               ),
                             ),
                           ],
@@ -141,15 +141,15 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.bg1,
+                          color: context.colors.bg1,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${position.toString().padLeft(2, '0')}/${store.totalCount}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12,
-                            color: AppColors.text3,
+                            color: context.colors.text3,
                           ),
                         ),
                       ),
@@ -185,9 +185,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           _SectionTitle('Дефекты'),
                           Text(
                             '${panel.defects.length} отмечен(о)',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.text3,
+                              color: context.colors.text3,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -213,9 +213,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           _SectionTitle('Фото'),
                           Text(
                             '${panel.photoCount}/5',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.text3,
+                              color: context.colors.text3,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -234,16 +234,16 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                 margin: const EdgeInsets.only(right: 8),
                                 clipBehavior: Clip.antiAlias,
                                 decoration: BoxDecoration(
-                                  color: AppColors.bg1,
+                                  color: context.colors.bg1,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Image.network(
                                   url,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => const Icon(
+                                  errorBuilder: (_, _, _) => Icon(
                                     Icons.broken_image_outlined,
                                     size: 20,
-                                    color: AppColors.text3,
+                                    color: context.colors.text3,
                                   ),
                                 ),
                               ),
@@ -257,7 +257,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: AppColors.line,
+                                      color: context.colors.line,
                                       width: 1.5,
                                     ),
                                   ),
@@ -271,9 +271,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                             ),
                                           ),
                                         )
-                                      : const Icon(
+                                      : Icon(
                                           Icons.add,
-                                          color: AppColors.text3,
+                                          color: context.colors.text3,
                                         ),
                                 ),
                               ),
@@ -286,7 +286,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppColors.bg1,
+                          color: context.colors.bg1,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -294,13 +294,13 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                             Container(
                               width: 42,
                               height: 42,
-                              decoration: const BoxDecoration(
-                                color: AppColors.text1,
+                              decoration: BoxDecoration(
+                                color: context.colors.text1,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow,
-                                color: AppColors.bg0,
+                                color: context.colors.bg0,
                                 size: 20,
                               ),
                             ),
@@ -309,10 +309,10 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                               child: SizedBox(
                                 height: 24,
                                 child: panel.audioNoteSeconds == null
-                                    ? const Text(
+                                    ? Text(
                                         'нет записи',
                                         style: TextStyle(
-                                          color: AppColors.text3,
+                                          color: context.colors.text3,
                                           fontSize: 12,
                                         ),
                                       )
@@ -325,8 +325,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                                   horizontal: 1),
                                               height: 6 + (i % 5) * 4,
                                               color: i < 10
-                                                  ? AppColors.text1
-                                                  : AppColors.text3,
+                                                  ? context.colors.text1
+                                                  : context.colors.text3,
                                             ),
                                           ),
                                         ),
@@ -348,8 +348,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           ? () => Navigator.of(context).pop()
                           : () => setState(() => _panelId = next.id),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.statusDone,
-                        foregroundColor: const Color(0xFF07150E),
+                        backgroundColor: context.colors.statusDone,
+                        foregroundColor: context.colors.modeBuyInk,
                         padding: const EdgeInsets.symmetric(
                             vertical: 14, horizontal: 18),
                         shape: RoundedRectangleBorder(
@@ -383,13 +383,13 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           Container(
                             width: 34,
                             height: 34,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF07150E),
+                            decoration: BoxDecoration(
+                              color: context.colors.modeBuyInk,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_forward,
-                              color: AppColors.statusDone,
+                              color: context.colors.statusDone,
                               size: 16,
                             ),
                           ),
@@ -415,10 +415,10 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 10,
         letterSpacing: 1.2,
-        color: AppColors.text3,
+        color: context.colors.text3,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -445,11 +445,11 @@ class _ConditionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.statusDone.withValues(alpha: 0.08)
-              : AppColors.bg1,
+              ? context.colors.statusDone.withValues(alpha: 0.08)
+              : context.colors.bg1,
           borderRadius: BorderRadius.circular(13),
           border: Border.all(
-            color: selected ? AppColors.statusDone : Colors.transparent,
+            color: selected ? context.colors.statusDone : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -459,14 +459,14 @@ class _ConditionTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                StatusDot(color: condition.impliedStatus.color),
+                StatusDot(color: condition.impliedStatus.color(context.colors)),
                 const Spacer(),
                 Text(
                   condition.grade,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10,
-                    color: AppColors.text3,
+                    color: context.colors.text3,
                   ),
                 ),
               ],
@@ -477,7 +477,7 @@ class _ConditionTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: selected ? AppColors.statusDone : AppColors.text1,
+                color: selected ? context.colors.statusDone : context.colors.text1,
               ),
             ),
           ],
@@ -507,12 +507,12 @@ class _DefectChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: on
-              ? AppColors.statusProgress.withValues(alpha: 0.12)
-              : AppColors.bg1,
+              ? context.colors.statusProgress.withValues(alpha: 0.12)
+              : context.colors.bg1,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: on
-                ? AppColors.statusProgress.withValues(alpha: 0.5)
+                ? context.colors.statusProgress.withValues(alpha: 0.5)
                 : Colors.transparent,
           ),
         ),
@@ -520,7 +520,7 @@ class _DefectChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: on ? AppColors.statusProgress : AppColors.text2,
+            color: on ? context.colors.statusProgress : context.colors.text2,
           ),
         ),
       ),

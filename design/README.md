@@ -11,6 +11,7 @@
 | `car-storefront-challenge.html` | Вариант В входа в витрину — через действие |
 | `car-storefront-modes.html` | Вариант Б входа — два режима. Кадр 01 → `IntentScreen`, кадр 03 → `NearbyOrdersScreen` |
 | `order-types.html` | Два вида заказа: подбор и разовый осмотр. Кадры 01–05 реализованы, кадр 06 («подборщик нанимает осмотр») — нет. Рендер: `order_types_mockup.png` |
+| `first-launch-screen.html` | Светлая тема (обе палитры в `:root`), переключатель темы и шторка поддержки на стартовом экране. Реализовано: `AppColors.light`, `ThemeSwitch`, `support_sheet.dart`, `FaqScreen`. Чат из шторки — заглушка, ведёт в Telegram |
 | `tab-bar-navigation.html` | Нижние вкладки вместо цепочки `Navigator.push`. **Не реализовано.** Рендер: `tab-bar-mockup.png` |
 
 Понятия «режим» в приложении нет — `mode-switch` из `car-storefront-modes.html`
