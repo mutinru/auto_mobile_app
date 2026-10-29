@@ -162,12 +162,7 @@ class AuthService extends ChangeNotifier {
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, response.body);
     }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    return PhoneCodeSent(
-      devCode: body['dev_code'] as String?,
-      resendIn: (body['resend_in'] as num?)?.toInt() ?? 0,
-      channel: codeChannelFromApi(body['channel'] as String?),
-    );
+    return PhoneCodeSent.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
   /// Ошибка — [ApiException] с сырым телом, как у [requestPhoneCode].
@@ -222,6 +217,47 @@ class AuthService extends ChangeNotifier {
         response.statusCode,
         _extractMessage(response.body, fallback: 'Не удалось сохранить имя'),
       );
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+    notifyListeners();
+  }
+
+  /// Запросить код на новый номер (POST /me/phone/request). Ответ — как у
+  /// [requestPhoneCode]; ошибка — [ApiException] с сырым телом: листу нужны
+  /// `retry_after` и текст 422.
+  Future<PhoneCodeSent> requestPhoneChange(String phone) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/me/phone/request'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({'phone': phone}),
+    );
+    if (response.statusCode != 200) {
+      if (response.statusCode == 401) expireSession();
+      throw ApiException(response.statusCode, response.body);
+    }
+    return PhoneCodeSent.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  /// Подтвердить новый номер кодом (POST /me/phone/verify). Сервер отдаёт
+  /// профиль в форме GET /me и отзывает остальные токены — текущий живёт.
+  Future<void> confirmPhoneChange(String phone, String code) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.baseUrl}/me/phone/verify'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({'phone': phone, 'code': code}),
+    );
+    if (response.statusCode != 200) {
+      if (response.statusCode == 401) expireSession();
+      throw ApiException(response.statusCode, response.body);
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
@@ -285,9 +321,15 @@ class AuthService extends ChangeNotifier {
   }
 }
 
-/// Ответ на запрос кода входа.
+/// Ответ на запрос кода — входа или смены номера.
 class PhoneCodeSent {
   const PhoneCodeSent({this.devCode, this.resendIn = 0, this.channel});
+
+  factory PhoneCodeSent.fromJson(Map<String, dynamic> json) => PhoneCodeSent(
+        devCode: json['dev_code'] as String?,
+        resendIn: (json['resend_in'] as num?)?.toInt() ?? 0,
+        channel: codeChannelFromApi(json['channel'] as String?),
+      );
 
   /// Код прямо в ответе — только local-бекенд с драйвером log.
   final String? devCode;

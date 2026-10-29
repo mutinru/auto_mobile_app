@@ -1,21 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/api_exception.dart';
 import '../data/auth_service.dart';
 import '../models/code_channel.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/phone_input.dart';
 
-/// Отсчёт до повторного запроса: `1:47`.
-String formatCountdown(Duration left) {
-  final seconds = left.inSeconds;
-  return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-}
+export '../widgets/phone_input.dart' show formatCountdown;
 
 /// Экран 01 макета — «авторизация» по номеру телефона.
 class PhoneLoginScreen extends StatefulWidget {
@@ -230,51 +225,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 Text('НОМЕР ТЕЛЕФОНА', style: context.text.fieldLabel),
                 const SizedBox(height: 6),
                 // .phone-input
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: context.colors.bg1,
-                    border: Border.all(color: context.colors.line),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'RU +7',
-                        style: TextStyle(fontSize: 13, color: context.colors.text2),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(width: 1, height: 20, color: context.colors.line),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          enabled: !_codeSent,
-                          inputFormatters: const [_PhoneMask()],
-                          style: TextStyle(
-                            fontFamily: AppTheme.monoFamily,
-                            fontSize: 15,
-                            letterSpacing: 0.6,
-                            color: context.colors.text1,
-                          ),
-                          cursorColor: context.colors.statusDone,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 13),
-                            border: InputBorder.none,
-                            hintText: '000 000 00 00',
-                            hintStyle: TextStyle(
-                              fontFamily: AppTheme.monoFamily,
-                              fontSize: 15,
-                              color: context.colors.text3,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                PhoneField(controller: _phoneController, enabled: !_codeSent),
 
                 const SizedBox(height: 8),
                 Text(
@@ -395,46 +346,3 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 }
 
-
-/// Маска телефона: цифры складываются в «XXX XXX XX XX» прямо во время
-/// ввода и обрезаются на десятой — больше в российский номер не влезает.
-class _PhoneMask extends TextInputFormatter {
-  const _PhoneMask();
-
-  static const _groups = [3, 3, 2, 2];
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final capped = digits.length > 10 ? digits.substring(0, 10) : digits;
-
-    // сколько цифр стоялослева от курсора — по ним вернём его на место
-    final digitsBeforeCursor = newValue.text
-        .substring(0, newValue.selection.baseOffset.clamp(0, newValue.text.length))
-        .replaceAll(RegExp(r'\D'), '')
-        .length;
-
-    final buf = StringBuffer();
-    var consumed = 0;
-    var cursor = 0;
-    for (final size in _groups) {
-      if (consumed >= capped.length) break;
-      if (consumed > 0) buf.write(' ');
-      final end = (consumed + size).clamp(0, capped.length);
-      buf.write(capped.substring(consumed, end));
-      consumed = end;
-      if (digitsBeforeCursor >= consumed) cursor = buf.length;
-    }
-
-    final text = buf.toString();
-    final offset = digitsBeforeCursor >= capped.length ? text.length : cursor;
-
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: offset.clamp(0, text.length)),
-    );
-  }
-}

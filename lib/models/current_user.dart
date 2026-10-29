@@ -7,6 +7,7 @@ class CurrentUser {
     required this.id,
     required this.name,
     required this.email,
+    this.phone,
     this.registeredAt,
     this.rating,
     this.reviewsCount = 0,
@@ -17,6 +18,9 @@ class CurrentUser {
   final int id;
   final String name;
   final String email;
+
+  /// `+79001234567`; null — аккаунт входит по почте и номер не привязан.
+  final String? phone;
   final DateTime? registeredAt;
 
   /// Своя сводка исполнителя для профиля; rating == null — отзывов нет.
@@ -53,6 +57,7 @@ class CurrentUser {
         id: json['id'] as int,
         name: json['name'] as String,
         email: json['email'] as String,
+        phone: json['phone'] as String?,
         registeredAt: json['registered_at'] != null
             ? DateTime.tryParse(json['registered_at'] as String)
             : null,

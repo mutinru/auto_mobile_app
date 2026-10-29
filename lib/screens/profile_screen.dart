@@ -9,9 +9,11 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_plural.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/change_phone_sheet.dart';
 import '../widgets/edit_name_sheet.dart';
 import '../widgets/executor_stats.dart';
 import '../widgets/payout_sheet.dart';
+import '../widgets/phone_input.dart';
 import '../widgets/support_sheet.dart';
 import '../widgets/theme_switch.dart';
 import '../widgets/unread_badge.dart';
@@ -307,9 +309,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                         ),
 
+                      // телефон — логин, поэтому смена через код на новый номер
+                      const SizedBox(height: 10),
+                      _SettingsRow(
+                        icon: Icons.phone_outlined,
+                        label: 'Номер телефона',
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              user?.phone != null ? formatPhone(user!.phone!) : 'не указан',
+                              style: TextStyle(fontSize: 12, color: context.colors.text2),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.chevron_right, size: 18, color: context.colors.text3),
+                          ],
+                        ),
+                        onTap: user == null
+                            ? null
+                            : () => showChangePhoneSheet(
+                                  context,
+                                  currentPhone: user.phone,
+                                  onRequest: widget.auth.requestPhoneChange,
+                                  onConfirm: widget.auth.confirmPhoneChange,
+                                ),
+                      ),
+
                       // разовый осмотр оплачивается напрямую исполнителю;
                       // при первом отклике реквизиты спросит и форма отклика
-                      const SizedBox(height: 10),
                       _SettingsRow(
                         icon: Icons.account_balance_wallet_outlined,
                         label: 'Реквизиты для выплат',

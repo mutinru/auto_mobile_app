@@ -123,4 +123,20 @@ void main() {
     expect(find.text('—'), findsWidgets);
     expect(find.byType(ExecutorStats), findsNothing);
   });
+
+  testWidgets('номер телефона в профиле открывает лист смены', (tester) async {
+    tallScreen(tester);
+    await tester.pumpWidget(
+      app(
+        required: false,
+        user: const CurrentUser(id: 15, name: 'Олег К.', email: 'x', phone: '+79000000002'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('+7 900 000 00 02'), findsOneWidget);
+    await tester.tap(find.text('Номер телефона'));
+    await tester.pumpAndSettle();
+    expect(find.text('Новый номер'), findsOneWidget);
+  });
 }
