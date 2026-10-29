@@ -31,17 +31,23 @@ class ApiClient {
 
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
+  // ensureUser: после офлайн-старта профиль догружается до запроса экрана,
+  // иначе экран не узнает в пользователе исполнителя
+
   Future<Map<String, dynamic>> get(String path) async {
+    await _auth.ensureUser();
     final response = await http.get(_uri(path), headers: _headers);
     return _decode(response);
   }
 
   Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) async {
+    await _auth.ensureUser();
     final response = await http.patch(_uri(path), headers: _headers, body: jsonEncode(body));
     return _decode(response);
   }
 
   Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) async {
+    await _auth.ensureUser();
     final response = await http.post(_uri(path), headers: _headers, body: body == null ? null : jsonEncode(body));
     return _decode(response);
   }

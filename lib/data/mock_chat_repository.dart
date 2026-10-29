@@ -8,8 +8,14 @@ import 'chat_repository.dart';
 /// Чат в памяти для виджет-тестов. Своя фикстура — с MockOrderRepository
 /// не пересекается. Ответ оператора тест имитирует через [simulateReply].
 class MockChatRepository implements ChatRepository {
-  MockChatRepository({List<ChatMessage>? messages, this.failOpen = false})
+  MockChatRepository({List<ChatMessage>? messages, this.failOpen = false, this.supportUnread = 0})
       : _messages = [...?messages];
+
+  /// Что вернёт [fetchSupportUnread]; [markRead] обнуляет — как сервер.
+  int supportUnread;
+
+  /// fetchSupportUnread() падает — нет сети.
+  bool failUnread = false;
 
   final List<ChatMessage> _messages;
 
@@ -45,8 +51,15 @@ class MockChatRepository implements ChatRepository {
   }
 
   @override
+  Future<int> fetchSupportUnread() async {
+    if (failUnread) throw Exception('no network');
+    return supportUnread;
+  }
+
+  @override
   Future<void> markRead(int conversationId, int messageId) async {
     lastReadId = messageId;
+    supportUnread = 0;
   }
 
   @override

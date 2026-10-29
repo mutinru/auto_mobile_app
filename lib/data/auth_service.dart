@@ -26,25 +26,55 @@ class AuthService extends ChangeNotifier {
   bool _restoring = true;
   bool get isRestoring => _restoring;
 
+  /// Сколько ждать /me при старте: дольше заставка висеть не должна.
+  static const restoreTimeout = Duration(seconds: 10);
+
   /// Поднять токен с диска и проверить, что он ещё живой.
+  ///
+  /// Сессию стирает только 401 — токен отозван. Нет сети, таймаут, 5xx во
+  /// время выкатки — не повод разлогинивать: стартуем вошедшими без
+  /// профиля, его догрузит [ensureUser] с первым же запросом.
   Future<void> restore() async {
+    String? saved;
     try {
-      final saved = await _storage.read(key: _tokenKey);
+      saved = await _storage.read(key: _tokenKey);
+    } catch (_) {
+      // недоступное хранилище не должно ронять запуск — стартуем гостем
+    }
+    try {
       if (saved != null) {
         _token = saved;
-        await _loadUser();
-        // сервер мог отозвать токен — тогда _loadUser не заполнит юзера
-        if (_user == null) {
+        if (await _loadUser().timeout(restoreTimeout) == 401) {
           _token = null;
           await _storage.delete(key: _tokenKey);
         }
       }
     } catch (_) {
-      // недоступное хранилище не должно ронять запуск
-      _token = null;
+      // нет сети или сервер молчит — токен остаётся, профиль догрузим позже
     } finally {
       _restoring = false;
       notifyListeners();
+    }
+  }
+
+  Future<void>? _ensuring;
+
+  /// Догрузить профиль, если вошли, а его нет (офлайн-старт). Зовёт
+  /// [ApiClient] перед каждым запросом: экранам нужен `user.id`, чтобы
+  /// отличить исполнителя от заказчика. С профилем — ничего не делает;
+  /// параллельные вызовы делят один запрос /me.
+  Future<void> ensureUser() {
+    if (_token == null || _user != null) return Future.value();
+    return _ensuring ??= _ensureUser().whenComplete(() => _ensuring = null);
+  }
+
+  Future<void> _ensureUser() async {
+    try {
+      final status = await _loadUser();
+      if (status == 401) return expireSession();
+      if (_user != null) notifyListeners();
+    } catch (_) {
+      // связи всё ещё нет — сам запрос экрана покажет ошибку
     }
   }
 

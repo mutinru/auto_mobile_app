@@ -4,6 +4,7 @@ import '../data/api_chat_repository.dart';
 import '../data/api_client.dart';
 import '../data/auth_service.dart';
 import '../data/chat_repository.dart';
+import 'support_unread.dart';
 
 /// Доступ к чату поддержки из любого маршрута: шторку открывают экраны,
 /// у которых нет AuthService (вопрос о намерении, FAQ, оплата). Стоит в
@@ -13,10 +14,14 @@ class SupportChatScope extends InheritedWidget {
     super.key,
     required this.auth,
     ChatRepository Function()? repository,
+    this.unread,
     required super.child,
   }) : repository = repository ?? (() => ApiChatRepository(ApiClient(auth)));
 
   final AuthService auth;
+
+  /// Непрочитанные для бейджей; null — бейджей нет (тесты отдельных экранов).
+  final SupportUnread? unread;
 
   /// Новый репозиторий на каждое открытие чата.
   final ChatRepository Function() repository;
@@ -28,5 +33,6 @@ class SupportChatScope extends InheritedWidget {
 
   @override
   // фабрика по умолчанию — новое замыкание на каждой сборке, сравнивать её бессмысленно
-  bool updateShouldNotify(SupportChatScope oldWidget) => auth != oldWidget.auth;
+  bool updateShouldNotify(SupportChatScope oldWidget) =>
+      auth != oldWidget.auth || unread != oldWidget.unread;
 }

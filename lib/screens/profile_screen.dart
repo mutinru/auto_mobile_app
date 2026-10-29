@@ -14,6 +14,7 @@ import '../widgets/executor_stats.dart';
 import '../widgets/payout_sheet.dart';
 import '../widgets/support_sheet.dart';
 import '../widgets/theme_switch.dart';
+import '../widgets/unread_badge.dart';
 import 'executor_reviews_screen.dart';
 import 'verification_screen.dart';
 import 'my_orders_screen.dart';
@@ -345,6 +346,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            SupportUnreadBuilder(
+                              builder: (context, count) => count > 0
+                                  ? Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: UnreadBadge(count, borderColor: context.colors.bg1),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
                             const OnlineDot(),
                             const SizedBox(width: 8),
                             Icon(

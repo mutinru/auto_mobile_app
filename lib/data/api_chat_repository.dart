@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/chat_message.dart';
 import '../models/conversation.dart';
+import '../models/conversation_type.dart';
 import 'api_client.dart';
 import 'chat_repository.dart';
 
@@ -54,6 +55,18 @@ class ApiChatRepository implements ChatRepository {
     }
     final json = jsonDecode(text) as Map<String, dynamic>;
     return ChatMessage.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<int> fetchSupportUnread() async {
+    // GET, а не POST /support/conversation — тот заводит разговор
+    final json = await _client.get('/conversations');
+    var total = 0;
+    for (final c in json['data'] as List) {
+      final conversation = Conversation.fromJson(c as Map<String, dynamic>);
+      if (conversation.type == ConversationType.support) total += conversation.unreadCount;
+    }
+    return total;
   }
 
   @override

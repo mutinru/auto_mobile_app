@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'data/api_chat_repository.dart';
 import 'data/api_client.dart';
 import 'data/api_order_repository.dart';
 import 'data/api_verification_repository.dart';
@@ -22,6 +23,7 @@ import 'state/city_locator.dart';
 import 'state/nearby_filter_store.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
+import 'state/support_unread.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/order_kind_sheet.dart';
@@ -31,11 +33,14 @@ Future<void> main() async {
   // тему читаем до первого кадра, иначе светлая мигнёт тёмной
   final theme = ThemeController();
   await theme.load();
-  runApp(AutoPodborApp(theme: theme, auth: AuthService()));
+  final auth = AuthService();
+  // бейджи непрочитанных поддержки: одна сессия — один счётчик
+  final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))..start();
+  runApp(AutoPodborApp(theme: theme, auth: auth, unread: unread));
 }
 
 class AutoPodborApp extends StatelessWidget {
-  const AutoPodborApp({super.key, required this.theme, required this.auth});
+  const AutoPodborApp({super.key, required this.theme, required this.auth, this.unread});
 
   final ThemeController theme;
 
@@ -43,6 +48,9 @@ class AutoPodborApp extends StatelessWidget {
   /// поддержки открывается из шторки на любом маршруте, и SupportChatScope
   /// должен стоять выше Navigator.
   final AuthService auth;
+
+  /// Непрочитанные в чате поддержки — для бейджей у входов в чат.
+  final SupportUnread? unread;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +71,7 @@ class AutoPodborApp extends StatelessWidget {
           // тёмные на светлой теме, светлые на тёмной
           builder: (context, child) => SupportChatScope(
             auth: auth,
+            unread: unread,
             child: AnnotatedRegion<SystemUiOverlayStyle>(
               value: theme.isLight
                   ? SystemUiOverlayStyle.dark

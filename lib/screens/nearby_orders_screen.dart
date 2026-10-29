@@ -13,6 +13,7 @@ import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/nearby_filter_sheet.dart';
 import '../widgets/respond_sheet.dart';
+import '../widgets/unread_badge.dart';
 import 'available_orders_screen.dart';
 import 'verification_screen.dart';
 
@@ -190,9 +191,11 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                       ),
                       if (widget.onProfile != null) ...[
                         const SizedBox(width: 8),
-                        SquareIconButton(
-                          icon: Icons.person_outline,
-                          onTap: widget.onProfile!,
+                        SupportUnreadBadge(
+                          child: SquareIconButton(
+                            icon: Icons.person_outline,
+                            onTap: widget.onProfile!,
+                          ),
                         ),
                       ],
                     ],

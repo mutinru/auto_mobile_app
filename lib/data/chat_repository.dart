@@ -14,6 +14,10 @@ abstract class ChatRepository {
   /// Текст и/или до 5 фото (пути к файлам).
   Future<ChatMessage> send(int conversationId, {String? body, List<String> photoPaths = const []});
 
+  /// Непрочитанные в чате поддержки — для бейджа. Разговор не заводит:
+  /// нет его — 0.
+  Future<int> fetchSupportUnread();
+
   /// Прочитано до [messageId] включительно; назад сервер указатель не двигает.
   Future<void> markRead(int conversationId, int messageId);
 

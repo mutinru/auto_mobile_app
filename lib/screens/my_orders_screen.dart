@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/order_card.dart';
 import '../widgets/order_kind_sheet.dart';
+import '../widgets/unread_badge.dart';
 import 'assigned_inspection_screen.dart';
 import 'inspection_order_detail_screen.dart';
 import 'inspection_report_screen.dart';
@@ -222,9 +223,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                       : null,
                   trailing: widget.onProfile == null || widget.asExecutor
                       ? null
-                      : SquareIconButton(
-                          icon: Icons.person_outline,
-                          onTap: widget.onProfile!,
+                      // поддержка — в профиле, ответ оператора виден на его иконке
+                      : SupportUnreadBadge(
+                          child: SquareIconButton(
+                            icon: Icons.person_outline,
+                            onTap: widget.onProfile!,
+                          ),
                         ),
                 ),
                 AppToggle(

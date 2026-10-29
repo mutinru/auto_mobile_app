@@ -8,6 +8,8 @@ import '../state/chat_store.dart';
 import '../state/support_chat_scope.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/ru_plural.dart';
+import 'unread_badge.dart';
 
 /// Шторка поддержки (design/first-launch-screen.html, .sheet). Доступна
 /// ещё до входа: со стартового экрана и из профиля.
@@ -53,13 +55,21 @@ class _SupportSheet extends StatelessWidget {
 
   /// Чат в приложении — только с токеном: бекенд пускает в него вошедших.
   /// Стор создаём до маршрута, а не в builder (смена темы пересоздала бы его).
+  /// Пока чат открыт, счётчик не опрашивается; закрыли — бейдж
+  /// переспрашивает сервер (чат уже отметил прочитанное).
   void _openChat(BuildContext context, SupportChatScope scope) {
     final navigator = Navigator.of(context);
     navigator.pop();
     final store = ChatStore(scope.repository());
-    navigator.push(
-      MaterialPageRoute<void>(builder: (_) => SupportChatScreen(store: store)),
-    );
+    final unread = scope.unread;
+    unread?.chatOpen = true;
+    navigator
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => SupportChatScreen(store: store),
+          ),
+        )
+        .whenComplete(() => unread?.chatOpen = false);
   }
 
   @override
@@ -137,22 +147,27 @@ class _SupportSheet extends StatelessWidget {
                 ],
               ),
             ),
-            _SupportItem(
-              primary: true,
-              icon: Icons.chat_bubble_outline,
-              name: 'Написать в чат',
-              desc: canChat
-                  ? 'Прямо в приложении, ответим здесь же'
-                  : 'После входа — в приложении, пока откроем Telegram',
-              // гостю чат недоступен — ведём в Telegram и честно об этом говорим
-              onTap: canChat
-                  ? () => _openChat(context, scope)
-                  : () => _open(
-                      context,
-                      SupportConfig.telegramUri,
-                      notice:
-                          'Чат в приложении доступен после входа — пока откроем Telegram',
-                    ),
+            SupportUnreadBuilder(
+              builder: (context, count) => _SupportItem(
+                primary: true,
+                icon: Icons.chat_bubble_outline,
+                name: 'Написать в чат',
+                unread: canChat ? count : 0,
+                desc: canChat && count > 0
+                    ? '${counted(count, 'новое сообщение', 'новых сообщения', 'новых сообщений')} от поддержки'
+                    : canChat
+                    ? 'Прямо в приложении, ответим здесь же'
+                    : 'После входа — в приложении, пока откроем Telegram',
+                // гостю чат недоступен — ведём в Telegram и честно об этом говорим
+                onTap: canChat
+                    ? () => _openChat(context, scope)
+                    : () => _open(
+                        context,
+                        SupportConfig.telegramUri,
+                        notice:
+                            'Чат в приложении доступен после входа — пока откроем Telegram',
+                      ),
+              ),
             ),
             _SupportItem(
               icon: Icons.send_outlined,
@@ -210,6 +225,7 @@ class _SupportItem extends StatelessWidget {
     this.descSpan,
     required this.onTap,
     this.primary = false,
+    this.unread = 0,
   });
 
   final IconData icon;
@@ -220,6 +236,9 @@ class _SupportItem extends StatelessWidget {
 
   /// .sup-item.primary — выделенный синим первый пункт.
   final bool primary;
+
+  /// Непрочитанные — бейдж перед стрелкой.
+  final int unread;
 
   @override
   Widget build(BuildContext context) {
@@ -278,6 +297,13 @@ class _SupportItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (unread > 0) ...[
+                  UnreadBadge(
+                    unread,
+                    borderColor: primary ? c.infoSoft : c.bg1,
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 Icon(Icons.chevron_right, size: 18, color: c.text3),
               ],
             ),
@@ -312,31 +338,34 @@ class SupportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Material(
-      color: c.bg1,
-      shape: StadiumBorder(side: BorderSide(color: c.line)),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => showSupportSheet(context),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(9, 7, 12, 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.headset_mic_outlined, size: 16, color: c.text2),
-              const SizedBox(width: 7),
-              Text(
-                'Поддержка',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.125,
-                  color: c.text1,
+    // бейдж — ответ оператора, пока пушей нет
+    return SupportUnreadBadge(
+      child: Material(
+        color: c.bg1,
+        shape: StadiumBorder(side: BorderSide(color: c.line)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => showSupportSheet(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(9, 7, 12, 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.headset_mic_outlined, size: 16, color: c.text2),
+                const SizedBox(width: 7),
+                Text(
+                  'Поддержка',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.125,
+                    color: c.text1,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 7),
-              const OnlineDot(),
-            ],
+                const SizedBox(width: 7),
+                const OnlineDot(),
+              ],
+            ),
           ),
         ),
       ),
