@@ -290,10 +290,16 @@ class FieldBoxInput extends StatelessWidget {
     this.maxLines = 1,
     this.minHeight,
     this.inputFormatters,
+    this.autofocus = false,
+    this.maxLength,
   });
 
   final String label;
   final TextEditingController controller;
+  final bool autofocus;
+
+  /// Ограничение длины без видимого счётчика — поле визуально как в макете.
+  final int? maxLength;
   final String? hint;
   final bool mono;
   final String? unit;
@@ -334,6 +340,8 @@ class FieldBoxInput extends StatelessWidget {
                     keyboardType: keyboardType,
                     maxLines: maxLines,
                     inputFormatters: inputFormatters,
+                    autofocus: autofocus,
+                    maxLength: maxLength,
                     style: mono ? context.text.fieldMono : context.text.fieldValue,
                     cursorColor: context.colors.statusDone,
                     decoration: InputDecoration(
@@ -342,6 +350,7 @@ class FieldBoxInput extends StatelessWidget {
                       border: InputBorder.none,
                       hintText: hint,
                       hintStyle: context.text.fieldPlaceholder,
+                      counterText: '',
                     ),
                   ),
                 ),

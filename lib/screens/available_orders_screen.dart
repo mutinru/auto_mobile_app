@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/city.dart';
 import '../models/order.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
@@ -31,38 +32,39 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     (0.47, 0.82),
   ];
 
+  /// Город по геопозиции для шапки; null — не определён (или ещё ищем).
+  City? _city;
+  late bool _locating = widget.store.locator != null;
+
   @override
   void initState() {
     super.initState();
     widget.store.loadAvailableOrders();
+    _detectCity();
   }
 
-  Future<void> _respond(Order order) async {
-    final result = await showModalBottomSheet<(int, String?)>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => RespondSheet(order: order),
-    );
-    if (result == null) return;
+  Future<void> _detectCity() async {
+    final city = await widget.store.locator?.detect();
+    if (mounted) {
+      setState(() {
+        _city = city;
+        _locating = false;
+      });
+    }
+  }
 
-    try {
-      await widget.store
-          .respondToOrder(order.id, proposedPrice: result.$1, message: result.$2);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Отклик отправлен')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не получилось откликнуться: $e')),
-        );
-      }
+  /// На карте только подборы (осмотры не рисуются) — реквизиты не нужны.
+  Future<void> _respond(Order order) async {
+    final sent = await showRespondSheet(
+      context,
+      order: order,
+      onSubmit: (price, message, _) =>
+          widget.store.respondToOrder(order.id, proposedPrice: price, message: message),
+    );
+    if (sent == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Отклик отправлен')),
+      );
     }
   }
 
@@ -92,11 +94,12 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: _RegionButton(
                           icon: Icons.location_on_outlined,
-                          title: 'Москва',
-                          sub: 'Центральный ФО',
+                          title: _city?.name ??
+                              (_locating ? 'Определяем…' : 'Город не определён'),
+                          sub: _city?.region ?? 'по геопозиции',
                           chevron: true,
                         ),
                       ),
@@ -179,20 +182,30 @@ class _RegionButton extends StatelessWidget {
             Icon(icon, size: 15, color: context.colors.text3),
             const SizedBox(width: 8),
           ],
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: context.colors.text1,
+          // длинный регион («Ханты-Мансийский АО – Югра») обрезаем
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: context.colors.text1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 1),
-              Text(sub, style: TextStyle(fontSize: 10, color: context.colors.text3)),
-            ],
+                const SizedBox(height: 1),
+                Text(
+                  sub,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 10, color: context.colors.text3),
+                ),
+              ],
+            ),
           ),
           if (chevron) ...[
             const SizedBox(width: 8),
@@ -398,7 +411,7 @@ class _JobCard extends StatelessWidget {
     final meta = <String>[
       if (order.cities.isNotEmpty) order.cities.first,
       if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
-      '${order.responses.length} откл.',
+      '${order.responsesCount} откл.',
     ];
 
     return Container(
@@ -449,19 +462,21 @@ class _JobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: onRespond,
+              onPressed: order.hasViewerResponse ? null : onRespond,
               style: ElevatedButton.styleFrom(
                 backgroundColor: first ? context.colors.statusDone : context.colors.bg3,
                 foregroundColor: first ? context.colors.modeBuyInk : context.colors.text1,
+                disabledBackgroundColor: context.colors.bg3,
+                disabledForegroundColor: context.colors.text3,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Откликнуться',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+              child: Text(
+                order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
             ),
           ),

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/car_catalog_repository.dart';
 import '../data/order_repository.dart';
 import '../models/inspection_type.dart';
 import '../models/order.dart';
 import '../theme/app_colors.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/car_picker_sheet.dart';
 import '../widgets/vin_scanner.dart';
 
 /// Экран 05 макета — «новый осмотр · автомобиль».
@@ -15,10 +18,12 @@ class StartInspectionScreen extends StatefulWidget {
   const StartInspectionScreen({
     super.key,
     required this.repository,
+    required this.catalog,
     required this.order,
   });
 
   final OrderRepository repository;
+  final CarCatalogRepository catalog;
   final Order order;
 
   @override
@@ -46,6 +51,22 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     _mileageController.dispose();
     _vinController.dispose();
     super.dispose();
+  }
+
+  /// Кандидат может отличаться от заказа: искали Camry, а с заказчиком
+  /// договорились смотреть RAV4. По умолчанию — марка и модель заказа.
+  Future<void> _pickCar() async {
+    final choice = await showCarPickerSheet(
+      context,
+      catalog: widget.catalog,
+      initialBrand: _brandController.text,
+      initialModel: _modelController.text,
+    );
+    if (choice == null) return;
+    setState(() {
+      _brandController.text = choice.brand;
+      _modelController.text = choice.model;
+    });
   }
 
   /// Тап по видоискателю: снять VIN камерой или ввести руками.
@@ -114,7 +135,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось распознать: $e')),
+          SnackBar(content: Text('Не удалось распознать VIN — введите вручную')),
         );
       }
     } finally {
@@ -202,7 +223,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось начать осмотр: $e')),
+          SnackBar(content: Text('Не удалось начать осмотр: ${apiErrorText(e)}')),
         );
       }
     } finally {
@@ -245,7 +266,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                       size: 15,
                       color: context.colors.text3,
                     ),
-                    onTap: () {},
+                    onTap: _pickCar,
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,

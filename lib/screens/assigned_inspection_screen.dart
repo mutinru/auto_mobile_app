@@ -10,14 +10,23 @@ import '../state/inspection_store.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/confirm_sheet.dart';
+import '../widgets/deadline_countdown.dart';
+import '../widgets/dispute_sheet.dart';
 import '../widgets/inspection_order_parts.dart';
+import '../widgets/payment_parts.dart';
 import '../widgets/verdict_sheet.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
 
 /// Разовый осмотр глазами назначенного исполнителя: куда и когда ехать,
 /// телефон продавца, старт осмотра по деталям и итоговый вердикт.
+///
+/// 24 часа с момента выбора — на осмотр или отказ. После вердикта отчёт
+/// ждёт оплаты: заказчик переводит напрямую, исполнитель подтверждает
+/// «Оплату получил» — с «Я оплатил» заказчика править отчёт уже нельзя.
 ///
 /// Отдельный экран, а не ветка в [InspectionOrderDetailScreen]: у заказчика
 /// там выбор исполнителя по откликам, у исполнителя — работа по заказу.
@@ -63,26 +72,71 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
       final order = await widget.store.fetchOrder(widget.orderId);
       if (mounted) setState(() => _order = order);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = apiErrorText(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   /// Ошибки действий — SnackBar'ом, экран при этом остаётся рабочим.
+  /// После отказа сервера перечитываем заказ: «Срок осмотра истёк» и
+  /// похожие 422 значат, что статус уже не тот, что на экране.
   Future<void> _run(Future<void> Function() action) async {
     setState(() => _busy = true);
     try {
       await action();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$e')));
+        showApiError(context, e);
+        await _load();
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _decline(Order order) async {
+    final ok = await showConfirmSheet(
+      context,
+      title: 'Отказаться от заказа?',
+      text: 'Заказ вернётся к другим исполнителям, повторно откликнуться на '
+          'него не получится. Начатый осмотр будет удалён из вашего списка.',
+      confirmLabel: 'Отказаться',
+    );
+    if (!ok || !mounted) return;
+    final navigator = Navigator.of(context);
+    var done = false;
+    await _run(() async {
+      await widget.store.declineOrder(order.id);
+      done = true;
+    });
+    // заказ больше не наш — экран закрываем
+    if (done && mounted) navigator.pop();
+  }
+
+  Future<void> _confirmPayment(Order order) async {
+    final ok = await showConfirmSheet(
+      context,
+      title: 'Оплата пришла?',
+      text: 'Проверьте поступление ${order.price == null ? '' : '${money(order.price!)} ₽ '}'
+          'в банке. После подтверждения заказчик получит полный отчёт.',
+      confirmLabel: 'Да, оплату получил',
+    );
+    if (!ok || !mounted) return;
+    await _run(() async {
+      final updated = await widget.store.confirmPayment(order.id);
+      if (mounted) setState(() => _order = updated);
+    });
+  }
+
+  Future<void> _openDispute(Order order) {
+    return showDisputeSheet(
+      context,
+      onSubmit: (reason) async {
+        final updated = await widget.store.openDispute(order.id, reason: reason);
+        if (mounted) setState(() => _order = updated);
+      },
+    );
   }
 
   /// Бекенд создаёт осмотр с 13 деталями и переводит заказ в «на осмотре»;
@@ -103,13 +157,13 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
 
   /// «Отправить отчёт клиенту» в сводке осмотра закрывает осмотр до этого
   /// экрана и открывает шторку вердикта: отчёт заказчику — это и есть вердикт.
-  Future<void> _openInspection(int inspectionId) async {
+  Future<void> _openInspection(int inspectionId, {bool readOnly = false}) async {
     final repo = ApiInspectionRepository(
       ApiClient(widget.auth!),
       inspectionId: inspectionId,
     );
     // стор — до маршрута: builder перезапускается при смене темы
-    final store = InspectionStore(repo);
+    final store = InspectionStore(repo, readOnly: readOnly);
     final navigator = Navigator.of(context);
     final ownRoute = ModalRoute.of(context);
     var sendReport = false;
@@ -216,6 +270,13 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
           priceLabel: 'Ваш гонорар',
           price: order.price ?? order.askingPrice,
         ),
+        if (order.executorDeadlineAt != null &&
+            (order.status == OrderStatus.scheduled ||
+                order.status == OrderStatus.inspecting)) ...[
+          const SizedBox(height: 10),
+          DeadlineCountdown(deadline: order.executorDeadlineAt!),
+        ],
+        ..._payment(order),
         if (order.verdict != null) ...[
           const SizedBox(height: 22),
           const SectionHead('Итог осмотра'),
@@ -236,8 +297,39 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     );
   }
 
+  /// Отчёт готов: ждём оплату, подтверждаем её или разбираемся в споре.
+  List<Widget> _payment(Order order) {
+    final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
+    return switch (order.status) {
+      OrderStatus.reportReady => [
+          const SizedBox(height: 22),
+          const SectionHead('Оплата'),
+          StatusNote(
+            text: 'Отчёт готов. Ждём оплату от заказчика:$price. Пока он не '
+                'оплатил, отчёт можно поправить.',
+          ),
+        ],
+      OrderStatus.paymentSent => [
+          const SizedBox(height: 22),
+          const SectionHead('Оплата'),
+          StatusNote(
+            icon: Icons.payments_outlined,
+            text: 'Заказчик отметил оплату$price. Проверьте поступление и '
+                'подтвердите — тогда он получит отчёт.',
+          ),
+        ],
+      OrderStatus.disputed => [
+          const SizedBox(height: 22),
+          const SectionHead('Спор'),
+          DisputeBox(order: order, viewerId: order.executor?.id),
+        ],
+      _ => const [],
+    };
+  }
+
   /// Кнопки внизу по статусу: назначен → начать, на осмотре → продолжить
-  /// и завершить. У завершённого действий нет.
+  /// и завершить, отчёт готов → поправить, оплачен → подтвердить.
+  /// Отказаться можно до готовности отчёта.
   List<Widget> _actions(Order order) {
     final inspectionId = order.cars.isEmpty
         ? null
@@ -253,6 +345,10 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
               icon: Icons.play_arrow_rounded,
               loading: _busy,
               onPressed: () => _start(order),
+            ),
+            CtaGhost(
+              label: 'Отказаться от заказа',
+              onPressed: _busy ? null : () => _decline(order),
             ),
           ],
         ),
@@ -270,6 +366,43 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
             CtaGhost(
               label: 'Завершить осмотр',
               onPressed: _busy ? null : () => _complete(order),
+            ),
+            CtaGhost(
+              label: 'Отказаться от заказа',
+              onPressed: _busy ? null : () => _decline(order),
+            ),
+          ],
+        ),
+      ],
+      OrderStatus.reportReady => [
+        BottomCta(
+          children: [
+            CtaFlat(
+              label: 'Поправить отчёт',
+              icon: Icons.edit_outlined,
+              onPressed: canOpen && inspectionId != null
+                  ? () => _openInspection(inspectionId)
+                  : null,
+            ),
+            CtaGhost(
+              label: 'Заказчик не платит — открыть спор',
+              onPressed: _busy ? null : () => _openDispute(order),
+            ),
+          ],
+        ),
+      ],
+      OrderStatus.paymentSent => [
+        BottomCta(
+          children: [
+            CtaPrimary(
+              label: 'Оплату получил',
+              icon: Icons.check_rounded,
+              loading: _busy,
+              onPressed: () => _confirmPayment(order),
+            ),
+            CtaGhost(
+              label: 'Деньги не пришли — открыть спор',
+              onPressed: _busy ? null : () => _openDispute(order),
             ),
           ],
         ),

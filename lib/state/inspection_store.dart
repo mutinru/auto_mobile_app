@@ -6,6 +6,7 @@ import '../models/defect_def.dart';
 import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
+import '../widgets/api_error.dart';
 
 /// Единственный источник правды для экрана осмотра в рамках сессии.
 ///
@@ -14,16 +15,25 @@ import '../models/panel_status.dart';
 /// не дублирует логику статуса/дефектов, только показывает то, что
 /// вернул источник данных.
 class InspectionStore extends ChangeNotifier {
-  InspectionStore(this._repository);
+  InspectionStore(this._repository, {this.readOnly = false});
 
   final InspectionRepository _repository;
+
+  /// Осмотр только для просмотра: заказчик подбора смотрит кандидата, сервер
+  /// запись ему не разрешит (403). Экраны гасят все мутации.
+  final bool readOnly;
 
   Car? _car;
   List<InspectionPanel> _panels = const [];
   List<DefectDef> _defectCatalog = const [];
   bool _loading = false;
+  String? _loadError;
 
   Car? get car => _car;
+
+  /// Текст ошибки загрузки — без него экран остался бы на спиннере:
+  /// гейт там ещё и на car == null.
+  String? get loadError => _loadError;
   List<InspectionPanel> get panels => List.unmodifiable(_panels);
   List<String> get defectLabels => _defectCatalog.map((d) => d.label).toList();
   bool get isLoading => _loading;
@@ -33,19 +43,27 @@ class InspectionStore extends ChangeNotifier {
       _panels.where((p) => p.status != PanelStatus.none).length;
   int get remainingCount => totalCount - evaluatedCount;
 
+  /// Ошибка не пробрасывается — она в [loadError], экран рисует её с
+  /// «Повторить» вместо вечного спиннера.
   Future<void> load() async {
     _loading = true;
+    _loadError = null;
     notifyListeners();
-    final results = await Future.wait([
-      _repository.fetchInspection(),
-      _repository.fetchDefectCatalog(),
-    ]);
-    final snapshot = results[0] as InspectionSnapshot;
-    _car = snapshot.car;
-    _panels = snapshot.panels;
-    _defectCatalog = results[1] as List<DefectDef>;
-    _loading = false;
-    notifyListeners();
+    try {
+      final results = await Future.wait([
+        _repository.fetchInspection(),
+        _repository.fetchDefectCatalog(),
+      ]);
+      final snapshot = results[0] as InspectionSnapshot;
+      _car = snapshot.car;
+      _panels = snapshot.panels;
+      _defectCatalog = results[1] as List<DefectDef>;
+    } catch (e) {
+      _loadError = apiErrorText(e);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   InspectionPanel panelById(String id) =>

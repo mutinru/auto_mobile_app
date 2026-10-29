@@ -1,3 +1,4 @@
+import 'inspection_outcome.dart';
 import 'inspection_verdict.dart';
 
 /// Кандидат в рамках заказа (CarResource на бекенде, с id и статусом
@@ -27,13 +28,25 @@ class OrderCar {
 
   final int? inspectionId;
   final String? inspectionStatus;
-  final String? inspectionOutcome;
+  final InspectionOutcome? inspectionOutcome;
 
   /// Вердикт разового осмотра — у кандидатов подбора его нет.
   final InspectionVerdict? verdict;
   final String? verdictComment;
 
   String get title => '$brand $model $year';
+
+  /// Подпись в списке кандидатов: исход важнее статуса осмотра. Статус у
+  /// бекенда — строка без энама, незнакомое значение не выводим как есть.
+  String get inspectionLabel {
+    if (inspectionOutcome != null) return inspectionOutcome!.label;
+    if (inspectionId == null) return 'осмотр не начат';
+    return switch (inspectionStatus) {
+      'in_progress' => 'идёт осмотр',
+      'completed' => 'осмотрена',
+      _ => 'осмотр',
+    };
+  }
 
   factory OrderCar.fromJson(Map<String, dynamic> json) {
     final inspection = json['inspection'] as Map<String, dynamic>?;
@@ -46,7 +59,7 @@ class OrderCar {
       mileageKm: json['mileage_km'] as int,
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
-      inspectionOutcome: inspection?['outcome'] as String?,
+      inspectionOutcome: inspectionOutcomeFromApi(inspection?['outcome'] as String?),
       verdict: inspectionVerdictFromApi(inspection?['verdict'] as String?),
       verdictComment: inspection?['verdict_comment'] as String?,
     );

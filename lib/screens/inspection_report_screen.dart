@@ -62,22 +62,11 @@ class InspectionReportScreen extends StatefulWidget {
 }
 
 class _InspectionReportScreenState extends State<InspectionReportScreen> {
-  String? _error;
-
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  /// Стор сам ошибку не держит и на ней висит в загрузке — ловим здесь.
-  Future<void> _load() async {
-    setState(() => _error = null);
-    try {
-      await widget.store.load();
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
-    }
+    // ошибку стор держит в loadError — её и рисуем вместо спиннера
+    widget.store.load();
   }
 
   void _openPanel(InspectionPanel panel) {
@@ -116,7 +105,9 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
   }
 
   Widget _body() {
-    if (_error != null) {
+    final store = widget.store;
+    final error = store.loadError;
+    if (error != null && !store.isLoading) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 22),
         child: Column(
@@ -128,18 +119,17 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              _error!,
+              error,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11.5, color: context.colors.text3),
             ),
             const SizedBox(height: 10),
-            CtaGhost(label: 'Повторить', onPressed: _load),
+            CtaGhost(label: 'Повторить', onPressed: store.load),
           ],
         ),
       );
     }
 
-    final store = widget.store;
     if (store.isLoading || store.car == null) {
       return const Center(child: CircularProgressIndicator());
     }

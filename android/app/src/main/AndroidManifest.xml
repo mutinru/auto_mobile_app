@@ -5,6 +5,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- Обращение к бекенду по http (в дев-сборке это 10.0.2.2). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Город по умолчанию в заказе и на карте (geolocator). Точный GPS не нужен. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:label="БитНеБит"

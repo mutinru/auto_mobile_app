@@ -80,7 +80,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   List<Order> _visible(List<Order> orders, NearbyFilter filter) {
     final filtered = applyNearbyFilter(orders, filter);
     return _fewResponsesOnly
-        ? filtered.where((o) => o.responses.length <= 2).toList()
+        ? filtered.where((o) => o.responsesCount <= 2).toList()
         : filtered;
   }
 
@@ -91,6 +91,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
       current: _filters.filter,
       orders: all,
       countFor: (f) => _visible(all, f).length,
+      cities: widget.store.cities,
     );
     if (next != null) _filters.set(next);
   }
@@ -119,34 +120,26 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   ];
 
   Future<void> _respond(Order order) async {
-    final result = await showModalBottomSheet<(int, String?)>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => RespondSheet(order: order),
+    final auth = widget.auth;
+    // разовый осмотр оплачивается напрямую — без реквизитов сервер вернёт 422
+    final requiresPayout = order.isInspection && auth?.user != null && auth!.user!.payout == null;
+    final sent = await showRespondSheet(
+      context,
+      order: order,
+      requiresPayout: requiresPayout,
+      onSubmit: (price, message, payout) async {
+        await widget.store.respondToOrder(
+          order.id,
+          proposedPrice: price,
+          message: message,
+          payout: payout,
+        );
+        // реквизиты легли в профиль — подтягиваем, чтобы больше не спрашивать
+        if (payout != null) await auth?.refreshUser();
+      },
     );
-    if (result == null) return;
-
-    try {
-      await widget.store.respondToOrder(
-        order.id,
-        proposedPrice: result.$1,
-        message: result.$2,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Отклик отправлен')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('$e')));
-      }
+    if (sent == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Отклик отправлен')));
     }
   }
 
@@ -347,8 +340,9 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   }
 }
 
-/// .gate — шлагбаум верификации. Клиентский: сам бекенд отклик не
-/// проверяет, а на экране карты кнопка «Откликнуться» остаётся живой.
+/// .gate — шлагбаум верификации. Клиентский; сервер проверяет её при
+/// отклике, только если включён EXECUTOR_VERIFICATION_REQUIRED, а на
+/// экране карты кнопка «Откликнуться» гейтом не гасится.
 class _VerificationGate extends StatelessWidget {
   const _VerificationGate({required this.summary, required this.onTap});
 
@@ -471,7 +465,8 @@ class _JobCard extends StatelessWidget {
 
   /// У осмотра цену назначает заказчик — показываем её. У подбора её в
   /// API нет: `price` появляется только при принятии отклика, поэтому
-  /// там остаётся минимум из откликов или «предлагаете вы».
+  /// там остаётся свой отклик или «предлагаете вы». Чужие цены сервер
+  /// исполнителю не отдаёт — минимум по ним не посчитать.
   (String, String) get _pay {
     if (order.price != null) {
       return ('Гонорар за заказ', '${money(order.price!)} ₽');
@@ -480,10 +475,7 @@ class _JobCard extends StatelessWidget {
       return ('Цена заказчика', '${money(order.askingPrice!)} ₽');
     }
     if (order.responses.isNotEmpty) {
-      final min = order.responses
-          .map((r) => r.proposedPrice)
-          .reduce((a, b) => a < b ? a : b);
-      return ('Откликаются от', '${money(min)} ₽');
+      return ('Ваш отклик', '${money(order.responses.first.proposedPrice)} ₽');
     }
     return ('Гонорар за заказ', 'предлагаете вы');
   }
@@ -505,11 +497,11 @@ class _JobCard extends StatelessWidget {
     final meta = order.isInspection
         ? [
             whenLabel(order.inspectOn, order.timeSlot, order.inspectTime),
-            _responsesLabel(order.responses.length),
+            _responsesLabel(order.responsesCount),
           ].join(' · ')
         : [
             if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
-            _responsesLabel(order.responses.length),
+            _responsesLabel(order.responsesCount),
           ].join(' · ');
 
     return Container(
@@ -585,7 +577,7 @@ class _JobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: canRespond ? onRespond : null,
+              onPressed: canRespond && !order.hasViewerResponse ? onRespond : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.modeWork,
                 foregroundColor: context.colors.modeWorkInk,
@@ -597,9 +589,9 @@ class _JobCard extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: const Text(
-                'Откликнуться',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              child: Text(
+                order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
             ),
           ),

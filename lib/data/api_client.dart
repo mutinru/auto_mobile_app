@@ -22,6 +22,13 @@ class ApiClient {
         if (_auth.token != null) 'Authorization': 'Bearer ${_auth.token}',
       };
 
+  /// Ошибка ответа; на 401 заодно стирает сессию — корень уведёт на вход.
+  /// Нужна и multipart-запросам, которые идут мимо [get]/[post].
+  ApiException failure(int statusCode, String body) {
+    if (statusCode == 401) _auth.expireSession();
+    return ApiException(statusCode, body);
+  }
+
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
   Future<Map<String, dynamic>> get(String path) async {
@@ -41,7 +48,7 @@ class ApiClient {
 
   Map<String, dynamic> _decode(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw ApiException(response.statusCode, response.body);
+      throw failure(response.statusCode, response.body);
     }
     if (response.body.isEmpty) return const {};
     return jsonDecode(response.body) as Map<String, dynamic>;

@@ -2,6 +2,8 @@ import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/payout.dart';
+import '../models/review.dart';
 import '../models/time_slot.dart';
 
 /// Источник данных маркетплейса заказов. Как и InspectionRepository —
@@ -52,9 +54,46 @@ abstract class OrderRepository {
     String? comment,
   });
 
-  Future<Order> respondToOrder(int orderId, {required int proposedPrice, String? message});
+  /// [payout] — реквизиты при первом отклике на разовый осмотр: сервер
+  /// сохранит их в профиль и дальше не спросит.
+  Future<Order> respondToOrder(
+    int orderId, {
+    required int proposedPrice,
+    String? message,
+    Payout? payout,
+  });
+
+  /// Исполнитель отказывается от разового осмотра (до «отчёт готов»):
+  /// заказ возвращается к остальным откликам.
+  Future<Order> declineOrder(int orderId);
+
+  /// Заказчик сообщает, что оплатил исполнителю напрямую.
+  Future<Order> markPaymentSent(int orderId);
+
+  /// Исполнитель подтверждает оплату — заказчик получает отчёт.
+  Future<Order> confirmPayment(int orderId);
+
+  /// Спор об оплате — любая сторона, причина обязательна.
+  Future<Order> openDispute(int orderId, {required String reason});
 
   Future<Order> acceptResponse(int orderId, int responseId);
+
+  /// Заказчик закрывает подбор покупкой кандидата [carId]: остальные
+  /// кандидаты становятся отклонёнными, заказ — завершённым.
+  Future<Order> completeSelection(int orderId, {required int carId});
+
+  /// Заказчик отменяет заказ, пока сервер разрешает (Order.canCancel).
+  Future<Order> cancelOrder(int orderId);
+
+  /// Отзыв заказчика об исполнителе по завершённому заказу. Возвращает
+  /// заказ целиком: рейтинг исполнителя и can_review пересчитал сервер.
+  Future<Order> leaveReview(int orderId, {required int rating, String? text});
+
+  /// Правка отзыва — сервер разрешает её 24 часа после создания.
+  Future<Order> updateReview(int orderId, {required int rating, String? text});
+
+  /// Отзывы об исполнителе, свежие сверху; [page] с 1.
+  Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1});
 
   /// Завести кандидата в рамках заказа (исполнитель нашёл вариант).
   Future<OrderCar> addCar(

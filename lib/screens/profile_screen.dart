@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
 import '../data/verification_repository.dart';
+import '../models/current_user.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/ru_plural.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/edit_name_sheet.dart';
+import '../widgets/executor_stats.dart';
+import '../widgets/payout_sheet.dart';
 import '../widgets/support_sheet.dart';
 import '../widgets/theme_switch.dart';
+import 'executor_reviews_screen.dart';
 import 'verification_screen.dart';
 import 'my_orders_screen.dart';
 
@@ -23,6 +29,7 @@ class ProfileScreen extends StatefulWidget {
     required this.verification,
     required this.onMyOrders,
     required this.onNearbyOrders,
+    required this.onLogout,
   });
 
   final AuthService auth;
@@ -33,6 +40,9 @@ class ProfileScreen extends StatefulWidget {
   /// навигацией разделов управляет main.dart.
   final VoidCallback onMyOrders;
   final VoidCallback onNearbyOrders;
+
+  /// Сессия уже стёрта — корень приложения возвращает к вопросу о намерении.
+  final Future<void> Function() onLogout;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -46,7 +56,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     widget.store.loadMyOrders();
     widget.store.loadAssignedOrders();
+    // рейтинг мог измениться с прошлого входа
+    widget.auth.refreshUser();
     _loadVerification();
+  }
+
+  /// Плашки блока «Выполнять заказы»: рейтинг, отзывы, выполненные и
+  /// взятые. null — пока показывать нечего (новый исполнитель без заказов).
+  List<Widget>? _executorStats(CurrentUser? me, int assigned) {
+    final reviews = me?.reviewsCount ?? 0;
+    final completed = me?.completedOrdersCount ?? 0;
+    if (reviews == 0 && completed == 0 && assigned == 0) return null;
+    return [
+      _Stat(me?.rating?.toStringAsFixed(1) ?? '—', 'рейтинг'),
+      _Stat('$reviews', plural(reviews, 'отзыв', 'отзыва', 'отзывов')),
+      _Stat('$completed', 'выполнено'),
+      _Stat('$assigned', 'взято'),
+    ];
+  }
+
+  /// «★ 4.8 · 12 отзывов · 30 заказов» под заголовком блока, как .prof-sub
+  /// в car-marketplace-experiment.html; тап — отзывы обо мне.
+  Widget? _ratingLine(CurrentUser? me) {
+    if (me == null || me.reviewsCount == 0) return null;
+    return ExecutorStats(
+      user: me.asSummary,
+      onTap: () => openExecutorReviews(
+        context,
+        widget.store.repository,
+        me.asSummary,
+      ),
+    );
+  }
+
+  /// Выход — с подтверждением: строка стоит в конце списка, задеть её
+  /// случайно при прокрутке легко.
+  Future<void> _confirmLogout() async {
+    final c = context.colors;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: c.bg1,
+        title: Text('Выйти из аккаунта?', style: TextStyle(color: c.text1, fontSize: 17)),
+        content: Text(
+          'Чтобы вернуться, понадобится код из Telegram или звонка.',
+          style: TextStyle(color: c.text2, fontSize: 13.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Отмена', style: TextStyle(color: c.text2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text('Выйти', style: TextStyle(color: c.statusDefect, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await widget.onLogout();
   }
 
   /// Ошибку глотаем: без сводки считаем верификацию необязательной и пункт
@@ -70,11 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final assigned = widget.store.assignedOrders;
         final verificationRequired = _verification?.required ?? false;
         final active = orders
-            .where(
-              (o) =>
-                  o.status != OrderStatus.completed &&
-                  o.status != OrderStatus.cancelled,
-            )
+            .where((o) => !o.status.isFinished)
             .length;
 
         return Scaffold(
@@ -98,41 +162,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
                     children: [
-                      // .prof-head
-                      Row(
-                        children: [
-                          Avatar(initialsOf(user?.name ?? '—'), size: 54),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user?.name ?? '—',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: -0.36,
-                                    color: context.colors.text1,
+                      // .prof-head; тап по шапке — смена имени
+                      InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: user == null
+                            ? null
+                            : () => showEditNameSheet(
+                                context,
+                                initial: user.name,
+                                onSave: widget.auth.updateName,
+                              ),
+                        child: Row(
+                          children: [
+                            Avatar(initialsOf(user?.name ?? '—'), size: 54),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          user?.name ?? '—',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: -0.36,
+                                            color: context.colors.text1,
+                                          ),
+                                        ),
+                                      ),
+                                      if (user != null) ...[
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          size: 16,
+                                          color: context.colors.text3,
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  [
-                                    user?.email ?? '',
-                                    if (user?.registeredLabel.isNotEmpty ??
-                                        false)
-                                      user!.registeredLabel,
-                                  ].where((s) => s.isNotEmpty).join(' · '),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: context.colors.text2,
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    [
+                                      user?.email ?? '',
+                                      if (user?.registeredLabel.isNotEmpty ??
+                                          false)
+                                        user!.registeredLabel,
+                                    ].where((s) => s.isNotEmpty).join(' · '),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: context.colors.text2,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 14),
                       const _NoteBox(
@@ -170,9 +259,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               'Мы проверяем личность и умение находить дефекты — заказчики доверяют подборщику свои деньги.',
                           actionLabel: 'Смотреть заказы рядом',
                           onAction: widget.onNearbyOrders,
-                          statsWidgets: assigned.isEmpty
-                              ? null
-                              : [_Stat('${assigned.length}', 'взято')],
+                          statsWidgets: _executorStats(user, assigned.length),
+                          stateExtra: _ratingLine(user),
                           secondaryLabel: assigned.isEmpty
                               ? 'Пройти верификацию'
                               : 'Взятые заказы',
@@ -200,9 +288,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : 'Взятых заказов: ${assigned.length}',
                           actionLabel: 'Смотреть заказы рядом',
                           onAction: widget.onNearbyOrders,
-                          statsWidgets: assigned.isEmpty
-                              ? null
-                              : [_Stat('${assigned.length}', 'взято')],
+                          statsWidgets: _executorStats(user, assigned.length),
+                          stateExtra: _ratingLine(user),
                           secondaryLabel: assigned.isEmpty
                               ? null
                               : 'Взятые заказы',
@@ -218,6 +305,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                         ),
+
+                      // разовый осмотр оплачивается напрямую исполнителю;
+                      // при первом отклике реквизиты спросит и форма отклика
+                      const SizedBox(height: 10),
+                      _SettingsRow(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Реквизиты для выплат',
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              user?.payout?.shortLabel ?? 'не указаны',
+                              style: TextStyle(fontSize: 12, color: context.colors.text2),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.chevron_right, size: 18, color: context.colors.text3),
+                          ],
+                        ),
+                        onTap: () => showPayoutSheet(
+                          context,
+                          initial: user?.payout,
+                          onSave: widget.auth.updatePayout,
+                        ),
+                      ),
 
                       // те же тема и поддержка, что на стартовом экране, —
                       // чтобы не возвращаться к нему ради них
@@ -244,6 +355,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         onTap: () => showSupportSheet(context),
+                      ),
+
+                      // .row[data-action=logout] из tab-bar-navigation.html
+                      const SizedBox(height: 22),
+                      _SettingsRow(
+                        icon: Icons.logout,
+                        label: 'Выйти',
+                        labelColor: context.colors.statusDefect,
+                        trailing: const SizedBox.shrink(),
+                        onTap: _confirmLogout,
                       ),
                     ],
                   ),
@@ -333,6 +454,7 @@ class _RoleBlock extends StatelessWidget {
     this.description,
     this.actionPrimary = false,
     this.statsWidgets,
+    this.stateExtra,
     this.secondaryLabel,
     this.onSecondary,
   });
@@ -347,6 +469,9 @@ class _RoleBlock extends StatelessWidget {
   final bool actionPrimary;
   final VoidCallback onAction;
   final List<Widget>? statsWidgets;
+
+  /// Под строкой состояния — например, свой рейтинг исполнителя.
+  final Widget? stateExtra;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
 
@@ -411,6 +536,10 @@ class _RoleBlock extends StatelessWidget {
                         color: context.colors.text2,
                       ),
                     ),
+                    if (stateExtra != null) ...[
+                      const SizedBox(height: 3),
+                      stateExtra!,
+                    ],
                   ],
                 ),
               ),
@@ -421,13 +550,12 @@ class _RoleBlock extends StatelessWidget {
           Container(height: 1, color: context.colors.line),
           const SizedBox(height: 12),
           if (statsWidgets != null) ...[
-            Row(
-              children: [
-                for (final w in statsWidgets!) ...[
-                  w,
-                  const SizedBox(width: 18),
-                ],
-              ],
+            // Wrap, а не Row: у исполнителя четыре плашки, на узком
+            // экране последняя переносится, а не вылезает за край
+            Wrap(
+              spacing: 18,
+              runSpacing: 10,
+              children: statsWidgets!,
             ),
             const SizedBox(height: 12),
           ],
@@ -538,10 +666,14 @@ class _SettingsRow extends StatelessWidget {
     required this.label,
     required this.trailing,
     this.onTap,
+    this.labelColor,
   });
 
   final IconData icon;
   final String label;
+
+  /// null — обычный текст; «Выйти» — цветом дефекта, как в макете.
+  final Color? labelColor;
   final Widget trailing;
   final VoidCallback? onTap;
 
@@ -579,7 +711,7 @@ class _SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: c.text1,
+                      color: labelColor ?? c.text1,
                     ),
                   ),
                 ),

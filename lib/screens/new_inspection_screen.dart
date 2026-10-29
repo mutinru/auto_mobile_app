@@ -6,7 +6,9 @@ import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_date.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/car_picker_sheet.dart';
 
 /// Кадр 03 макета order-types.html — «новый осмотр». Вместо бюджета и
 /// городов поиска: ссылка или VIN, адрес, дата и цена заказчика.
@@ -83,34 +85,17 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   }
 
   Future<void> _pickCar() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 22,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SectionHead('Марка и модель'),
-            FieldBoxInput(label: 'Марка', controller: _brandController, hint: 'BMW'),
-            FieldBoxInput(label: 'Модель', controller: _modelController, hint: 'X3'),
-            const SizedBox(height: 6),
-            CtaPrimary(label: 'Готово', onPressed: () => Navigator.of(context).pop()),
-          ],
-        ),
-      ),
+    final choice = await showCarPickerSheet(
+      context,
+      catalog: widget.store.catalog,
+      initialBrand: _brandController.text,
+      initialModel: _modelController.text,
     );
-    setState(() {});
+    if (choice == null) return;
+    setState(() {
+      _brandController.text = choice.brand;
+      _modelController.text = choice.model;
+    });
   }
 
   /// Три ближайших дня чипами, всё остальное — через календарь.
@@ -195,7 +180,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось разместить осмотр: $e')),
+          SnackBar(content: Text('Не удалось разместить осмотр: ${apiErrorText(e)}')),
         );
       }
     } finally {

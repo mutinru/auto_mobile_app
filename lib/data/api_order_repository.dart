@@ -2,6 +2,8 @@ import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/payout.dart';
+import '../models/review.dart';
 import '../models/time_slot.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
@@ -111,11 +113,35 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<Order> respondToOrder(int orderId, {required int proposedPrice, String? message}) async {
+  Future<Order> respondToOrder(
+    int orderId, {
+    required int proposedPrice,
+    String? message,
+    Payout? payout,
+  }) async {
     final json = await _client.post('/orders/$orderId/responses', {
       'proposed_price': proposedPrice,
       if (message != null && message.isNotEmpty) 'message': message,
+      ...?payout?.toJson(),
     });
+    return Order.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Order> declineOrder(int orderId) => _orderAction('/orders/$orderId/decline');
+
+  @override
+  Future<Order> markPaymentSent(int orderId) => _orderAction('/orders/$orderId/payment/sent');
+
+  @override
+  Future<Order> confirmPayment(int orderId) => _orderAction('/orders/$orderId/payment/confirm');
+
+  @override
+  Future<Order> openDispute(int orderId, {required String reason}) =>
+      _orderAction('/orders/$orderId/dispute', {'reason': reason});
+
+  Future<Order> _orderAction(String path, [Map<String, dynamic>? body]) async {
+    final json = await _client.post(path, body);
     return Order.fromJson(json['data'] as Map<String, dynamic>);
   }
 
@@ -123,6 +149,44 @@ class ApiOrderRepository implements OrderRepository {
   Future<Order> acceptResponse(int orderId, int responseId) async {
     final json = await _client.post('/orders/$orderId/responses/$responseId/accept');
     return Order.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Order> completeSelection(int orderId, {required int carId}) =>
+      _orderAction('/orders/$orderId/complete', {'car_id': carId});
+
+  @override
+  Future<Order> cancelOrder(int orderId) => _orderAction('/orders/$orderId/cancel');
+
+  @override
+  Future<Order> leaveReview(int orderId, {required int rating, String? text}) async {
+    final json = await _client.post('/orders/$orderId/review', _reviewBody(rating, text));
+    return Order.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Order> updateReview(int orderId, {required int rating, String? text}) async {
+    final json = await _client.patch('/orders/$orderId/review', _reviewBody(rating, text));
+    return Order.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// Пустой текст уходит как null — иначе min:10 на бекенде отклонит
+  /// «без комментария» у высокой оценки.
+  Map<String, dynamic> _reviewBody(int rating, String? text) => {
+        'rating': rating,
+        'text': (text == null || text.trim().isEmpty) ? null : text.trim(),
+      };
+
+  @override
+  Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1}) async {
+    final json = await _client.get('/users/$userId/reviews?page=$page');
+    final meta = json['meta'] as Map<String, dynamic>? ?? const {};
+    return ReviewPage(
+      items: (json['data'] as List)
+          .map((r) => Review.fromJson(r as Map<String, dynamic>))
+          .toList(),
+      hasMore: (meta['current_page'] as int? ?? 1) < (meta['last_page'] as int? ?? 1),
+    );
   }
 
   @override

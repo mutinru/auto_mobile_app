@@ -19,6 +19,7 @@ class OrderCard extends StatelessWidget {
     required this.onTap,
     this.onRepeat,
     this.onReport,
+    this.asExecutor = false,
   });
 
   final Order order;
@@ -30,8 +31,10 @@ class OrderCard extends StatelessWidget {
   /// «Посмотреть полный отчёт» под вердиктом завершённого осмотра.
   final VoidCallback? onReport;
 
-  bool get _isDone =>
-      order.status == OrderStatus.completed || order.status == OrderStatus.cancelled;
+  /// Карточка в «Взятых заказах» — подпись оплаты с точки зрения исполнителя.
+  final bool asExecutor;
+
+  bool get _isDone => order.status.isFinished;
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +85,15 @@ class OrderCard extends StatelessWidget {
                   ),
                 if (onReport != null) _ReportButton(onTap: onReport!),
                 if (onRepeat != null) _AgainButton(onTap: onRepeat!),
-              ] else
+              ] else if (order.status.isAwaitingPayment)
+                _PaymentRow(order: order, asExecutor: asExecutor)
+              else
                 _WhenRow(order: order),
             ] else ...[
               const SizedBox(height: 5),
               Text(_selectionMeta(order), style: context.text.orderMeta),
             ],
+            if (order.canReview || order.review != null) _ReviewRow(order: order),
             const SizedBox(height: 12),
             // .order-foot
             Container(height: 1, color: context.colors.line),
@@ -110,6 +116,41 @@ class OrderCard extends StatelessWidget {
   static String? _city(String? address) {
     if (address == null || address.isEmpty) return null;
     return address.split(',').first.trim();
+  }
+}
+
+/// Напоминание об отзыве в завершённом заказе. Пушей нет, поэтому это и
+/// карточка заказа — единственное место, где заказчик узнаёт, что пора
+/// оценить исполнителя. Тап по карточке открывает заказ с листом отзыва.
+class _ReviewRow extends StatelessWidget {
+  const _ReviewRow({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final review = order.review;
+    final style = TextStyle(fontSize: 12, color: context.colors.text2);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Icon(Icons.star_rounded, size: 15, color: context.colors.statusProgress),
+          const SizedBox(width: 6),
+          if (review == null)
+            Text(
+              'Оценить исполнителя',
+              style: style.copyWith(
+                color: context.colors.statusProgress,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else
+            Text('Ваша оценка ${review.rating}', style: style),
+        ],
+      ),
+    );
   }
 }
 
@@ -180,6 +221,58 @@ class _CarTitle extends StatelessWidget {
 
 /// .when — дата, время и адрес выезда. Оранжевая иконка (.when.soon),
 /// если ехать сегодня или завтра.
+/// Отчёт готов, идёт оплата или спор — в списке это главное, что нужно
+/// сделать по заказу. Пушей нет, поэтому карточка и напоминает.
+class _PaymentRow extends StatelessWidget {
+  const _PaymentRow({required this.order, required this.asExecutor});
+
+  final Order order;
+  final bool asExecutor;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
+    final (text, icon, color) = switch (order.status) {
+      OrderStatus.disputed => ('Открыт спор по оплате', Icons.gavel_rounded, context.colors.statusDefect),
+      OrderStatus.paymentSent when asExecutor =>
+        ('Подтвердите оплату$price', Icons.payments_outlined, context.colors.statusProgress),
+      OrderStatus.paymentSent =>
+        ('Ждём подтверждения оплаты', Icons.hourglass_empty_rounded, context.colors.statusProgress),
+      _ when asExecutor => ('Ждём оплату от заказчика$price', Icons.hourglass_empty_rounded, context.colors.statusProgress),
+      _ => ('Отчёт готов — оплатите$price', Icons.payments_outlined, context.colors.statusProgress),
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.colors.bg0,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.colors.text1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _WhenRow extends StatelessWidget {
   const _WhenRow({required this.order});
 

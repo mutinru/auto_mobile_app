@@ -3,13 +3,23 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
+import '../models/inspection_outcome.dart';
 import '../models/order.dart';
 import '../models/order_response_status.dart';
+import '../models/order_status.dart';
+import '../models/user_summary.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../state/inspection_store.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/confirm_sheet.dart';
+import '../widgets/executor_stats.dart';
+import '../widgets/order_review_section.dart';
 import '../widgets/order_status_pill.dart';
+import '../widgets/purchase_sheet.dart';
+import '../widgets/review_sheet.dart';
+import 'executor_reviews_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'start_inspection_screen.dart';
 
@@ -39,7 +49,10 @@ class OrderDetailScreen extends StatefulWidget {
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Order? _order;
   bool _loading = true;
+  String? _error;
   bool _accepting = false;
+  bool _completing = false;
+  bool _cancelling = false;
 
   @override
   void initState() {
@@ -47,14 +60,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _load();
   }
 
+  /// Без finally любая ошибка (сеть, 500) оставляла карточку на вечном
+  /// спиннере — теперь вместо него текст и «Повторить».
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final order = await widget.store.fetchOrder(widget.orderId);
-    if (mounted) {
-      setState(() {
-        _order = order;
-        _loading = false;
-      });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final order = await widget.store.fetchOrder(widget.orderId);
+      if (mounted) setState(() => _order = order);
+    } catch (e) {
+      if (mounted) setState(() => _error = apiErrorText(e));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -63,8 +82,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ApiClient(widget.auth!),
       inspectionId: inspectionId,
     );
+    // править кандидата может только исполнитель; заказчик смотрит —
+    // сервер ему запись всё равно не разрешит (403)
+    final isExecutor = _order?.executor != null && _order!.executor!.id == widget.auth!.user?.id;
     // стор — до маршрута: builder перезапускается при смене темы
-    final store = InspectionStore(repo);
+    final store = InspectionStore(repo, readOnly: !isExecutor);
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => InspectionOverviewScreen(store: store),
@@ -78,6 +100,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       MaterialPageRoute(
         builder: (_) => StartInspectionScreen(
           repository: widget.store.repository,
+          catalog: widget.store.catalog,
           order: order,
         ),
       ),
@@ -90,10 +113,85 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     try {
       await widget.store.acceptResponse(widget.orderId, responseId);
       await _load();
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _accepting = false);
     }
   }
+
+  /// «2 000 000 — 2 400 000 ₽», «от …» или «до …»; без границ — ничего.
+  static String? _budget(Order order) {
+    final min = order.budgetMin;
+    final max = order.budgetMax;
+    if (min != null && max != null) return '${money(min)} — ${money(max)} ₽';
+    if (min != null) return 'от ${money(min)} ₽';
+    if (max != null) return 'до ${money(max)} ₽';
+    return null;
+  }
+
+  /// Покупка закрывает подбор; заказ — из ответа сервера, и в нём сразу
+  /// can_review, так что блок отзыва появится без перезагрузки.
+  Future<void> _completePurchase(Order order) async {
+    final carId = await showPurchaseSheet(context, order: order);
+    if (carId == null || !mounted) return;
+    setState(() => _completing = true);
+    try {
+      final updated = await widget.store.completeSelection(order.id, carId: carId);
+      if (mounted) setState(() => _order = updated);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _completing = false);
+    }
+  }
+
+  /// Те же условия, что у OrderController::complete на бекенде: заказчик,
+  /// подбор в работе и хотя бы один кандидат, чтобы было что выбрать.
+  bool _canCompletePurchase(Order order) =>
+      widget.viewerIsCustomer &&
+      !order.isInspection &&
+      (order.status == OrderStatus.sourcing || order.status == OrderStatus.inspecting) &&
+      order.cars.isNotEmpty;
+
+  /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
+  Future<void> _cancel(Order order) async {
+    final ok = await showConfirmSheet(
+      context,
+      title: 'Отменить заказ?',
+      text: 'Отклики исполнителей будут отклонены. Вернуть заказ нельзя.',
+      confirmLabel: 'Отменить заказ',
+      cancelLabel: 'Не отменять',
+    );
+    if (!ok || !mounted) return;
+    setState(() => _cancelling = true);
+    try {
+      final updated = await widget.store.cancelOrder(order.id);
+      if (mounted) setState(() => _order = updated);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
+    }
+  }
+
+  /// Новый отзыв или правка; заказ — из ответа сервера, как и рейтинг.
+  Future<void> _writeReview(Order order) {
+    return showReviewSheet(
+      context,
+      order: order,
+      initial: order.review,
+      onSubmit: (rating, text) async {
+        final updated = order.review == null
+            ? await widget.store.leaveReview(order.id, rating: rating, text: text)
+            : await widget.store.updateReview(order.id, rating: rating, text: text);
+        if (mounted) setState(() => _order = updated);
+      },
+    );
+  }
+
+  void _showReviews(Order order, UserSummary executor) =>
+      openExecutorReviews(context, widget.store.repository, executor);
 
   @override
   Widget build(BuildContext context) {
@@ -129,12 +227,38 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ),
             Expanded(
-              child: _loading || _order == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildBody(_order!),
+              child: _error != null && !_loading
+                  ? _buildError(_error!)
+                  : _loading || _order == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : _buildBody(_order!),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Тот же блок, что у карточки осмотра (InspectionOrderDetailScreen).
+  Widget _buildError(String error) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Не удалось загрузить заказ',
+            style: TextStyle(fontSize: 14, color: context.colors.text1),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+          ),
+          const SizedBox(height: 10),
+          CtaGhost(label: 'Повторить', onPressed: _load),
+        ],
       ),
     );
   }
@@ -153,9 +277,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         Text(
           [
             if (order.cities.isNotEmpty) order.cities.join(', '),
-            if (order.mileageTo != null) 'пробег до ${order.mileageTo} км',
-            if (order.budgetMin != null || order.budgetMax != null)
-              '${order.budgetMin ?? 0} — ${order.budgetMax ?? '?'} ₽',
+            if (order.mileageTo != null) 'пробег до ${money(order.mileageTo!)} км',
+            ?_budget(order),
           ].join(' · '),
           style: TextStyle(fontSize: 12.5, color: context.colors.text2),
         ),
@@ -185,8 +308,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const SizedBox(height: 22),
           _SectionLabel('Исполнитель'),
           const SizedBox(height: 8),
-          _InfoRow(label: order.executor!.name, trailing: order.price != null ? '${order.price} ₽' : null),
+          _InfoRow(label: order.executor!.name, trailing: order.price != null ? '${money(order.price!)} ₽' : null),
+          Padding(
+            padding: const EdgeInsets.only(left: 13),
+            child: ExecutorStats(
+              user: order.executor!,
+              onTap: () => _showReviews(order, order.executor!),
+            ),
+          ),
         ],
+        OrderReviewSection(
+          order: order,
+          viewerIsCustomer: widget.viewerIsCustomer,
+          onWrite: () => _writeReview(order),
+        ),
         if (order.cars.isNotEmpty) ...[
           const SizedBox(height: 22),
           _SectionLabel('Кандидаты'),
@@ -194,11 +329,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           for (final car in order.cars)
             _InfoRow(
               label: car.title,
-              trailing: car.inspectionOutcome ?? car.inspectionStatus ?? 'осмотр не начат',
+              trailing: car.inspectionLabel,
+              trailingColor: car.inspectionOutcome == InspectionOutcome.purchased
+                  ? context.colors.statusDone
+                  : null,
               onTap: car.inspectionId != null && widget.auth != null
                   ? () => _openInspection(car.inspectionId!)
                   : null,
             ),
+        ],
+        if (_canCompletePurchase(order)) ...[
+          const SizedBox(height: 14),
+          CtaPrimary(
+            label: 'Зафиксировать покупку',
+            icon: Icons.check,
+            loading: _completing,
+            onPressed: () => _completePurchase(order),
+          ),
         ],
         // Заводить кандидата и стартовать осмотр может только назначенный
         // исполнитель — у заказчика этот вызов вернёт 403.
@@ -228,7 +375,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       children: [
                         Text(r.executor.name, style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.text1)),
                         const SizedBox(height: 2),
-                        Text('${r.proposedPrice} ₽', style: TextStyle(fontSize: 12, color: context.colors.text2)),
+                        ExecutorStats(
+                          user: r.executor,
+                          onTap: () => _showReviews(order, r.executor),
+                        ),
+                        const SizedBox(height: 2),
+                        Text('${money(r.proposedPrice)} ₽', style: TextStyle(fontSize: 12, color: context.colors.text2)),
                         if (r.message != null) ...[
                           const SizedBox(height: 4),
                           Text(r.message!, style: TextStyle(fontSize: 11.5, color: context.colors.text3)),
@@ -249,12 +401,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     )
                   else
                     Text(
-                      r.status == OrderResponseStatus.accepted ? 'принят' : 'отклонён',
+                      r.status.label,
                       style: TextStyle(fontSize: 11, color: context.colors.text3),
                     ),
                 ],
               ),
             ),
+        ],
+        if (widget.viewerIsCustomer && order.canCancel) ...[
+          const SizedBox(height: 14),
+          CtaGhost(
+            label: 'Отменить заказ',
+            onPressed: _cancelling ? null : () => _cancel(order),
+          ),
         ],
       ],
     );
@@ -275,9 +434,10 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, this.trailing, this.onTap});
+  const _InfoRow({required this.label, this.trailing, this.trailingColor, this.onTap});
   final String label;
   final String? trailing;
+  final Color? trailingColor;
   final VoidCallback? onTap;
 
   @override
@@ -294,7 +454,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(fontSize: 13, color: context.colors.text1)),
           if (trailing != null)
-            Text(trailing!, style: TextStyle(fontSize: 12, color: context.colors.text2)),
+            Text(trailing!, style: TextStyle(fontSize: 12, color: trailingColor ?? context.colors.text2)),
           if (onTap != null) ...[
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 16, color: context.colors.text3),

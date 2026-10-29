@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import '../data/api_exception.dart';
 import '../data/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 
 /// Экран 05 из car-marketplace-experiment.html — «тест на дефекты».
@@ -51,6 +53,7 @@ class _QuizScreenState extends State<QuizScreen> {
         },
       );
       if (!mounted) return;
+      if (response.statusCode != 200) throw _failure(response);
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (body['available'] == false) {
         setState(() {
@@ -70,13 +73,28 @@ class _QuizScreenState extends State<QuizScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '$e';
+        _error = apiErrorText(e);
         _loading = false;
       });
     }
   }
 
+  /// Прямой http мимо ApiClient — 401 разбираем сами, иначе протухшая
+  /// сессия станет тупиком.
+  ApiException _failure(http.Response response) {
+    if (response.statusCode == 401) widget.auth.expireSession();
+    return ApiException(response.statusCode, response.body);
+  }
+
   Future<void> _submit() async {
+    try {
+      await _send();
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
+  }
+
+  Future<void> _send() async {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/quiz/submit'),
       headers: {
@@ -91,6 +109,7 @@ class _QuizScreenState extends State<QuizScreen> {
       }),
     );
     if (!mounted) return;
+    if (response.statusCode != 200) throw _failure(response);
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     setState(() {
       _result = 'Верных ${body['score']} из $_threshold необходимых — '

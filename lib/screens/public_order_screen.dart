@@ -7,6 +7,7 @@ import '../models/order_status.dart';
 import '../models/public_order.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 
 /// Экран 02 из car-marketplace-experiment.html — «заказ · открытый просмотр».
@@ -51,7 +52,7 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '$e';
+        _error = apiErrorText(e);
         _loading = false;
       });
     }

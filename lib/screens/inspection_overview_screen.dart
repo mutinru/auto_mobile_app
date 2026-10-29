@@ -54,6 +54,36 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
       listenable: widget.store,
       builder: (context, _) {
         final store = widget.store;
+        if (store.loadError != null && !store.isLoading) {
+          return Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Не удалось открыть осмотр',
+                      style: TextStyle(fontSize: 14, color: context.colors.text1),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      store.loadError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+                    ),
+                    const SizedBox(height: 10),
+                    CtaGhost(
+                      label: 'Повторить',
+                      onPressed: store.load,
+                    ),
+                    CtaGhost(label: 'Назад', onPressed: () => Navigator.of(context).pop()),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         if (store.isLoading || store.car == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
@@ -141,6 +171,16 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: ProgressSummary(panels: store.panels),
                 ),
+                if (store.readOnly)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+                    child: Text(
+                      'Только просмотр — оценки ставит исполнитель',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: context.colors.text3),
+                    ),
+                  )
+                else
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
                   child: SizedBox(

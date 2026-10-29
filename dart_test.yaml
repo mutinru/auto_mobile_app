@@ -1,0 +1,5 @@
+# Тесты против живого бекенда пропускаются в обычном `flutter test`.
+# Запуск: flutter test --run-skipped -t integration
+tags:
+  integration:
+    skip: "нужен живой бекенд — flutter test --run-skipped -t integration"

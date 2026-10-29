@@ -1,11 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/api_exception.dart';
 import '../data/auth_service.dart';
+import '../models/code_channel.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+
+/// Отсчёт до повторного запроса: `1:47`.
+String formatCountdown(Duration left) {
+  final seconds = left.inSeconds;
+  return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+}
 
 /// Экран 01 макета — «авторизация» по номеру телефона.
 class PhoneLoginScreen extends StatefulWidget {
@@ -33,12 +43,60 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   bool _codeSent = false;
   bool _busy = false;
   String? _error;
+  CodeChannel? _channel;
+
+  /// Пауза до повторного запроса кода. Сервер считает её по номеру, поэтому
+  /// помним номер: другой номер после «Изменить номер» паузы не наследует.
+  int _resendLeft = 0;
+  String? _cooldownPhone;
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    // правка номера во время паузы: кнопка сразу показывает, действует ли она
+    _phoneController.addListener(() {
+      if (_resendLeft > 0) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
+  }
+
+  String get _phoneDigits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
+
+  /// Сколько ещё ждать для введённого номера; null — можно запрашивать.
+  Duration? get _cooldownLeft =>
+      _resendLeft > 0 && _cooldownPhone == _phoneDigits ? Duration(seconds: _resendLeft) : null;
+
+  /// Счётчик секунд, а не отметка времени: так отсчёт идёт и в виджет-тестах
+  /// с подменённым временем. Погрешность в доли секунды здесь не важна.
+  void _startCooldown(int seconds) {
+    if (seconds <= 0) return;
+    _resendLeft = seconds;
+    _cooldownPhone = _phoneDigits;
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() => _resendLeft--);
+      if (_resendLeft <= 0) timer.cancel();
+    });
+  }
+
+  /// Ошибка запроса: 429 с retry_after сразу запускает отсчёт на кнопке.
+  void _fail(Object e) {
+    if (!mounted) return;
+    setState(() {
+      _error = apiErrorText(e);
+      if (e is ApiException && e.statusCode == 429 && e.retryAfter != null) {
+        _startCooldown(e.retryAfter!);
+      }
+    });
   }
 
   Future<void> _requestCode() async {
@@ -47,22 +105,23 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       _error = null;
     });
     try {
-      final devCode = await widget.auth.requestPhoneCode(_phoneController.text);
+      final sent = await widget.auth.requestPhoneCode(_phoneController.text);
       if (!mounted) return;
+      final devCode = sent.devCode;
       setState(() {
         _codeSent = true;
-        // доставки SMS нет: в local бекенд возвращает код, подставляем сами
+        _channel = sent.channel;
+        _startCooldown(sent.resendIn);
+        // в local бекенд ничего не отправляет и отдаёт код — подставляем сами
         if (devCode != null) _codeController.text = devCode;
       });
       if (devCode != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('SMS не отправляется, код из ответа: $devCode')),
+          const SnackBar(content: Text('Код не отправлялся (режим разработки), подставлен автоматически')),
         );
       }
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'Нет связи с сервером: $e');
+      _fail(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -76,10 +135,8 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     try {
       await widget.auth.verifyPhoneCode(_phoneController.text, _codeController.text);
       widget.onLoggedIn();
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'Нет связи с сервером: $e');
+      _fail(e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -87,6 +144,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cooldown = _cooldownLeft;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -218,10 +276,18 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 8),
+                Text(
+                  _codeSent
+                      ? 'Отправили код на +7 ${_phoneController.text}. ${codeChannelHint(_channel)}'
+                      : codeChannelHint(null),
+                  style: TextStyle(fontSize: 12, color: context.colors.text2, height: 1.4),
+                ),
+
                 if (_codeSent) ...[
                   const SizedBox(height: 12),
                   FieldBoxInput(
-                    label: 'Код из SMS',
+                    label: 'Код',
                     controller: _codeController,
                     hint: '0000',
                     mono: true,
@@ -242,19 +308,29 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
                 const SizedBox(height: 12),
                 CtaPrimary(
-                  label: _codeSent ? 'Войти' : 'Получить код в SMS',
+                  label: _codeSent
+                      ? 'Войти'
+                      : cooldown == null
+                          ? 'Получить код'
+                          : 'Получить код через ${formatCountdown(cooldown)}',
                   loading: _busy,
-                  onPressed: _codeSent ? _verify : _requestCode,
+                  onPressed: _codeSent ? _verify : (cooldown == null ? _requestCode : null),
                 ),
-                if (_codeSent)
+                if (_codeSent) ...[
+                  CtaGhost(
+                    label: cooldown == null
+                        ? 'Запросить код снова'
+                        : 'Запросить код снова через ${formatCountdown(cooldown)}',
+                    onPressed: cooldown == null && !_busy ? _requestCode : null,
+                  ),
                   CtaGhost(
                     label: 'Изменить номер',
                     onPressed: () => setState(() {
                       _codeSent = false;
                       _codeController.clear();
                     }),
-                  )
-                else if (widget.onBrowse != null)
+                  ),
+                ] else if (widget.onBrowse != null)
                   CtaGhost(
                     label: 'Посмотреть заказы без входа',
                     onPressed: widget.onBrowse,

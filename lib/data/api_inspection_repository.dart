@@ -8,16 +8,14 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import 'api_client.dart';
-import 'api_exception.dart';
 import 'inspection_repository.dart';
 
 /// Реализация поверх Laravel API (routes/api.php).
 ///
-/// TODO(current-inspection): пока нет эндпоинта "мой текущий осмотр",
-/// id=1 — это демо-осмотр из DemoInspectionSeeder. Когда появится выбор
-/// автомобиля/осмотра в приложении, id должен приходить оттуда.
+/// id осмотра всегда приходит от экрана (кандидат заказа). Значения по
+/// умолчанию нет намеренно: забытый id молча открыл бы чужой осмотр.
 class ApiInspectionRepository implements InspectionRepository {
-  ApiInspectionRepository(this._client, {this.inspectionId = 1});
+  ApiInspectionRepository(this._client, {required this.inspectionId});
 
   final ApiClient _client;
   final int inspectionId;
@@ -72,7 +70,7 @@ class ApiInspectionRepository implements InspectionRepository {
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();
     if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      throw ApiException(streamed.statusCode, body);
+      throw _client.failure(streamed.statusCode, body);
     }
     final json = jsonDecode(body) as Map<String, dynamic>;
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);

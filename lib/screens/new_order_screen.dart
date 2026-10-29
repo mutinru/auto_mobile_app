@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/car_picker_sheet.dart';
+import '../widgets/city_picker_sheet.dart';
 
 /// Экран 03 макета — «новый заказ · что искать».
-const _cityOptions = ['Москва', 'Московская обл.', 'Санкт-Петербург', 'Вся Россия'];
 const _requirementOptions = [
   'Без ДТП',
   '1–2 владельца',
@@ -32,9 +34,46 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   final _commentController = TextEditingController();
 
   RangeValues _budget = const RangeValues(1800000, 2400000);
-  final Set<String> _cities = {'Москва'};
+  /// Пусто, пока не определили по геопозиции или не выбрали в листе.
+  Set<String> _cities = {};
+
+  /// Пользователь уже менял города — автоопределение их не перетирает.
+  bool _citiesTouched = false;
   final Set<String> _requirements = {'Без ДТП'};
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _detectCity();
+  }
+
+  Future<void> _detectCity() async {
+    final city = await widget.store.locator?.detect();
+    if (city == null || !mounted || _citiesTouched) return;
+    setState(() => _cities = {city.name});
+  }
+
+  Future<void> _pickCities() async {
+    final next = await showCityPickerSheet(
+      context,
+      cities: widget.store.cities,
+      selected: _cities,
+      locator: widget.store.locator,
+    );
+    if (next == null) return;
+    setState(() {
+      _cities = next;
+      _citiesTouched = true;
+    });
+  }
+
+  void _removeCity(String city) {
+    setState(() {
+      _cities = {..._cities}..remove(city);
+      _citiesTouched = true;
+    });
+  }
 
   @override
   void dispose() {
@@ -54,34 +93,17 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   Future<void> _pickCar() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 22,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SectionHead('Марка и модель'),
-            FieldBoxInput(label: 'Марка', controller: _brandController, hint: 'Toyota'),
-            FieldBoxInput(label: 'Модель', controller: _modelController, hint: 'Camry'),
-            const SizedBox(height: 6),
-            CtaPrimary(label: 'Готово', onPressed: () => Navigator.of(context).pop()),
-          ],
-        ),
-      ),
+    final choice = await showCarPickerSheet(
+      context,
+      catalog: widget.store.catalog,
+      initialBrand: _brandController.text,
+      initialModel: _modelController.text,
     );
-    setState(() {});
+    if (choice == null) return;
+    setState(() {
+      _brandController.text = choice.brand;
+      _modelController.text = choice.model;
+    });
   }
 
   Future<void> _submit() async {
@@ -112,7 +134,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось создать заказ: $e')),
+          SnackBar(content: Text('Не удалось создать заказ: ${apiErrorText(e)}')),
         );
       }
     } finally {
@@ -226,13 +248,14 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      for (final c in _cityOptions)
-                        AppChip(
-                          label: c,
-                          on: _cities.contains(c),
-                          onTap: () => setState(() =>
-                              _cities.contains(c) ? _cities.remove(c) : _cities.add(c)),
-                        ),
+                      // выбранные — тап снимает; остальное в листе
+                      for (final c in _cities)
+                        AppChip(label: '$c  ×', on: true, onTap: () => _removeCity(c)),
+                      AppChip(
+                        label: _cities.isEmpty ? '+ Выбрать город' : '+ Ещё город',
+                        on: false,
+                        onTap: _pickCities,
+                      ),
                     ],
                   ),
 

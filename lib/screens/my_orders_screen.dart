@@ -116,7 +116,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   /// завершённый — единым списком (order-types.html, кадры 01 и 05).
   Widget _list(List<Order> orders) {
     final store = widget.store;
-    final error = widget.asExecutor ? null : store.mineError;
+    final error = widget.asExecutor ? store.assignedError : store.mineError;
     if (error != null) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -176,6 +176,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
 
   Widget _card(Order order) => OrderCard(
     order: order,
+    asExecutor: widget.asExecutor,
     onTap: () => _openOrder(order),
     onRepeat:
         !widget.asExecutor &&
@@ -198,9 +199,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             ? store.assignedOrders
             : store.myOrders;
         final orders = source.where((o) {
-          final finished =
-              o.status == OrderStatus.completed ||
-              o.status == OrderStatus.cancelled;
+          // отчёт готов / оплата / спор — ещё активные: заказчик не получил отчёт
+          final finished = o.status.isFinished;
           return _tab == 0 ? !finished : finished;
         }).toList();
 

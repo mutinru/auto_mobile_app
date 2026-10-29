@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'package:auto_podbor_mobile/screens/nearby_orders_screen.dart';
@@ -11,7 +13,7 @@ void main() {
   Widget app({int passed = 0, bool required = true}) => MaterialApp(
     theme: AppTheme.dark,
     home: NearbyOrdersScreen(
-      store: OrderStore(MockOrderRepository()),
+      store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
       verification: MockVerificationRepository(
         passed: passed,
         required: required,
@@ -40,9 +42,11 @@ void main() {
     expect(find.text('Смотреть можно, откликаться — нет'), findsOneWidget);
     expect(find.text('Стать исполнителем'), findsOneWidget);
 
-    // один отклик на 10 000 ₽ → гонорара у заказа нет, берём минимум из откликов
-    expect(find.text('Откликаются от'), findsOneWidget);
-    expect(find.text('10 000 ₽'), findsOneWidget);
+    // чужой отклик на 10 000 ₽ виден только числом — цены конкурента нет
+    expect(find.text('Откликаются от'), findsNothing);
+    expect(find.text('10 000 ₽'), findsNothing);
+    expect(find.text('предлагаете вы'), findsOneWidget);
+    expect(find.textContaining('1 отклик'), findsOneWidget);
   });
 
   testWidgets('без верификации кнопка отклика неактивна', (tester) async {
@@ -70,6 +74,47 @@ void main() {
 
     expect(find.text('Смотреть можно, откликаться — нет'), findsNothing);
     expect(respondButton(tester).onPressed, isNotNull);
+  });
+
+  test('мок отдаёт исполнителю только свой отклик, остальные — числом', () async {
+    final repo = MockOrderRepository();
+    final tiguan = (await repo.fetchAvailableOrders())
+        .firstWhere((o) => o.brand == 'Volkswagen');
+    expect(tiguan.responses, isEmpty);
+    expect(tiguan.responsesCount, 1);
+
+    final after = await repo.respondToOrder(tiguan.id, proposedPrice: 9000);
+    expect(after.responses.map((r) => r.proposedPrice), [9000]);
+    expect(after.responsesCount, 2);
+  });
+
+  testWidgets('после отклика заказ остаётся в ленте с погашенной кнопкой', (
+    tester,
+  ) async {
+    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: NearbyOrdersScreen(
+        store: store,
+        verification: MockVerificationRepository(passed: 0, required: false),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Вы откликнулись'), findsNothing);
+
+    final tiguan = store.availableOrders.firstWhere((o) => o.brand == 'Volkswagen');
+    await store.respondToOrder(tiguan.id, proposedPrice: 9000);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
+    expect(find.text('Ваш отклик'), findsOneWidget);
+    expect(find.text('9 000 ₽'), findsOneWidget);
+    expect(find.textContaining('2 отклика'), findsOneWidget);
+    final button = tester.widget<ElevatedButton>(find.ancestor(
+      of: find.text('Вы откликнулись'),
+      matching: find.byType(ElevatedButton),
+    ));
+    expect(button.onPressed, isNull);
   });
 
   testWidgets('фильтр «Мало откликов» оставляет заказ с одним откликом', (

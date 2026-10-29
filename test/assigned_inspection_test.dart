@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
@@ -29,7 +31,7 @@ void main() {
   Widget app(int orderId, [MockOrderRepository? repo]) => MaterialApp(
     theme: AppTheme.dark,
     home: AssignedInspectionScreen(
-      store: OrderStore(repo ?? MockOrderRepository()),
+      store: OrderStore(repo ?? MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
       orderId: orderId,
     ),
   );

@@ -16,3 +16,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# кэш Kotlin-компилятора (сессии демона)
+/.kotlin/

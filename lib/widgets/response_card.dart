@@ -4,17 +4,18 @@ import '../models/order_response.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'app_ui.dart';
+import 'executor_stats.dart';
 
 /// .resp — отклик исполнителя на заказ-осмотр (order-types.html, кадр 04).
 /// Цена заказчика — точка отсчёта: рядом с ценой отклика видна разница
-/// с ней. Рейтинг «★ 4.9 · 212 осмотров» из макета не рисуем — рейтинга
-/// в домене нет, выдумывать не будем.
+/// с ней. Под именем — .resp-stats: рейтинг и число отзывов исполнителя.
 class ResponseCard extends StatelessWidget {
   const ResponseCard({
     super.key,
     required this.response,
     required this.askingPrice,
     this.onAccept,
+    this.onShowReviews,
   });
 
   final OrderResponse response;
@@ -22,6 +23,9 @@ class ResponseCard extends StatelessWidget {
 
   /// null — заказчик уже выбрал исполнителя или экран смотрит не он.
   final VoidCallback? onAccept;
+
+  /// Открыть отзывы об исполнителе по тапу на рейтинг.
+  final VoidCallback? onShowReviews;
 
   /// (подпись, цвет) для .resp-price-delta.
   (String, Color)? _delta(AppColors c) {
@@ -53,13 +57,23 @@ class ResponseCard extends StatelessWidget {
               Avatar(initialsOf(response.executor.name), size: 36),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  response.executor.name,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.text1,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      response.executor.name,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: context.colors.text1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    ExecutorStats(
+                      user: response.executor,
+                      onTap: onShowReviews,
+                    ),
+                  ],
                 ),
               ),
               Column(

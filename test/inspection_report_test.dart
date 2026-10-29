@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
@@ -78,7 +80,7 @@ void main() {
     Widget detail(AuthService? auth) => MaterialApp(
       theme: AppTheme.dark,
       home: InspectionOrderDetailScreen(
-        store: OrderStore(MockOrderRepository()),
+        store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
         orderId: 2047,
         auth: auth,
       ),

@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 
 /// Конфигурация API: хост и пути.
 ///
@@ -9,7 +9,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 /// - `prod` → https://bitnebit.com/api
 ///
 /// Flavor задаётся при сборке: `flutter run --flavor dev` или
-/// `flutter build apk --flavor prod`.
+/// `flutter build apk --flavor prod`. Без него — dev, а в релизной сборке
+/// prod: тесты и отладочный запуск без флага не должны ходить на боевой
+/// сервер, а релиз без флага — на localhost.
 class ApiConfig {
   ApiConfig._();
 
@@ -17,7 +19,7 @@ class ApiConfig {
   /// `--flavor` (через нативные настройки Android/iOS).
   static const String flavor = String.fromEnvironment(
     'FLUTTER_APP_FLAVOR',
-    defaultValue: 'prod',
+    defaultValue: kReleaseMode ? 'prod' : 'dev',
   );
 
   static bool get isDev => flavor == 'dev';

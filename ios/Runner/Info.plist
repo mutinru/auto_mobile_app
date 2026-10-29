@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Чтобы подставить ваш город в заказ и на карту заказов.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Чтобы сфотографировать детали при осмотре и считать VIN с кузова.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Чтобы прикрепить фото из галереи к осмотру или в чат поддержки.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

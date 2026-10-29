@@ -3,6 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config/support_config.dart';
 import '../screens/faq_screen.dart';
+import '../screens/support_chat_screen.dart';
+import '../state/chat_store.dart';
+import '../state/support_chat_scope.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -48,9 +51,22 @@ class _SupportSheet extends StatelessWidget {
     }
   }
 
+  /// Чат в приложении — только с токеном: бекенд пускает в него вошедших.
+  /// Стор создаём до маршрута, а не в builder (смена темы пересоздала бы его).
+  void _openChat(BuildContext context, SupportChatScope scope) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    final store = ChatStore(scope.repository());
+    navigator.push(
+      MaterialPageRoute<void>(builder: (_) => SupportChatScreen(store: store)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final scope = SupportChatScope.maybeOf(context);
+    final canChat = scope != null && scope.auth.isAuthenticated;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -125,14 +141,18 @@ class _SupportSheet extends StatelessWidget {
               primary: true,
               icon: Icons.chat_bubble_outline,
               name: 'Написать в чат',
-              desc: 'Прямо в приложении, без регистрации',
-              // чата на бекенде нет — пока ведём в Telegram и честно об этом говорим
-              onTap: () => _open(
-                context,
-                SupportConfig.telegramUri,
-                notice:
-                    'Чат в приложении скоро появится — пока откроем Telegram',
-              ),
+              desc: canChat
+                  ? 'Прямо в приложении, ответим здесь же'
+                  : 'После входа — в приложении, пока откроем Telegram',
+              // гостю чат недоступен — ведём в Telegram и честно об этом говорим
+              onTap: canChat
+                  ? () => _openChat(context, scope)
+                  : () => _open(
+                      context,
+                      SupportConfig.telegramUri,
+                      notice:
+                          'Чат в приложении доступен после входа — пока откроем Telegram',
+                    ),
             ),
             _SupportItem(
               icon: Icons.send_outlined,
@@ -166,12 +186,14 @@ class _SupportSheet extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 2),
-            Text(
-              'Писать можно без аккаунта — понадобится только контакт для ответа.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10.5, color: c.text3, height: 1.45),
-            ),
+            if (!canChat) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Без аккаунта — Telegram или звонок.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 10.5, color: c.text3, height: 1.45),
+              ),
+            ],
           ],
         ),
       ),

@@ -5,6 +5,9 @@ import 'data/api_client.dart';
 import 'data/api_order_repository.dart';
 import 'data/api_verification_repository.dart';
 import 'data/auth_service.dart';
+import 'data/car_catalog_repository.dart';
+import 'data/city_repository.dart';
+import 'data/location_service.dart';
 import 'models/order.dart';
 import 'models/order_kind.dart';
 import 'screens/intent_screen.dart';
@@ -15,8 +18,10 @@ import 'screens/new_order_screen.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
 import 'screens/profile_screen.dart';
+import 'state/city_locator.dart';
 import 'state/nearby_filter_store.dart';
 import 'state/order_store.dart';
+import 'state/support_chat_scope.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/order_kind_sheet.dart';
@@ -26,13 +31,18 @@ Future<void> main() async {
   // тему читаем до первого кадра, иначе светлая мигнёт тёмной
   final theme = ThemeController();
   await theme.load();
-  runApp(AutoPodborApp(theme: theme));
+  runApp(AutoPodborApp(theme: theme, auth: AuthService()));
 }
 
 class AutoPodborApp extends StatelessWidget {
-  const AutoPodborApp({super.key, required this.theme});
+  const AutoPodborApp({super.key, required this.theme, required this.auth});
 
   final ThemeController theme;
+
+  /// Одна сессия на приложение. Создаётся здесь, а не в _RootGate: чат
+  /// поддержки открывается из шторки на любом маршруте, и SupportChatScope
+  /// должен стоять выше Navigator.
+  final AuthService auth;
 
   @override
   Widget build(BuildContext context) {
@@ -51,13 +61,16 @@ class AutoPodborApp extends StatelessWidget {
           themeMode: theme.mode,
           // у экранов нет AppBar, поэтому иконки статус-бара красим здесь:
           // тёмные на светлой теме, светлые на тёмной
-          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-            value: theme.isLight
-                ? SystemUiOverlayStyle.dark
-                : SystemUiOverlayStyle.light,
-            child: child!,
+          builder: (context, child) => SupportChatScope(
+            auth: auth,
+            child: AnnotatedRegion<SystemUiOverlayStyle>(
+              value: theme.isLight
+                  ? SystemUiOverlayStyle.dark
+                  : SystemUiOverlayStyle.light,
+              child: child!,
+            ),
           ),
-          home: const _RootGate(),
+          home: _RootGate(auth: auth),
         ),
       ),
     );
@@ -76,14 +89,22 @@ class AutoPodborApp extends StatelessWidget {
 /// самостоятельным модулем — из этого хаба пока не достижимы напрямую,
 /// подключаются к заказу отдельным проходом (см. "Старт осмотра" в макете).
 class _RootGate extends StatefulWidget {
-  const _RootGate();
+  const _RootGate({required this.auth});
+
+  final AuthService auth;
 
   @override
   State<_RootGate> createState() => _RootGateState();
 }
 
 class _RootGateState extends State<_RootGate> {
-  final _auth = AuthService();
+  late final _auth = widget.auth;
+
+  /// Один на приложение: справочник кешируется на всю сессию, а сторы
+  /// заказов создаются заново на каждый раздел.
+  late final _carCatalog = ApiCarCatalogRepository(ApiClient(_auth));
+  late final _cities = ApiCityRepository(ApiClient(_auth));
+  late final _cityLocator = CityLocator(_cities, const GeolocatorLocationService());
 
   @override
   void initState() {
@@ -92,6 +113,38 @@ class _RootGateState extends State<_RootGate> {
     _auth.restore().then((_) {
       if (mounted) setState(() {});
     });
+    _auth.addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    _auth.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  /// Сервер ответил 401 — токен отозван или протух. Снимаем раздел и всё,
+  /// что над ним, и ведём на вход; после входа возвращаем в тот же раздел.
+  /// Без этого каждый экран показывал бы «Сессия истекла», а выйти из
+  /// тупика можно было только переустановкой.
+  void _onAuthChanged() {
+    if (!_auth.sessionExpired || !mounted) return;
+    _auth.consumeSessionExpired();
+    final section = _section;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() {
+      _root = null;
+      _section = null;
+    });
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Сессия истекла — войдите заново')),
+    );
+    // гостю (витрина, вопрос о намерении) вход не навязываем
+    if (section == null) return;
+    _pushLogin(
+      onLoggedIn: () => _switchTo(section),
+      onBrowse: () => Navigator.of(context).pushReplacement(_feedRoute()),
+    );
   }
 
   /// Витрина открывается поверх вопроса о намерении, а не вместо него:
@@ -192,10 +245,19 @@ class _RootGateState extends State<_RootGate> {
     );
   }
 
-  OrderStore _orderStore() => OrderStore(ApiOrderRepository(ApiClient(_auth)));
+  OrderStore _orderStore() =>
+      OrderStore(
+        ApiOrderRepository(ApiClient(_auth)),
+        catalog: _carCatalog,
+        cities: _cities,
+        locator: _cityLocator,
+      );
 
   /// Открытый раздел. null — показываем вопрос о намерении.
   Widget? _root;
+
+  /// Какой раздел открыт — чтобы вернуть в него после повторного входа.
+  _Section? _section;
 
   /// Переход в раздел «Мои заказы», «Заказы рядом» или «Профиль». Раздел
   /// встаёт в корень стека вместо вопроса о намерении (и вместо другого
@@ -205,7 +267,23 @@ class _RootGateState extends State<_RootGate> {
   /// _RootGateState, а колбэки открытых экранов зовут его контекст.
   void _switchTo(_Section section, {OrderStore? store}) {
     Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() => _root = _sectionScreen(section, store: store));
+    setState(() {
+      _section = section;
+      _root = _sectionScreen(section, store: store);
+    });
+  }
+
+  /// Выход: раздел снимается, снова виден вопрос о намерении. Сторы
+  /// разделов создаются заново на каждый [_switchTo], поэтому данные
+  /// прошлого пользователя выход не переживут.
+  Future<void> _logout() async {
+    await _auth.logout();
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() {
+      _root = null;
+      _section = null;
+    });
   }
 
   /// Экран раздела со свежими сторами. Сторы создаём здесь, а не в build:
@@ -232,6 +310,7 @@ class _RootGateState extends State<_RootGate> {
         verification: ApiVerificationRepository(ApiClient(_auth)),
         onMyOrders: () => _switchTo(_Section.myOrders),
         onNearbyOrders: () => _switchTo(_Section.nearby),
+        onLogout: _logout,
       ),
     };
     return KeyedSubtree(key: UniqueKey(), child: screen);

@@ -48,6 +48,19 @@ String whenLabel(DateTime? date, TimeSlot? slot, String? exactTime) {
 /// Прошедший осмотр в списке завершённых: «14 сентября».
 String pastDate(DateTime? date) => date == null ? '—' : dayMonth(date);
 
+/// Разделитель дней в чате: «Сегодня», «Вчера», «14 сентября»,
+/// для прошлых лет — «14 сентября 2025».
+String chatDay(DateTime date) => switch (_daysFromToday(date)) {
+      0 => 'Сегодня',
+      -1 => 'Вчера',
+      _ when date.year == DateTime.now().year => dayMonth(date),
+      _ => '${dayMonth(date)} ${date.year}',
+    };
+
+/// «09:05»
+String hhmm(DateTime date) =>
+    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
 int _daysFromToday(DateTime date) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);

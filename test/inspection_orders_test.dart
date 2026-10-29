@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
@@ -16,7 +18,7 @@ void main() {
 
   testWidgets('активный таб делится на секции, осмотр идёт первым',
       (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository())));
+    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
     await tester.pumpAndSettle();
 
     expect(find.text('ОСМОТРЫ'), findsOneWidget);
@@ -34,7 +36,7 @@ void main() {
 
   testWidgets('карточка осмотра показывает дату и адрес вместо бюджета',
       (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository())));
+    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
     await tester.pumpAndSettle();
 
     // «Kia Rio 2019 · 64 000 км» набрано Text.rich
@@ -50,20 +52,21 @@ void main() {
 
   testWidgets('завершённый осмотр показывает вердикт и «другую машину»',
       (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository())));
+    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Завершённые'));
     await tester.pumpAndSettle();
 
-    expect(find.text('ОТЧЁТ ГОТОВ'), findsOneWidget);
+    // «отчёт готов» теперь значит «ждёт оплаты» — завершённый осмотр «получен»
+    expect(find.text('ОТЧЁТ ПОЛУЧЕН'), findsOneWidget);
     expect(find.text('Не рекомендую'), findsOneWidget);
     expect(find.text('3 детали перекрашены, замена крыла'), findsOneWidget);
     expect(find.text('Осмотреть другую машину'), findsOneWidget);
   });
 
   testWidgets('«Новый заказ» открывает лист выбора вида', (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository())));
+    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Новый заказ'));
@@ -84,7 +87,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.dark,
       home: InspectionOrderDetailScreen(
-        store: OrderStore(MockOrderRepository()),
+        store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
         orderId: 2053,
       ),
     ));
@@ -102,7 +105,7 @@ void main() {
   });
 
   testWidgets('выбор отклика переводит осмотр в «назначен»', (tester) async {
-    final store = OrderStore(MockOrderRepository());
+    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.dark,
       home: InspectionOrderDetailScreen(store: store, orderId: 2053),

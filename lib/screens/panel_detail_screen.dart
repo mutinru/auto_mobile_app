@@ -5,6 +5,7 @@ import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
+import '../widgets/api_error.dart';
 import '../widgets/status_dot.dart';
 
 /// Экран 02 из макета: оценка одной детали (состояние, дефекты, фото, аудио).
@@ -73,13 +74,20 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
     try {
       await widget.store.uploadPhoto(_panelId, picked.path);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось загрузить фото: $e')),
-        );
-      }
+      if (mounted) showApiError(context, e);
     } finally {
       if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  /// Мутации детали: ждём ответ сервера и показываем отказ (403 после
+  /// «Я оплатил» заказчика, 422) — раньше Future терялся, плитка молча не
+  /// подсвечивалась.
+  Future<void> _mutate(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (e) {
+      if (mounted) showApiError(context, e);
     }
   }
 
@@ -174,7 +182,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                             _ConditionTile(
                               condition: c,
                               selected: panel.condition == c,
-                              onTap: () => store.applyCondition(_panelId, c),
+                              onTap: store.readOnly
+                                  ? null
+                                  : () => _mutate(() => store.applyCondition(_panelId, c)),
                             ),
                         ],
                       ),
@@ -202,7 +212,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                             _DefectChip(
                               label: d,
                               on: panel.defects.contains(d),
-                              onTap: () => store.toggleDefect(_panelId, d),
+                              onTap: store.readOnly
+                                  ? null
+                                  : () => _mutate(() => store.toggleDefect(_panelId, d)),
                             ),
                         ],
                       ),
@@ -247,7 +259,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                   ),
                                 ),
                               ),
-                            if (panel.photoCount < 5)
+                            if (panel.photoCount < 5 && !store.readOnly)
                               InkWell(
                                 onTap: _uploading ? null : _addPhoto,
                                 borderRadius: BorderRadius.circular(12),
@@ -434,7 +446,7 @@ class _ConditionTile extends StatelessWidget {
 
   final PanelCondition condition;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -496,7 +508,7 @@ class _DefectChip extends StatelessWidget {
 
   final String label;
   final bool on;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

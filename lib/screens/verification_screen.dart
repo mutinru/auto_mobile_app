@@ -7,6 +7,8 @@ import '../config/api_config.dart';
 import '../data/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../data/api_exception.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/score_ring.dart';
 import 'quiz_screen.dart';
@@ -36,6 +38,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
     _load();
   }
 
+  /// Прямой http мимо ApiClient — 401 разбираем сами, иначе протухшая
+  /// сессия станет тупиком.
+  ApiException _failure(http.Response response) {
+    if (response.statusCode == 401) widget.auth.expireSession();
+    return ApiException(response.statusCode, response.body);
+  }
+
   Future<void> _load() async {
     try {
       final response = await http.get(
@@ -48,7 +57,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (!mounted) return;
       if (response.statusCode != 200) {
         setState(() {
-          _error = 'HTTP ${response.statusCode}';
+          _error = apiErrorText(_failure(response));
           _loading = false;
         });
         return;
@@ -61,7 +70,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = '$e';
+        _error = apiErrorText(e);
         _loading = false;
       });
     }
