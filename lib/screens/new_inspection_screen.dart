@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../data/address_repository.dart';
 import '../models/car_catalog.dart';
 import '../models/order.dart';
 import '../models/time_slot.dart';
@@ -9,15 +10,17 @@ import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/listing_url.dart';
-import '../util/ru_date.dart';
+import '../widgets/address_field.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';
+import '../widgets/city_picker_sheet.dart';
+import '../widgets/inspection_when_picker.dart';
 
 /// Кадр 03 макета order-types.html — «новый осмотр». Вместо бюджета и
-/// городов поиска: ссылка или VIN, адрес, дата и цена заказчика.
+/// городов поиска: ссылка или VIN, город и адрес, дата и цена заказчика.
 ///
-/// [basedOn] заполняет адрес, время и цену из прошлого осмотра — это
+/// [basedOn] заполняет город, адрес, время и цену из прошлого осмотра — это
 /// «Осмотреть другую машину» из кадра 05; машина всегда новая.
 class NewInspectionScreen extends StatefulWidget {
   const NewInspectionScreen({super.key, required this.store, this.basedOn});
@@ -39,9 +42,17 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  late DateTime _date;
-  late TimeSlot _slot;
-  TimeOfDay? _exactTime;
+  /// Город осмотра: по геопозиции, из прошлого осмотра или из листа.
+  CityChoice? _city;
+
+  /// Пользователь уже выбирал город — автоопределение его не перетирает.
+  bool _cityTouched = false;
+
+  /// Точка выбранной подсказки адреса; null — свой текст, сервер возьмёт
+  /// центр города.
+  AddressPoint? _point;
+
+  late InspectionWhen _when;
   late int _price;
   bool _submitting = false;
 
@@ -64,20 +75,42 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     super.initState();
     _listingController.addListener(_onListingChanged);
     final based = widget.basedOn;
-    _date = DateTime.now().add(const Duration(days: 1));
-    _slot = based?.timeSlot ?? TimeSlot.day;
+    final now = DateTime.now();
+    _when = InspectionWhen(
+      date: DateTime(now.year, now.month, now.day).add(const Duration(days: 1)),
+      slot: based?.timeSlot ?? TimeSlot.day,
+      exactTime: parseInspectTime(based?.inspectTime),
+    );
     _price = based?.askingPrice ?? 3500;
     if (based != null) {
+      // точку прошлого осмотра не переносим: у чужих она огрублена, а
+      // адрес могут поправить — сервер возьмёт центр города
+      if (based.cities.isNotEmpty) _city = CityChoice(based.cities.first);
       _addressController.text = based.address ?? '';
       _phoneController.text = based.sellerPhone ?? '';
-      if (based.timeSlot == TimeSlot.exact && based.inspectTime != null) {
-        final parts = based.inspectTime!.split(':');
-        _exactTime = TimeOfDay(
-          hour: int.tryParse(parts.first) ?? 12,
-          minute: int.tryParse(parts.last) ?? 0,
-        );
-      }
     }
+    if (_city == null) _detectCity();
+  }
+
+  Future<void> _detectCity() async {
+    final city = await widget.store.locator?.detect();
+    if (city == null || !mounted || _cityTouched) return;
+    setState(() => _city = CityChoice(city.name, city: city));
+  }
+
+  Future<void> _pickCity() async {
+    final choice = await showSingleCityPickerSheet(
+      context,
+      cities: widget.store.cities,
+      selected: _city?.name,
+      locator: widget.store.locator,
+    );
+    if (choice == null || !mounted) return;
+    _cityTouched = true;
+    // адрес из подсказки — про прежний город, свой текст оставляем;
+    // точку сбросит само поле (onPoint(null))
+    if (choice.name != _city?.name && _point != null) _addressController.clear();
+    setState(() => _city = choice);
   }
 
   @override
@@ -177,51 +210,13 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     });
   }
 
-  /// Три ближайших дня чипами, всё остальное — через календарь.
-  List<DateTime> get _dateOptions {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return [today, today.add(const Duration(days: 1)), today.add(const Duration(days: 2))];
-  }
-
-  bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _date,
-      firstDate: DateTime(now.year, now.month, now.day),
-      lastDate: now.add(const Duration(days: 180)),
-    );
-    if (picked != null) setState(() => _date = picked);
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _exactTime ?? const TimeOfDay(hour: 16, minute: 0),
-    );
-    if (picked != null) {
-      setState(() {
-        _exactTime = picked;
-        _slot = TimeSlot.exact;
-      });
-    }
-  }
-
-  String get _exactTimeLabel {
-    final t = _exactTime;
-    if (t == null) return TimeSlot.exact.label;
-    return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
-  }
-
   Future<void> _submit() async {
     final brand = _brandController.text.trim();
     final model = _modelController.text.trim();
     final year = int.tryParse(_yearController.text.trim());
-    final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
+    // пробег необязателен: это слова продавца, их и проверяет осмотр
+    final mileageText = _mileageController.text.replaceAll(' ', '');
+    final mileage = int.tryParse(mileageText);
     final address = _addressController.text.trim();
     final vin = _vinController.text.trim();
     final listing = _listingController.text.trim();
@@ -229,7 +224,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     final problem = switch (null) {
       _ when brand.isEmpty || model.isEmpty => 'Укажите марку и модель',
       _ when year == null => 'Укажите год',
-      _ when mileage == null => 'Укажите пробег',
+      _ when mileageText.isNotEmpty && mileage == null => 'Пробег — числом, в км',
+      _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
       _ when vin.isNotEmpty && vin.length != 17 => 'VIN — ровно 17 символов',
       _ when listing.isNotEmpty && normalizeListingUrl(listing) == null =>
@@ -247,12 +243,17 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         brand: brand,
         model: model,
         year: year!,
-        mileageKm: mileage!,
+        mileageKm: mileage,
+        city: _city!.name,
+        cityId: _city!.city?.id,
         address: address,
-        inspectOn: _date,
-        timeSlot: _slot,
+        lat: _point?.lat,
+        lon: _point?.lon,
+        addressPrecision: _point?.precision,
+        inspectOn: _when.date,
+        timeSlot: _when.slot,
         askingPrice: _price,
-        inspectTime: _slot == TimeSlot.exact ? _exactTimeLabel : null,
+        inspectTime: _when.inspectTime,
         vin: vin.isEmpty ? null : vin,
         listingUrl: listing,
         sellerPhone: _phoneController.text.trim(),
@@ -353,47 +354,26 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
 
                   const SizedBox(height: 22),
                   const SectionHead('Где и когда'),
-                  FieldBoxInput(
-                    label: '',
+                  FieldBox(
+                    label: 'Город',
+                    value: _city?.name ?? 'Выбрать город',
+                    placeholder: _city == null,
+                    onTap: _pickCity,
+                    trailing: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 15,
+                      color: context.colors.text3,
+                    ),
+                  ),
+                  AddressField(
                     controller: _addressController,
-                    hint: 'Город, улица, дом',
+                    addresses: widget.store.addresses,
+                    cityId: _city?.city?.id,
+                    onPoint: (point) => setState(() => _point = point),
                   ),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final option in _dateOptions)
-                        AppChip(
-                          label: shortDate(option),
-                          on: _sameDay(_date, option),
-                          activeColor: context.colors.statusDone,
-                          onTap: () => setState(() => _date = option),
-                        ),
-                      AppChip(
-                        label: _dateOptions.any((d) => _sameDay(_date, d))
-                            ? 'Другая дата'
-                            : shortDate(_date),
-                        on: !_dateOptions.any((d) => _sameDay(_date, d)),
-                        activeColor: context.colors.statusDone,
-                        onTap: _pickDate,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final slot in TimeSlot.values)
-                        AppChip(
-                          label: slot == TimeSlot.exact ? _exactTimeLabel : slot.label,
-                          on: _slot == slot,
-                          activeColor: context.colors.statusDone,
-                          onTap: () => slot == TimeSlot.exact
-                              ? _pickTime()
-                              : setState(() => _slot = slot),
-                        ),
-                    ],
+                  InspectionWhenPicker(
+                    value: _when,
+                    onChanged: (when) => setState(() => _when = when),
                   ),
 
                   const SizedBox(height: 22),

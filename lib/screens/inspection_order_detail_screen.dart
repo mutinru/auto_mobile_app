@@ -16,6 +16,7 @@ import '../widgets/executor_stats.dart';
 import '../widgets/inspection_order_parts.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/payment_parts.dart';
+import '../widgets/repost_sheet.dart';
 import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
 import 'executor_reviews_screen.dart';
@@ -125,6 +126,24 @@ class _InspectionOrderDetailScreenState
     } finally {
       if (mounted) setState(() => _cancelling = false);
     }
+  }
+
+  /// Осмотр ждёт решения: новая дата (и цена) — заказ снова в ленте.
+  Future<void> _repost(Order order) {
+    return showRepostSheet(
+      context,
+      order: order,
+      onSubmit: (when, price) async {
+        final updated = await widget.store.repostInspection(
+          order.id,
+          inspectOn: when.date,
+          timeSlot: when.slot,
+          inspectTime: when.inspectTime,
+          askingPrice: price,
+        );
+        if (mounted) setState(() => _order = updated);
+      },
+    );
   }
 
   Future<void> _openDispute(Order order) {
@@ -262,6 +281,8 @@ class _InspectionOrderDetailScreenState
           priceLabel: 'Ваша цена',
           price: order.askingPrice,
         ),
+        if (widget.viewerIsCustomer && order.status == OrderStatus.awaitingDecision)
+          ..._decision(order),
         if (widget.viewerIsCustomer && order.status.isAwaitingPayment)
           ..._payment(order),
         // вердикт — только когда отчёт получен; до оплаты сервер его не
@@ -305,7 +326,9 @@ class _InspectionOrderDetailScreenState
           viewerIsCustomer: widget.viewerIsCustomer,
           onWrite: () => _writeReview(order),
         ),
-        if (pending.isNotEmpty) ...[
+        // в ожидании решения старые отклики выбрать нельзя: при повторном
+        // размещении сервер их отклонит
+        if (pending.isNotEmpty && order.status != OrderStatus.awaitingDecision) ...[
           const SizedBox(height: 22),
           // исполнителю сервер отдаёт только его собственный отклик
           widget.viewerIsCustomer
@@ -342,6 +365,23 @@ class _InspectionOrderDetailScreenState
       ],
     );
   }
+
+  /// Исполнитель сорвал срок или день прошёл без него — заказчик решает.
+  /// «Отменить заказ» — общая кнопка внизу (сервер отдаёт can_cancel).
+  List<Widget> _decision(Order order) => [
+        const SizedBox(height: 22),
+        const SectionHead('Нужно решение'),
+        StatusNote(
+          icon: Icons.event_busy_outlined,
+          text: order.decisionReason == DecisionReason.missed
+              ? 'Исполнитель не провёл осмотр в назначенный день. '
+                  'Разместите заказ на другую дату или отмените его.'
+              : 'День осмотра прошёл, а исполнитель так и не выбран. '
+                  'Разместите заказ на другую дату или отмените его.',
+        ),
+        const SizedBox(height: 8),
+        CtaPrimary(label: 'Разместить заново', onPressed: () => _repost(order)),
+      ];
 
   /// Отчёт готов, идёт оплата или спор.
   List<Widget> _payment(Order order) => [

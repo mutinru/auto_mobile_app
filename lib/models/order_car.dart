@@ -11,7 +11,7 @@ class OrderCar {
     required this.model,
     required this.year,
     required this.vinMasked,
-    required this.mileageKm,
+    this.mileageKm,
     this.inspectionId,
     this.inspectionStatus,
     this.inspectionOutcome,
@@ -24,7 +24,9 @@ class OrderCar {
   final String model;
   final int year;
   final String vinMasked;
-  final int mileageKm;
+
+  /// У разового осмотра может быть null: заказчик не обязан знать пробег.
+  final int? mileageKm;
 
   final int? inspectionId;
   final String? inspectionStatus;
@@ -56,7 +58,7 @@ class OrderCar {
       model: json['model'] as String,
       year: json['year'] as int,
       vinMasked: json['vin_masked'] as String,
-      mileageKm: json['mileage_km'] as int,
+      mileageKm: json['mileage_km'] as int?,
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
       inspectionOutcome: inspectionOutcomeFromApi(inspection?['outcome'] as String?),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'data/api_chat_repository.dart';
+import 'data/address_repository.dart';
 import 'data/api_client.dart';
 import 'data/api_device_repository.dart';
 import 'data/api_notification_repository.dart';
@@ -155,6 +156,7 @@ class _RootGateState extends State<_RootGate> {
   late final _carCatalog = ApiCarCatalogRepository(ApiClient(_auth));
   late final _cities = ApiCityRepository(ApiClient(_auth));
   late final _cityLocator = CityLocator(_cities, const GeolocatorLocationService());
+  late final _addresses = ApiAddressRepository(ApiClient(_auth));
 
   @override
   void initState() {
@@ -342,6 +344,7 @@ class _RootGateState extends State<_RootGate> {
         catalog: _carCatalog,
         cities: _cities,
         locator: _cityLocator,
+        addresses: _addresses,
       );
 
   /// Открытый раздел. null — показываем вопрос о намерении.

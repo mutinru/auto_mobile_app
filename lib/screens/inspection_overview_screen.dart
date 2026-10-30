@@ -155,7 +155,10 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'VIN ${car.vinMasked} · ${car.mileageLabel}',
+                              [
+                                'VIN ${car.vinMasked}',
+                                ?car.mileageLabel,
+                              ].join(' · '),
                               style: TextStyle(
                                 fontFamily: AppTheme.monoFamily,
                                 fontSize: 11,

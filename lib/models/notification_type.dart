@@ -7,10 +7,13 @@ enum NotificationType {
   executorReleased,
   reportReady,
   reportOpened,
+  inspectionDatePassed,
   // исполнителю
   executorAssigned,
   responseRejected,
   deadlineSoon,
+  deadlineMissed,
+  orderRescheduled,
   paymentSent,
   orderCompleted,
   orderCancelled,
@@ -26,9 +29,12 @@ const _apiValues = {
   'executor_released': NotificationType.executorReleased,
   'report_ready': NotificationType.reportReady,
   'report_opened': NotificationType.reportOpened,
+  'inspection_date_passed': NotificationType.inspectionDatePassed,
   'executor_assigned': NotificationType.executorAssigned,
   'response_rejected': NotificationType.responseRejected,
   'deadline_soon': NotificationType.deadlineSoon,
+  'deadline_missed': NotificationType.deadlineMissed,
+  'order_rescheduled': NotificationType.orderRescheduled,
   'payment_sent': NotificationType.paymentSent,
   'order_completed': NotificationType.orderCompleted,
   'order_cancelled': NotificationType.orderCancelled,
@@ -48,6 +54,8 @@ extension NotificationTypeX on NotificationType {
         NotificationType.executorAssigned ||
         NotificationType.responseRejected ||
         NotificationType.deadlineSoon ||
+        NotificationType.deadlineMissed ||
+        NotificationType.orderRescheduled ||
         NotificationType.paymentSent ||
         NotificationType.orderCompleted ||
         NotificationType.orderCancelled ||
@@ -55,4 +63,10 @@ extension NotificationTypeX on NotificationType {
           false,
         _ => true,
       };
+
+  /// Открывается ли заказ по тапу. Отклонённый и сорвавший срок исполнитель
+  /// заказ уже не видит (сервер ответит 403) — такое уведомление только
+  /// читается. Перенесённый заказ снова в ленте — его открываем.
+  bool get opensOrder =>
+      this != NotificationType.responseRejected && this != NotificationType.deadlineMissed;
 }

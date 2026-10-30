@@ -11,8 +11,13 @@ import 'order_kind.dart';
 /// видит, пока не оплатит) → paymentSent (заказчик нажал «Я оплатил») →
 /// completed (исполнитель подтвердил, отчёт открыт). Из reportReady и
 /// paymentSent любая сторона открывает disputed.
+///
+/// awaitingDecision — только у осмотра: исполнитель сорвал день осмотра или
+/// день прошёл без выбранного исполнителя. Заказчик размещает заказ заново
+/// (новая дата) или отменяет; в ленте исполнителей его нет.
 enum OrderStatus {
   awaitingExecutor,
+  awaitingDecision,
   sourcing,
   scheduled,
   inspecting,
@@ -32,6 +37,7 @@ extension OrderStatusX on OrderStatus {
   /// получен»: «отчёт готов» теперь значит «готов, но ждёт оплаты».
   String labelFor(OrderKind kind) => switch (this) {
         OrderStatus.awaitingExecutor => 'ждёт исполнителя',
+        OrderStatus.awaitingDecision => 'ждёт решения',
         OrderStatus.sourcing => 'идёт подбор',
         OrderStatus.scheduled => 'назначен',
         OrderStatus.inspecting => 'на осмотре',
@@ -54,6 +60,7 @@ extension OrderStatusX on OrderStatus {
 
   Color color(AppColors c) => switch (this) {
         OrderStatus.awaitingExecutor => c.text2,
+        OrderStatus.awaitingDecision => c.statusProgress,
         OrderStatus.sourcing => c.statusProgress,
         OrderStatus.scheduled => c.text1,
         OrderStatus.inspecting => c.statusInfo,
@@ -75,6 +82,7 @@ extension OrderStatusX on OrderStatus {
 }
 
 OrderStatus orderStatusFromApi(String value) => switch (value) {
+      'awaiting_decision' => OrderStatus.awaitingDecision,
       'sourcing' => OrderStatus.sourcing,
       'scheduled' => OrderStatus.scheduled,
       'inspecting' => OrderStatus.inspecting,

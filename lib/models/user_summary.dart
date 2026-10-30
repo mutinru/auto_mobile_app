@@ -7,6 +7,7 @@ class UserSummary {
     this.rating,
     this.reviewsCount = 0,
     this.completedOrdersCount = 0,
+    this.missedOrdersCount,
   });
 
   final int id;
@@ -18,6 +19,10 @@ class UserSummary {
   final int reviewsCount;
   final int completedOrdersCount;
 
+  /// Сорванные осмотры. Сервер отдаёт их только заказчику в откликах (и
+  /// самому исполнителю в профиле); null — этому зрителю не положено.
+  final int? missedOrdersCount;
+
   /// «Новый исполнитель» — отзывов ещё нет.
   bool get isNewcomer => reviewsCount == 0;
 
@@ -28,5 +33,6 @@ class UserSummary {
         rating: (json['rating'] as num?)?.toDouble(),
         reviewsCount: json['reviews_count'] as int? ?? 0,
         completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
+        missedOrdersCount: json['missed_orders_count'] as int?,
       );
 }

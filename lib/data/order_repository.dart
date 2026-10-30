@@ -35,7 +35,8 @@ abstract class OrderRepository {
     required String brand,
     required String model,
     required int year,
-    required int mileageKm,
+    int? mileageKm,
+    required String city,
     required String address,
     required DateTime inspectOn,
     required TimeSlot timeSlot,
@@ -45,6 +46,10 @@ abstract class OrderRepository {
     String? listingUrl,
     String? sellerPhone,
     String? comment,
+    String? cityId,
+    double? lat,
+    double? lon,
+    int? addressPrecision,
   });
 
   /// Завершить разовый осмотр вердиктом (исполнитель).
@@ -84,6 +89,17 @@ abstract class OrderRepository {
 
   /// Заказчик отменяет заказ, пока сервер разрешает (Order.canCancel).
   Future<Order> cancelOrder(int orderId);
+
+  /// Заказчик размещает разовый осмотр заново после срыва или пропущенного
+  /// дня ([OrderStatus.awaitingDecision]): новая дата обязательна, цену
+  /// можно поменять. Старые отклики сервер отклоняет.
+  Future<Order> repostInspection(
+    int orderId, {
+    required DateTime inspectOn,
+    required TimeSlot timeSlot,
+    String? inspectTime,
+    int? askingPrice,
+  });
 
   /// Отзыв заказчика об исполнителе по завершённому заказу. Возвращает
   /// заказ целиком: рейтинг исполнителя и can_review пересчитал сервер.

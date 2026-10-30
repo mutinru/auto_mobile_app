@@ -7,7 +7,8 @@ import '../util/ru_plural.dart';
 
 /// .resp-stats из order-types.html (кадр 04): «★ 4.9 · 12 отзывов · 30
 /// заказов». Без отзывов — «Новый исполнитель», а не «★ 0.0»: ноль
-/// читается как плохая оценка.
+/// читается как плохая оценка. Заказчику в откликах — ещё и срывы
+/// («· 0 срывов» тоже: это хороший знак), остальным сервер их не отдаёт.
 class ExecutorStats extends StatelessWidget {
   const ExecutorStats({super.key, required this.user, this.onTap});
 
@@ -24,6 +25,8 @@ class ExecutorStats extends StatelessWidget {
           counted(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов'),
         if (user.completedOrdersCount > 0)
           counted(user.completedOrdersCount, 'заказ', 'заказа', 'заказов'),
+        if (user.missedOrdersCount case final missed?)
+          counted(missed, 'срыв', 'срыва', 'срывов'),
       ].join(' · ');
 
   @override

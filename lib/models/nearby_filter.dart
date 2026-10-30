@@ -75,15 +75,8 @@ class NearbyFilter {
   );
 }
 
-/// Города заказа. У подбора — список cities, у осмотра город есть только
-/// в начале адреса («Химки, ул. Ленина, 5»).
-List<String> orderCities(Order order) {
-  if (order.isInspection) {
-    final city = order.address?.split(',').first.trim() ?? '';
-    return city.isEmpty ? const [] : [city];
-  }
-  return order.cities;
-}
+/// Города заказа: у подбора — где искать, у осмотра — один, где машина.
+List<String> orderCities(Order order) => order.cities;
 
 /// Города из загруженных заказов — варианты для шторки.
 List<String> cityOptions(List<Order> orders) =>

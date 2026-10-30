@@ -487,7 +487,7 @@ class CtaPrimary extends StatelessWidget {
 }
 
 /// .cta-ghost — вторичная текстовая кнопка под основной.
-/// .cta.flat — нейтральная кнопка на bg-3 (например, «Показать на карте»).
+/// .cta.flat — нейтральная кнопка на bg-3 (например, «Повторить»).
 class CtaFlat extends StatelessWidget {
   const CtaFlat({super.key, required this.label, required this.onPressed, this.icon});
 

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/address_repository.dart';
 import '../data/car_catalog_repository.dart';
 import '../data/city_repository.dart';
 import '../data/order_repository.dart';
@@ -14,7 +15,13 @@ import 'city_locator.dart';
 /// внутри детали (`fetchOrder`) не кешируется здесь намеренно — экран
 /// детали сам владеет своей загрузкой, стор хранит только списки.
 class OrderStore extends ChangeNotifier {
-  OrderStore(this._repository, {required this.catalog, required this.cities, this.locator});
+  OrderStore(
+    this._repository, {
+    required this.catalog,
+    required this.cities,
+    this.locator,
+    this.addresses,
+  });
 
   final OrderRepository _repository;
 
@@ -27,6 +34,9 @@ class OrderStore extends ChangeNotifier {
 
   /// Город по геопозиции. null — без автоопределения (виджет-тесты).
   final CityLocator? locator;
+
+  /// Подсказки адреса осмотра. null — поле адреса без подсказок.
+  final AddressRepository? addresses;
 
   /// Нужен экранам, которые заводят кандидата и стартуют осмотр.
   OrderRepository get repository => _repository;
@@ -133,7 +143,8 @@ class OrderStore extends ChangeNotifier {
     required String brand,
     required String model,
     required int year,
-    required int mileageKm,
+    int? mileageKm,
+    required String city,
     required String address,
     required DateTime inspectOn,
     required TimeSlot timeSlot,
@@ -143,13 +154,22 @@ class OrderStore extends ChangeNotifier {
     String? listingUrl,
     String? sellerPhone,
     String? comment,
+    String? cityId,
+    double? lat,
+    double? lon,
+    int? addressPrecision,
   }) async {
     final order = await _repository.createInspectionOrder(
       brand: brand,
       model: model,
       year: year,
       mileageKm: mileageKm,
+      city: city,
+      cityId: cityId,
       address: address,
+      lat: lat,
+      lon: lon,
+      addressPrecision: addressPrecision,
       inspectOn: inspectOn,
       timeSlot: timeSlot,
       askingPrice: askingPrice,
@@ -213,6 +233,22 @@ class OrderStore extends ChangeNotifier {
 
   /// Отменённый заказ уезжает в архив списка — статус из ответа сервера.
   Future<Order> cancelOrder(int orderId) => _mutate(_repository.cancelOrder(orderId));
+
+  /// Осмотр размещён заново на новую дату — заказ из ответа сервера.
+  Future<Order> repostInspection(
+    int orderId, {
+    required DateTime inspectOn,
+    required TimeSlot timeSlot,
+    String? inspectTime,
+    int? askingPrice,
+  }) =>
+      _mutate(_repository.repostInspection(
+        orderId,
+        inspectOn: inspectOn,
+        timeSlot: timeSlot,
+        inspectTime: inspectTime,
+        askingPrice: askingPrice,
+      ));
 
   /// Рейтинг исполнителя и can_review не пересчитываем — берём заказ,
   /// который вернул сервер.

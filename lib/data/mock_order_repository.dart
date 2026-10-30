@@ -59,7 +59,8 @@ class MockOrderRepository implements OrderRepository {
           mileageTo: 64000,
           customer: _me,
           executor: _maxim,
-          address: 'Химки, ул. Ленина, 5',
+          cities: ['Химки'],
+          address: 'ул. Ленина, 5',
           inspectOn: DateTime.now().add(const Duration(days: 1)),
           timeSlot: TimeSlot.exact,
           inspectTime: '16:00',
@@ -86,7 +87,8 @@ class MockOrderRepository implements OrderRepository {
           yearFrom: 2017,
           mileageTo: 112000,
           customer: _me,
-          address: 'Москва, Варшавское ш., 170',
+          cities: ['Москва'],
+          address: 'Варшавское ш., 170',
           inspectOn: DateTime.now().add(const Duration(days: 3)),
           timeSlot: TimeSlot.day,
           askingPrice: 3500,
@@ -127,7 +129,8 @@ class MockOrderRepository implements OrderRepository {
           mileageTo: 71000,
           customer: _me,
           executor: _maxim,
-          address: 'Мытищи, ул. Мира, 12',
+          cities: ['Мытищи'],
+          address: 'ул. Мира, 12',
           inspectOn: DateTime.now().subtract(const Duration(days: 2)),
           timeSlot: TimeSlot.morning,
           askingPrice: 4000,
@@ -213,9 +216,11 @@ class MockOrderRepository implements OrderRepository {
   Future<Order> fetchOrder(int id) async => _withCanCancel(_orders.firstWhere((o) => o.id == id));
 
   /// Имитация сервера (Order::canBeCancelledBy): свой заказ до выбора
-  /// исполнителя. Экраны правило не повторяют — только читают флаг.
+  /// исполнителя, в том числе после срыва. Экраны правило не повторяют —
+  /// только читают флаг.
   static Order _withCanCancel(Order o) => o.copyWith(
-        canCancel: o.customer.id == _me.id && o.status == OrderStatus.awaitingExecutor,
+        canCancel: o.customer.id == _me.id &&
+            (o.status == OrderStatus.awaitingExecutor || o.status == OrderStatus.awaitingDecision),
       );
 
   @override
@@ -253,7 +258,8 @@ class MockOrderRepository implements OrderRepository {
     required String brand,
     required String model,
     required int year,
-    required int mileageKm,
+    int? mileageKm,
+    required String city,
     required String address,
     required DateTime inspectOn,
     required TimeSlot timeSlot,
@@ -263,6 +269,10 @@ class MockOrderRepository implements OrderRepository {
     String? listingUrl,
     String? sellerPhone,
     String? comment,
+    String? cityId,
+    double? lat,
+    double? lon,
+    int? addressPrecision,
   }) async {
     final id = DateTime.now().millisecondsSinceEpoch;
     final order = Order(
@@ -274,7 +284,10 @@ class MockOrderRepository implements OrderRepository {
       yearFrom: year,
       mileageTo: mileageKm,
       customer: _me,
+      cities: [city],
       address: address,
+      lat: lat,
+      lon: lon,
       inspectOn: inspectOn,
       timeSlot: timeSlot,
       inspectTime: timeSlot == TimeSlot.exact ? inspectTime : null,
@@ -388,6 +401,40 @@ class MockOrderRepository implements OrderRepository {
                   inspectionOutcome:
                       c.id == carId ? InspectionOutcome.purchased : InspectionOutcome.rejected,
                 ),
+      ],
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Order> repostInspection(
+    int orderId, {
+    required DateTime inspectOn,
+    required TimeSlot timeSlot,
+    String? inspectTime,
+    int? askingPrice,
+  }) async {
+    final order = await fetchOrder(orderId);
+    final updated = order.copyWith(
+      status: OrderStatus.awaitingExecutor,
+      inspectOn: inspectOn,
+      timeSlot: timeSlot,
+      inspectTime: timeSlot == TimeSlot.exact ? inspectTime : null,
+      askingPrice: askingPrice,
+      clearDecision: true,
+      // как Order::repost(): прежние отклики были под старую дату
+      responses: [
+        for (final r in order.responses)
+          r.status == OrderResponseStatus.pending
+              ? OrderResponse(
+                  id: r.id,
+                  status: OrderResponseStatus.rejected,
+                  proposedPrice: r.proposedPrice,
+                  message: r.message,
+                  executor: r.executor,
+                )
+              : r,
       ],
     );
     _replace(updated);

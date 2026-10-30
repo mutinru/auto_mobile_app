@@ -13,7 +13,7 @@ void main() {
 
   Order inspection(
     int id, {
-    String? address,
+    String? city,
     DateTime? on,
     int? price,
     String brand = 'Kia',
@@ -24,7 +24,7 @@ void main() {
     brand: brand,
     model: 'Rio',
     customer: customer,
-    address: address,
+    cities: [?city],
     inspectOn: on,
     askingPrice: price,
   );
@@ -46,20 +46,20 @@ void main() {
     selection(1, cities: ['Москва', 'Химки']),
     inspection(
       2,
-      address: 'Химки, ул. Ленина, 5',
+      city: 'Химки',
       on: DateTime(2026, 10, 22),
       price: 4000,
     ),
     inspection(
       3,
-      address: 'Москва, Варшавское ш., 170',
+      city: 'Москва',
       on: DateTime(2026, 10, 23),
       price: 3000,
       brand: 'BMW',
     ),
     inspection(
       4,
-      address: 'Мытищи, ул. Мира, 12',
+      city: 'Мытищи',
       on: DateTime(2026, 11, 5),
       price: 5000,
     ),
@@ -77,7 +77,7 @@ void main() {
     expect(ids(const NearbyFilter(kind: OrderKind.inspection)), [2, 3, 4]);
   });
 
-  test('город берётся из cities у подбора и из адреса у осмотра', () {
+  test('город берётся из cities у обоих видов заказа', () {
     expect(ids(const NearbyFilter(cities: {'Химки'})), [1, 2]);
     expect(ids(const NearbyFilter(cities: {'Мытищи', 'Москва'})), [1, 3, 4]);
     expect(cityOptions(orders), ['Москва', 'Мытищи', 'Химки']);

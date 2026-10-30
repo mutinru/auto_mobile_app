@@ -73,7 +73,7 @@ class OrderCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   [
-                    if (_city(order.address) != null) _city(order.address)!,
+                    if (order.cities.isNotEmpty) order.cities.first,
                     pastDate(order.inspectOn),
                   ].join(' · '),
                   style: context.text.orderMeta,
@@ -85,8 +85,9 @@ class OrderCard extends StatelessWidget {
                   ),
                 if (onReport != null) _ReportButton(onTap: onReport!),
                 if (onRepeat != null) _AgainButton(onTap: onRepeat!),
-              ] else if (order.status.isAwaitingPayment)
-                _PaymentRow(order: order, asExecutor: asExecutor)
+              ] else if (order.status.isAwaitingPayment ||
+                  order.status == OrderStatus.awaitingDecision)
+                _ActionRow(order: order, asExecutor: asExecutor)
               else
                 _WhenRow(order: order),
             ] else ...[
@@ -110,13 +111,6 @@ class OrderCard extends StatelessWidget {
         if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
         if (order.requirements.isNotEmpty) order.requirements.first,
       ].join(' · ');
-
-  /// «Мытищи, ул. Мира, 12» → «Мытищи»: в карточке завершённого осмотра
-  /// в макете стоит только город.
-  static String? _city(String? address) {
-    if (address == null || address.isEmpty) return null;
-    return address.split(',').first.trim();
-  }
 }
 
 /// Напоминание об отзыве в завершённом заказе. Пушей нет, поэтому это и
@@ -221,10 +215,11 @@ class _CarTitle extends StatelessWidget {
 
 /// .when — дата, время и адрес выезда. Оранжевая иконка (.when.soon),
 /// если ехать сегодня или завтра.
-/// Отчёт готов, идёт оплата или спор — в списке это главное, что нужно
-/// сделать по заказу. Пушей нет, поэтому карточка и напоминает.
-class _PaymentRow extends StatelessWidget {
-  const _PaymentRow({required this.order, required this.asExecutor});
+/// Что нужно сделать по заказу прямо сейчас: оплатить отчёт, подтвердить
+/// оплату, спор или решение после срыва — в списке это главное, поэтому
+/// карточка и напоминает.
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({required this.order, required this.asExecutor});
 
   final Order order;
   final bool asExecutor;
@@ -234,6 +229,8 @@ class _PaymentRow extends StatelessWidget {
     final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
     final (text, icon, color) = switch (order.status) {
       OrderStatus.disputed => ('Открыт спор по оплате', Icons.gavel_rounded, context.colors.statusDefect),
+      OrderStatus.awaitingDecision =>
+        ('Нужно решение: разместить заново или отменить', Icons.event_busy_outlined, context.colors.statusProgress),
       OrderStatus.paymentSent when asExecutor =>
         ('Подтвердите оплату$price', Icons.payments_outlined, context.colors.statusProgress),
       OrderStatus.paymentSent =>
@@ -319,10 +316,10 @@ class _WhenRow extends StatelessWidget {
                     color: context.colors.text1,
                   ),
                 ),
-                if (order.address != null) ...[
+                if (order.fullAddress ?? order.cities.firstOrNull case final place?) ...[
                   const SizedBox(height: 2),
                   Text(
-                    order.address!,
+                    place,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11.5, color: context.colors.text2),

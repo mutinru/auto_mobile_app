@@ -10,22 +10,23 @@ import '../state/notification_scope.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/geo.dart';
 import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/nearby_filter_sheet.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/respond_sheet.dart';
 import '../widgets/unread_badge.dart';
-import 'available_orders_screen.dart';
 import 'notifications_screen.dart';
 import 'verification_screen.dart';
 
 /// Экран 03 макета car-storefront-modes.html — «Беру заказы»: список
-/// свободных заказов с гейтом верификации. Кнопка внизу ведёт на карту
-/// (экран 04, [AvailableOrdersScreen]).
+/// свободных заказов с гейтом верификации. Кнопку «Показать на карте»
+/// (экран 04, available_orders_screen.dart) пока спрятали: карта там
+/// декоративная, настоящую не делаем.
 ///
-/// Чего в API нет и что не переносится из макета: расстояние в километрах
-/// и радиус поиска (координат у заказов нет — показываем город), фильтры
+/// Чего нет и что не переносится из макета: расстояние только у осмотра
+/// (у подбора координат нет — показываем город), радиус поиска, фильтры
 /// «До 10 км» и «От 12 000 ₽», переключатель режимов витрины.
 class NearbyOrdersScreen extends StatefulWidget {
   const NearbyOrdersScreen({
@@ -61,11 +62,20 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
 
   late final NearbyFilterStore _filters = widget.filters ?? NearbyFilterStore();
 
+  /// Точка устройства для «· 8 км»; null — без геопозиции, только город.
+  (double, double)? _here;
+
   @override
   void initState() {
     super.initState();
     widget.store.loadAvailableOrders();
     _loadVerification();
+    _locate();
+  }
+
+  Future<void> _locate() async {
+    final here = await widget.store.locator?.position();
+    if (here != null && mounted) setState(() => _here = here);
   }
 
   /// Ошибку гейта глотаем: без неё список всё равно нужен, а кнопки
@@ -161,14 +171,6 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     if (mounted) widget.store.loadAvailableOrders();
   }
 
-  void _openMap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AvailableOrdersScreen(store: widget.store),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -255,16 +257,6 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                 ),
 
                 Expanded(child: _body(orders, hiddenByFilter: all.isNotEmpty)),
-
-                BottomCta(
-                  children: [
-                    CtaFlat(
-                      label: 'Показать на карте',
-                      icon: Icons.location_on_outlined,
-                      onPressed: _openMap,
-                    ),
-                  ],
-                ),
               ],
             );
           },
@@ -347,6 +339,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
           for (final order in orders)
             _JobCard(
               order: order,
+              here: _here,
               canRespond: _canRespond,
               onRespond: () => _respond(order),
             ),
@@ -473,9 +466,11 @@ class _JobCard extends StatelessWidget {
     required this.order,
     required this.canRespond,
     required this.onRespond,
+    this.here,
   });
 
   final Order order;
+  final (double, double)? here;
   final bool canRespond;
   final VoidCallback onRespond;
 
@@ -504,6 +499,15 @@ class _JobCard extends StatelessWidget {
       return '$n отклика';
     }
     return '$n откликов';
+  }
+
+  String get _place {
+    final (lat, lon, at) = (order.lat, order.lon, here);
+    return [
+      if (order.cities.isNotEmpty) order.cities.first,
+      if (lat != null && lon != null && at != null)
+        distanceLabel(distanceKm(at.$1, at.$2, lat, lon)),
+    ].join(' · ');
   }
 
   @override
@@ -537,13 +541,11 @@ class _JobCard extends StatelessWidget {
             children: [
               Pill('свободен', color: context.colors.modeWork),
               const SizedBox(width: 8),
-              // в макете здесь «Химки · 8 км» — расстояний в API нет.
-              // У осмотра вместо города показываем адрес выезда.
+              // «Химки · 8 км» из макета; у подбора точки нет — только город.
+              // Улицу сервер до выбора исполнителя не отдаёт.
               Expanded(
                 child: Text(
-                  order.isInspection
-                      ? (order.address ?? '')
-                      : (order.cities.isNotEmpty ? order.cities.first : ''),
+                  _place,
                   textAlign: TextAlign.right,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

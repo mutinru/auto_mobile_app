@@ -44,8 +44,9 @@ class InspectionOrderSummary extends StatelessWidget {
             text: whenLabel(order.inspectOn, order.timeSlot, order.inspectTime),
             strong: true,
           ),
-          if (order.address != null)
-            _SummaryRow(icon: Icons.location_on_outlined, text: order.address!),
+          // улицу сервер отдаёт только сторонам заказа — остальным город
+          if (order.fullAddress ?? order.cities.firstOrNull case final place?)
+            _SummaryRow(icon: Icons.location_on_outlined, text: place),
           if (order.mileageTo != null)
             _SummaryRow(
               icon: Icons.speed_outlined,

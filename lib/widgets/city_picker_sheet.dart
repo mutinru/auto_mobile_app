@@ -22,19 +22,52 @@ Future<Set<String>?> showCityPickerSheet(
   required CityRepository cities,
   required Set<String> selected,
   CityLocator? locator,
-}) {
-  return showModalBottomSheet<Set<String>>(
+}) async {
+  final result = await _showSheet(
+    context,
+    _CityPickerSheet(cities: cities, initial: selected, locator: locator),
+  );
+  return result as Set<String>?;
+}
+
+/// Выбранный город: [name] — всегда, [city] — когда он из справочника
+/// (своё значение «Указать …» приходит без него).
+class CityChoice {
+  const CityChoice(this.name, {this.city});
+
+  final String name;
+  final City? city;
+}
+
+/// Тот же лист для одного города (разовый осмотр): без «Вся Россия» и
+/// «Готово» — тап по строке сразу закрывает лист. null — закрыли без выбора.
+Future<CityChoice?> showSingleCityPickerSheet(
+  BuildContext context, {
+  required CityRepository cities,
+  String? selected,
+  CityLocator? locator,
+}) async {
+  final result = await _showSheet(
+    context,
+    _CityPickerSheet(
+      cities: cities,
+      initial: {?selected},
+      locator: locator,
+      single: true,
+    ),
+  );
+  return result as CityChoice?;
+}
+
+Future<Object?> _showSheet(BuildContext context, Widget sheet) {
+  return showModalBottomSheet<Object>(
     context: context,
     backgroundColor: context.colors.bg0,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
     ),
-    builder: (context) => _CityPickerSheet(
-      cities: cities,
-      initial: selected,
-      locator: locator,
-    ),
+    builder: (context) => sheet,
   );
 }
 
@@ -43,11 +76,15 @@ class _CityPickerSheet extends StatefulWidget {
     required this.cities,
     required this.initial,
     required this.locator,
+    this.single = false,
   });
 
   final CityRepository cities;
   final Set<String> initial;
   final CityLocator? locator;
+
+  /// Один город: тап по строке закрывает лист с [CityChoice].
+  final bool single;
 
   @override
   State<_CityPickerSheet> createState() => _CityPickerSheetState();
@@ -116,6 +153,15 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
     }
   }
 
+  /// Тап по строке: в режиме одного города — сразу выбор, иначе галочка.
+  void _pick(String name, [City? city]) {
+    if (widget.single) {
+      Navigator.of(context).pop(CityChoice(name, city: city));
+    } else {
+      _toggle(name);
+    }
+  }
+
   /// «Вся Россия» исключает конкретные города, и наоборот.
   void _toggle(String name) {
     setState(() {
@@ -144,7 +190,11 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
       );
       return;
     }
-    if (!_selected.contains(city.name)) _toggle(city.name);
+    if (widget.single) {
+      _pick(city.name, city);
+    } else if (!_selected.contains(city.name)) {
+      _toggle(city.name);
+    }
   }
 
   @override
@@ -185,7 +235,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                 ),
               ),
               const SizedBox(height: 14),
-              if (_selected.isNotEmpty) ...[
+              if (_selected.isNotEmpty && !widget.single) ...[
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -198,11 +248,13 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
               ],
               FieldBoxInput(label: '', controller: _search, hint: 'Поиск города'),
               Expanded(child: _list()),
-              const SizedBox(height: 10),
-              CtaPrimary(
-                label: _selected.isEmpty ? 'Готово' : 'Готово · ${_selected.length}',
-                onPressed: () => Navigator.of(context).pop(_selected),
-              ),
+              if (!widget.single) ...[
+                const SizedBox(height: 10),
+                CtaPrimary(
+                  label: _selected.isEmpty ? 'Готово' : 'Готово · ${_selected.length}',
+                  onPressed: () => Navigator.of(context).pop(_selected),
+                ),
+              ],
             ],
           ),
         ),
@@ -220,7 +272,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
           accent: true,
           onTap: _locating ? null : _locate,
         ),
-      if (q.isEmpty)
+      if (q.isEmpty && !widget.single)
         _Row(
           title: allRussia,
           checked: _selected.contains(allRussia),
@@ -237,7 +289,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
         leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.statusDone),
         accent: true,
         checked: _selected.contains(q),
-        onTap: () => _toggle(q),
+        onTap: () => _pick(q),
       ));
     }
 
@@ -267,7 +319,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
             title: c.name,
             trailing: c.region == c.name ? null : c.region,
             checked: _selected.contains(c.name),
-            onTap: () => _toggle(c.name),
+            onTap: () => _pick(c.name, c),
           )));
     }
 

@@ -2,7 +2,8 @@ import '../data/city_repository.dart';
 import '../data/location_service.dart';
 import '../models/city.dart';
 
-/// Город пользователя по геопозиции — подсказка для форм и фильтров.
+/// Город пользователя по геопозиции — подсказка для форм и фильтров,
+/// и сама точка — для расстояния до заказа.
 /// Один на приложение (см. main.dart): удачный результат запоминается на
 /// всю сессию, чтобы не дёргать GPS и запрос разрешения на каждом экране.
 class CityLocator {
@@ -12,6 +13,7 @@ class CityLocator {
   final LocationService _location;
 
   Future<City?>? _detected;
+  Future<(double, double)?>? _position;
 
   /// Ближайший город или null. Не бросает. Неудачу не запоминаем: следующий
   /// экран попробует снова (например, когда пользователь включит GPS).
@@ -22,9 +24,18 @@ class CityLocator {
     });
   }
 
+  /// Точка устройства — для расстояния до заказа. Не бросает; неудачу,
+  /// как и у [detect], не запоминаем.
+  Future<(double, double)?> position() {
+    return _position ??= _location.current().then((point) {
+      if (point == null) _position = null;
+      return point;
+    });
+  }
+
   Future<City?> _resolve() async {
     try {
-      final point = await _location.current();
+      final point = await position();
       if (point == null) return null;
       return await _cities.nearest(point.$1, point.$2);
     } catch (_) {

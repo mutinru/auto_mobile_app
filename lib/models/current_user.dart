@@ -13,6 +13,7 @@ class CurrentUser {
     this.rating,
     this.reviewsCount = 0,
     this.completedOrdersCount = 0,
+    this.missedOrdersCount = 0,
     this.payout,
     this.pushMuted = const {},
   });
@@ -29,6 +30,9 @@ class CurrentUser {
   final double? rating;
   final int reviewsCount;
   final int completedOrdersCount;
+
+  /// Свои сорванные осмотры (день осмотра прошёл без отчёта).
+  final int missedOrdersCount;
 
   /// Свои реквизиты для оплаты разового осмотра; null — ещё не указаны,
   /// тогда форма отклика на осмотр их спросит.
@@ -70,6 +74,7 @@ class CurrentUser {
         rating: (json['rating'] as num?)?.toDouble(),
         reviewsCount: json['reviews_count'] as int? ?? 0,
         completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
+        missedOrdersCount: json['missed_orders_count'] as int? ?? 0,
         payout: json['payout'] != null
             ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
             : null,

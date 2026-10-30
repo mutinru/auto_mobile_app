@@ -9,6 +9,10 @@ import 'review.dart';
 import 'time_slot.dart';
 import 'user_summary.dart';
 
+/// Почему разовый осмотр ждёт решения заказчика: исполнитель сорвал день
+/// осмотра или день прошёл, а исполнитель так и не выбран.
+enum DecisionReason { missed, datePassed }
+
 /// Зеркалит OrderResource на бекенде (app/Http/Resources/OrderResource.php).
 /// Поля с address по askingPrice заполнены только у заказа-осмотра
 /// (kind == OrderKind.inspection), у подбора они null.
@@ -29,6 +33,8 @@ class Order {
     this.comment,
     this.price,
     this.address,
+    this.lat,
+    this.lon,
     this.inspectOn,
     this.timeSlot,
     this.inspectTime,
@@ -47,6 +53,7 @@ class Order {
     this.canReview = false,
     this.canCancel = false,
     this.executorDeadlineAt,
+    this.decisionReason,
     this.paymentSentAt,
     this.paymentConfirmedAt,
     this.dispute,
@@ -70,7 +77,25 @@ class Order {
   /// Согласованный гонорар из принятого отклика.
   final int? price;
 
+  /// Улица и дом осмотра, без города — город в [cities]. Сервер отдаёт его
+  /// только заказчику и выбранному исполнителю, остальным ключа нет.
   final String? address;
+
+  /// Точка осмотра: из подсказки адреса или центр города. Не сторонам
+  /// заказа сервер округляет её до ~1 км — для «· 8 км» в ленте хватает.
+  final double? lat;
+  final double? lon;
+
+  /// «Химки, ул. Ленина, 5». У осмотров до разделения города и адреса
+  /// город уже стоит в начале address — не повторяем его.
+  String? get fullAddress {
+    final street = address;
+    if (street == null || street.isEmpty) return null;
+    final city = cities.isEmpty ? null : cities.first;
+    if (city == null || street.toLowerCase().startsWith(city.toLowerCase())) return street;
+    return '$city, $street';
+  }
+
   final DateTime? inspectOn;
   final TimeSlot? timeSlot;
 
@@ -132,8 +157,13 @@ class Order {
   final bool canCancel;
 
   /// До какого момента исполнитель разового осмотра должен довести его до
-  /// «отчёт готов» (24 часа с выбора). Истечение отрабатывает сервер.
+  /// «отчёт готов» — конец дня осмотра по времени города. Истечение
+  /// отрабатывает сервер.
   final DateTime? executorDeadlineAt;
+
+  /// Почему заказ ждёт решения заказчика ([OrderStatus.awaitingDecision]);
+  /// сервер отдаёт только заказчику.
+  final DecisionReason? decisionReason;
   final DateTime? paymentSentAt;
   final DateTime? paymentConfirmedAt;
 
@@ -176,8 +206,15 @@ class Order {
     ReportSummary? reportSummary,
     DateTime? paymentConfirmedAt,
     DateTime? completedAt,
-    // исполнитель снят (отказ или 24 часа) — null через `executor` не передать
+    // повторное размещение осмотра — новая дата, слот, цена
+    DateTime? inspectOn,
+    TimeSlot? timeSlot,
+    String? inspectTime,
+    int? askingPrice,
+    // исполнитель снят (отказ или срыв) — null через `executor` не передать
     bool clearExecutor = false,
+    // заказ размещён заново — причина ожидания решения больше не актуальна
+    bool clearDecision = false,
     // оплата подтверждена: реквизиты и сводку сервер больше не отдаёт
     bool clearPayment = false,
   }) =>
@@ -196,15 +233,17 @@ class Order {
         comment: comment,
         price: price ?? this.price,
         address: address,
-        inspectOn: inspectOn,
-        timeSlot: timeSlot,
-        inspectTime: inspectTime,
+        lat: lat,
+        lon: lon,
+        inspectOn: inspectOn ?? this.inspectOn,
+        timeSlot: timeSlot ?? this.timeSlot,
+        inspectTime: timeSlot != null ? inspectTime : this.inspectTime,
         listingUrl: listingUrl,
         listingHost: listingHost,
         listingSite: listingSite,
         hasListing: hasListing,
         sellerPhone: sellerPhone,
-        askingPrice: askingPrice,
+        askingPrice: askingPrice ?? this.askingPrice,
         customer: customer,
         executor: clearExecutor ? null : (executor ?? this.executor),
         responses: responses ?? this.responses,
@@ -216,6 +255,7 @@ class Order {
         canReview: canReview ?? this.canReview,
         canCancel: canCancel ?? this.canCancel,
         executorDeadlineAt: clearExecutor ? null : (executorDeadlineAt ?? this.executorDeadlineAt),
+        decisionReason: clearDecision ? null : decisionReason,
         paymentSentAt: paymentSentAt ?? this.paymentSentAt,
         paymentConfirmedAt: paymentConfirmedAt ?? this.paymentConfirmedAt,
         dispute: dispute ?? this.dispute,
@@ -238,6 +278,8 @@ class Order {
         comment: json['comment'] as String?,
         price: json['price'] as int?,
         address: json['address'] as String?,
+        lat: (json['lat'] as num?)?.toDouble(),
+        lon: (json['lon'] as num?)?.toDouble(),
         // с бекенда приходит 'Y-m-d' — DateTime.parse даёт локальную полночь
         inspectOn: json['inspect_on'] != null
             ? DateTime.parse(json['inspect_on'] as String)
@@ -271,6 +313,11 @@ class Order {
         canReview: json['can_review'] as bool? ?? false,
         canCancel: json['can_cancel'] as bool? ?? false,
         executorDeadlineAt: _date(json['executor_deadline_at']),
+        decisionReason: switch (json['decision_reason']) {
+          'missed' => DecisionReason.missed,
+          'date_passed' => DecisionReason.datePassed,
+          _ => null,
+        },
         paymentSentAt: _date(json['payment_sent_at']),
         paymentConfirmedAt: _date(json['payment_confirmed_at']),
         dispute: json['dispute'] != null

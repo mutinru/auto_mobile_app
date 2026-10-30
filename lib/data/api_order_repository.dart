@@ -69,7 +69,8 @@ class ApiOrderRepository implements OrderRepository {
     required String brand,
     required String model,
     required int year,
-    required int mileageKm,
+    int? mileageKm,
+    required String city,
     required String address,
     required DateTime inspectOn,
     required TimeSlot timeSlot,
@@ -79,14 +80,25 @@ class ApiOrderRepository implements OrderRepository {
     String? listingUrl,
     String? sellerPhone,
     String? comment,
+    String? cityId,
+    double? lat,
+    double? lon,
+    int? addressPrecision,
   }) async {
     final json = await _client.post('/orders', {
       'kind': 'inspection',
       'brand': brand,
       'model': model,
       'year': year,
-      'mileage_km': mileageKm,
+      'mileage_km': ?mileageKm,
+      'city': city,
+      'city_id': ?cityId,
       'address': address,
+      if (lat != null && lon != null) ...{
+        'lat': lat,
+        'lon': lon,
+        'address_precision': ?addressPrecision,
+      },
       'inspect_on': _ymd(inspectOn),
       'time_slot': timeSlot.apiValue,
       'asking_price': askingPrice,
@@ -157,6 +169,21 @@ class ApiOrderRepository implements OrderRepository {
 
   @override
   Future<Order> cancelOrder(int orderId) => _orderAction('/orders/$orderId/cancel');
+
+  @override
+  Future<Order> repostInspection(
+    int orderId, {
+    required DateTime inspectOn,
+    required TimeSlot timeSlot,
+    String? inspectTime,
+    int? askingPrice,
+  }) =>
+      _orderAction('/orders/$orderId/repost', {
+        'inspect_on': _ymd(inspectOn),
+        'time_slot': timeSlot.apiValue,
+        if (timeSlot == TimeSlot.exact && inspectTime != null) 'inspect_time': inspectTime,
+        'asking_price': ?askingPrice,
+      });
 
   @override
   Future<Order> leaveReview(int orderId, {required int rating, String? text}) async {

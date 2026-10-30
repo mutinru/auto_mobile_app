@@ -65,17 +65,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadVerification();
   }
 
-  /// Плашки блока «Выполнять заказы»: рейтинг, отзывы, выполненные и
-  /// взятые. null — пока показывать нечего (новый исполнитель без заказов).
+  /// Плашки блока «Выполнять заказы»: рейтинг, отзывы, выполненные,
+  /// взятые и сорванные. null — пока показывать нечего (новый исполнитель
+  /// без заказов).
   List<Widget>? _executorStats(CurrentUser? me, int assigned) {
     final reviews = me?.reviewsCount ?? 0;
     final completed = me?.completedOrdersCount ?? 0;
-    if (reviews == 0 && completed == 0 && assigned == 0) return null;
+    final missed = me?.missedOrdersCount ?? 0;
+    if (reviews == 0 && completed == 0 && assigned == 0 && missed == 0) return null;
     return [
       _Stat(me?.rating?.toStringAsFixed(1) ?? '—', 'рейтинг'),
       _Stat('$reviews', plural(reviews, 'отзыв', 'отзыва', 'отзывов')),
       _Stat('$completed', 'выполнено'),
       _Stat('$assigned', 'взято'),
+      // заказчики видят это число в откликах
+      _Stat('$missed', 'сорвано'),
     ];
   }
 
@@ -594,7 +598,7 @@ class _RoleBlock extends StatelessWidget {
           Container(height: 1, color: context.colors.line),
           const SizedBox(height: 12),
           if (statsWidgets != null) ...[
-            // Wrap, а не Row: у исполнителя четыре плашки, на узком
+            // Wrap, а не Row: у исполнителя пять плашек, на узком
             // экране последняя переносится, а не вылезает за край
             Wrap(
               spacing: 18,

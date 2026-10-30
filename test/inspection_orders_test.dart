@@ -9,6 +9,7 @@ import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/time_slot.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
@@ -129,7 +130,8 @@ void main() {
       model: 'Rio',
       year: 2019,
       mileageKm: 60000,
-      address: 'Москва',
+      city: 'Москва',
+      address: 'ул. Тверская, 1',
       inspectOn: DateTime.now().add(const Duration(days: 1)),
       timeSlot: TimeSlot.day,
       askingPrice: 3500,
@@ -199,5 +201,31 @@ void main() {
       hasListing: true,
     ));
     expect(find.textContaining('Объявление на другом сайте', findRichText: true), findsOneWidget);
+  });
+
+  test('пробег осмотра необязателен: машина без пробега разбирается', () async {
+    final car = OrderCar.fromJson(const {
+      'id': 1,
+      'brand': 'Kia',
+      'model': 'Rio',
+      'year': 2019,
+      'vin_masked': '—',
+      'mileage_km': null,
+    });
+    expect(car.mileageKm, isNull);
+
+    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+    final order = await store.createInspectionOrder(
+      brand: 'Kia',
+      model: 'Rio',
+      year: 2019,
+      city: 'Москва',
+      address: 'ул. Тверская, 1',
+      inspectOn: DateTime.now().add(const Duration(days: 1)),
+      timeSlot: TimeSlot.day,
+      askingPrice: 3500,
+    );
+    expect(order.mileageTo, isNull);
+    expect(order.cars.single.mileageKm, isNull);
   });
 }

@@ -31,10 +31,8 @@ class AppNotification {
 
   bool get isRead => readAt != null;
 
-  /// Открывается ли заказ по тапу. Отклонённый исполнитель заказ уже не
-  /// видит (сервер ответит 403), поэтому его уведомление только читается.
-  bool get opensOrder =>
-      orderId != null && type != NotificationType.responseRejected;
+  /// Открывается ли заказ по тапу — см. [NotificationTypeX.opensOrder].
+  bool get opensOrder => orderId != null && type.opensOrder;
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     final type = notificationTypeFromApi(json['type'] as String?);

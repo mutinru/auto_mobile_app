@@ -46,8 +46,8 @@ class OrderTarget extends PushTarget {
   /// id записи ленты (тот же, что в GET /notifications).
   final String? notificationId;
 
-  /// Отклонённый исполнитель заказ уже не видит — ведём в ленту.
-  bool get opensOrder => type != NotificationType.responseRejected;
+  /// Отклонённый или сорвавший срок исполнитель заказ уже не видит — ведём в ленту.
+  bool get opensOrder => type.opensOrder;
 }
 
 /// Ответ поддержки — открыть чат поддержки.

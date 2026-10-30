@@ -340,9 +340,12 @@ class _NotificationCard extends StatelessWidget {
         NotificationType.executorReleased => Icons.person_off_outlined,
         NotificationType.reportReady => Icons.description_outlined,
         NotificationType.reportOpened => Icons.lock_open,
+        NotificationType.inspectionDatePassed => Icons.event_busy_outlined,
         NotificationType.executorAssigned => Icons.check_circle_outline,
         NotificationType.responseRejected => Icons.do_not_disturb_alt,
         NotificationType.deadlineSoon => Icons.timer_outlined,
+        NotificationType.deadlineMissed => Icons.timer_off_outlined,
+        NotificationType.orderRescheduled => Icons.event_repeat_outlined,
         NotificationType.paymentSent => Icons.payments_outlined,
         NotificationType.orderCompleted => Icons.flag_outlined,
         NotificationType.orderCancelled => Icons.cancel_outlined,
@@ -360,10 +363,15 @@ class _NotificationCard extends StatelessWidget {
         NotificationType.disputeResolved =>
           c.statusDone,
         NotificationType.executorReleased ||
+        NotificationType.inspectionDatePassed ||
         NotificationType.deadlineSoon ||
+        NotificationType.orderRescheduled ||
         NotificationType.paymentSent =>
           c.statusProgress,
-        NotificationType.orderCancelled || NotificationType.disputeOpened => c.statusDefect,
+        NotificationType.orderCancelled ||
+        NotificationType.deadlineMissed ||
+        NotificationType.disputeOpened =>
+          c.statusDefect,
         NotificationType.responseRejected || NotificationType.unknown => c.text3,
         _ => c.statusInfo,
       };
