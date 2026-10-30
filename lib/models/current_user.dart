@@ -1,3 +1,4 @@
+import 'notification_category.dart';
 import 'payout.dart';
 import 'user_summary.dart';
 
@@ -13,6 +14,7 @@ class CurrentUser {
     this.reviewsCount = 0,
     this.completedOrdersCount = 0,
     this.payout,
+    this.pushMuted = const {},
   });
 
   final int id;
@@ -31,6 +33,9 @@ class CurrentUser {
   /// Свои реквизиты для оплаты разового осмотра; null — ещё не указаны,
   /// тогда форма отклика на осмотр их спросит.
   final Payout? payout;
+
+  /// Категории, пуши которых заглушены (лента пишется всегда).
+  final Set<NotificationCategory> pushMuted;
 
   /// Тот же пользователь в форме, которую понимают ExecutorStats и экран
   /// отзывов.
@@ -68,5 +73,9 @@ class CurrentUser {
         payout: json['payout'] != null
             ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
             : null,
+        pushMuted: {
+          for (final code in (json['push_muted'] as List<dynamic>? ?? const []))
+            ?NotificationCategory.fromApi(code as String),
+        },
       );
 }

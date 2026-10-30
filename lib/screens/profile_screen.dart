@@ -18,6 +18,7 @@ import '../widgets/support_sheet.dart';
 import '../widgets/theme_switch.dart';
 import '../widgets/unread_badge.dart';
 import 'executor_reviews_screen.dart';
+import 'settings_screen.dart';
 import 'verification_screen.dart';
 import 'my_orders_screen.dart';
 
@@ -158,7 +159,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : null,
                   trailing: SquareIconButton(
                     icon: Icons.settings_outlined,
-                    onTap: () {},
+                    onTap: () {
+                      if (user == null) return;
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SettingsScreen(auth: widget.auth),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Expanded(

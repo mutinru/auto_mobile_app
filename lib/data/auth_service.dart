@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/code_channel.dart';
 import '../models/current_user.dart';
+import '../models/notification_category.dart';
 import '../models/payout.dart';
 import 'api_exception.dart';
 
@@ -280,6 +281,29 @@ class AuthService extends ChangeNotifier {
     if (response.statusCode != 200) {
       if (response.statusCode == 401) expireSession();
       throw ApiException(response.statusCode, response.body);
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+    notifyListeners();
+  }
+
+  /// Заглушённые категории пушей (PATCH /me/notifications) — полный список.
+  Future<void> updatePushMuted(Set<NotificationCategory> muted) async {
+    final response = await http.patch(
+      Uri.parse('${ApiConfig.baseUrl}/me/notifications'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode({'push_muted': [for (final c in muted) c.apiValue]}),
+    );
+    if (response.statusCode != 200) {
+      if (response.statusCode == 401) expireSession();
+      throw ApiException(
+        response.statusCode,
+        _extractMessage(response.body, fallback: 'Не удалось сохранить настройки'),
+      );
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
