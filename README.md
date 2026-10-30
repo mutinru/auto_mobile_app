@@ -102,7 +102,8 @@ lib/
   config/     ApiConfig — адрес бекенда, SupportConfig — контакты поддержки
   data/       репозитории (api_* и mock_*), ApiClient, AuthService
   models/     доменные модели и enum'ы, зеркала PHP-энамов
-  state/      OrderStore, InspectionStore, ChatStore — ChangeNotifier; SupportChatScope
+  state/      OrderStore, InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
+  push/       PushService, PushMessaging (обёртка над Firebase)
   screens/    экраны
   widgets/    переиспользуемые блоки макета
   theme/      палитры (тёмная и светлая), тема, ThemeController
@@ -228,6 +229,65 @@ Enum'ы в Dart — ручные зеркала PHP-энамов на бекен
   сымитировать через tinker: `Conversation::find(id)->post($staff, 'текст')`, где
   `$staff` — пользователь после `setStaff(true, …)`.
 
+## Уведомления
+
+Лента событий заказа: новый отклик, выбор исполнителя, отчёт готов, оплата,
+спор и т. д. (полный список типов — README бекенда, «Уведомления»). Чат в ленту
+не попадает — у него свой бейдж.
+
+- Эндпоинты: `GET /notifications` (по 20, курсор `meta.next_cursor`,
+  `meta.unread_count`), `GET /notifications/unread-count`,
+  `POST /notifications/{id}/read`, `POST /notifications/read-all`.
+- **Колокольчик** (`NotificationBell`) — в шапке «Моих заказов», «Взятых
+  заказов» и «Заказов рядом», слева от профиля. Бейдж — `NotificationUnread`:
+  тот же опрос, что у поддержки (`PolledUnread`, раз в минуту и при возврате в
+  приложение). Колокольчик виден, только когда есть `NotificationScope`
+  (`MaterialApp.builder`), поэтому в виджет-тестах отдельных экранов его нет.
+- **Прочитано — по тапу** или кнопкой «Прочитать все». Прочитанность и число
+  только с сервера: `NotificationStore` подменяет уведомление ответом и
+  передаёт число в бейдж (`PolledUnread.report`).
+- **Тап открывает заказ** через `openOrderScreen()` (`order_routes.dart`, тот же
+  выбор экрана, что у «Моих заказов»). Роль — из `viewer_role`, у старых
+  уведомлений без него — из типа (`NotificationType.defaultViewerIsCustomer`).
+  `response_rejected` заказ не открывает: отклонённому исполнителю сервер его
+  уже не покажет.
+- `NotificationType` — зеркало `App\Enums\NotificationType`; неизвестный
+  этой сборке тип читается как `unknown` и показывается без особой иконки.
+
+### Пуши
+
+Firebase Cloud Messaging, проект `bitnebit-c70ca`; у dev и prod свои
+приложения (`com.bitnebit.dev` / `com.bitnebit.app`). Конфиг сгенерирован
+`flutterfire configure` для каждого flavor-а: `lib/firebase_options_{dev,prod}.dart`,
+`android/app/src/{dev,prod}/google-services.json`, `firebase.json` — секретов
+в них нет. Повторно: `flutterfire configure --project=bitnebit-c70ca
+--platforms=android --android-package-name=com.bitnebit.dev
+--out=lib/firebase_options_dev.dart
+--android-out=android/app/src/dev/google-services.json` (и так же для prod).
+
+- **`PushService`** (`lib/push/`) — один на приложение, создаётся в `main()`.
+  Firebase — только через `PushMessaging` (`FirebasePushMessaging`; в тестах
+  фейк). Сбой инициализации пуши выключает, приложение живёт.
+- **Регистрация** — на каждую новую сессию: системный запрос разрешения (один
+  раз за запуск, сразу после входа) и `POST /me/devices`; обновление FCM-токена
+  — повторно. Выход отдельно не шлём: сервер стирает устройство вместе с
+  токеном сессии.
+- **Открытое приложение** — система пуш не показывает: `PushService` обновляет
+  бейдж и показывает его через `flutter_local_notifications` (каналы `orders` и
+  `chat`). Ответ поддержки при открытом чате (`SupportUnread.chatOpen`) не
+  показывается.
+- **Тап** → `PushTarget` (`lib/models/push_target.dart`) → `_RootGate._openPush`:
+  заказ — `openOrderScreen()` поверх текущего экрана и «прочитано» по
+  `notification_id`; `response_rejected` — лента; поддержка — `pushSupportChat()`.
+  Тап, которым приложение запустили, корень забирает `takePendingTap()` после
+  `restore()`. Гостю тап ничего не открывает.
+- Значок в строке состояния — `res/drawable-*/ic_notification.png`, белый
+  силуэт логотипа (`design/icons/icons/source/car-transparent.png` по
+  альфа-каналу, 24dp с полями по 2dp). Подключён в манифесте
+  (`default_notification_icon`) и в `FirebasePushMessaging.init()`.
+- Классический FCM-токен (`getToken`, помечен deprecated в firebase_messaging
+  17 в пользу FID): бекенд шлёт по `message.token`.
+
 ## Навигация
 
 Роутера нет, всё через `Navigator.push`. Корень — `IntentScreen` с вопросом «Что
@@ -243,6 +303,7 @@ IntentScreen (корень)
   │                                                   ├─> InspectionOrderDetailScreen (разовый осмотр)
   │                                                   │     (обе детали заказа) ─> showReviewSheet | ExecutorReviewsScreen (тап по рейтингу)
   │                                                   ├─> showOrderKindSheet ─> NewOrderScreen | NewInspectionScreen
+  │                                                   ├─(колокольчик)─> NotificationsScreen ─> экран заказа по тапу
   │                                                   └─(иконка профиля)─> ProfileScreen ─> VerificationScreen ─> QuizScreen
   ├─(«Беру заказы на подбор»)> [PhoneLoginScreen ─>] NearbyOrdersScreen ─> AvailableOrdersScreen (карта)
   └─(«Просто посмотрю»)─────> PublicFeedScreen ─> PublicOrderScreen
@@ -286,11 +347,11 @@ IntentScreen (корень)
   «Нет связи» и «Повторить», а профиль догружает `ApiClient` перед первым
   удачным запросом (`AuthService.ensureUser`). `retry_after` из `ApiException` читает только
   `phone_login_screen.dart`.
-- **Чат с поддержкой без пушей.** Непрочитанные (`unread_count` из
+- **Чат с поддержкой.** Непрочитанные (`unread_count` из
   `GET /conversations`) показывает бейдж на «Поддержке», в шторке, в профиле и
   на иконке профиля в разделах. Счётчик (`SupportUnread`) опрашивает сервер раз
-  в минуту и при возврате в приложение — только пока оно открыто; в фоне об
-  ответе никто не сообщит. Гостю чат недоступен — только Telegram.
+  в минуту и при возврате в приложение; в фоне об ответе сообщает пуш (только
+  Android). Гостю чат недоступен — только Telegram.
 - **Верификацию исполнителя пройти нельзя.** Гейт на `NearbyOrdersScreen` гасит
   кнопки «Откликнуться»; сервер проверяет её при отклике, только если на нём
   включён `EXECUTOR_VERIFICATION_REQUIRED` (по умолчанию выключен). Шаги
@@ -300,7 +361,10 @@ IntentScreen (корень)
   адрес с подписью, живёт до часа; токен не нужен, `Image.network(url)` хватает.
   Ссылку из старого ответа после истечения не переиспользовать — перезапросить
   осмотр.
-- **Об отзыве напоминают только список и карточка заказа.** Пушей нет: осмотр
+- **Пуши — только Android.** На iOS Firebase не настроен (нет Mac и
+  APNs-ключа): `PushService` ловит ошибку инициализации и выключается, остаётся
+  опрос бейджей.
+- **Об отзыве напоминают только список и карточка заказа.** Пуша об этом нет: осмотр
   завершает исполнитель, и заказчик узнаёт об этом по строке «Оценить
   исполнителя» в «Завершённых».
 - **Подбор нельзя завершить из приложения**: кнопки «Зафиксировать покупку»

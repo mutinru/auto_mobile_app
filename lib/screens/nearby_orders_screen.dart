@@ -6,15 +6,18 @@ import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_kind.dart';
 import '../state/nearby_filter_store.dart';
+import '../state/notification_scope.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/nearby_filter_sheet.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/respond_sheet.dart';
 import '../widgets/unread_badge.dart';
 import 'available_orders_screen.dart';
+import 'notifications_screen.dart';
 import 'verification_screen.dart';
 
 /// Экран 03 макета car-storefront-modes.html — «Беру заказы»: список
@@ -152,6 +155,12 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     ).push(MaterialPageRoute(builder: (_) => VerificationScreen(auth: auth)));
   }
 
+  /// Уведомление могло увести в заказ — ленту свободных перечитываем.
+  Future<void> _openNotifications() async {
+    await openNotifications(context, store: widget.store, auth: widget.auth);
+    if (mounted) widget.store.loadAvailableOrders();
+  }
+
   void _openMap() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -189,6 +198,10 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                           onTap: _openFilters,
                         ),
                       ),
+                      if (NotificationScope.maybeOf(context) != null) ...[
+                        const SizedBox(width: 8),
+                        NotificationBell(onTap: _openNotifications),
+                      ],
                       if (widget.onProfile != null) ...[
                         const SizedBox(width: 8),
                         SupportUnreadBadge(

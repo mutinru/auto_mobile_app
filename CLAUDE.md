@@ -66,7 +66,7 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    счётчики локально (как и статус детали).
 4. **Энамы Dart и PHP — ручные зеркала.** Пара живёт в репозитории бекенда
    (`CodeChannel` ↔ `App\Sms\CodeChannel`, остальные ↔ `App\Enums\*`, в том
-   числе `ConversationType` и `ChatRole` чата).
+   числе `ConversationType` и `ChatRole` чата и `NotificationType` ленты).
    Меняя энам здесь, скажи пользователю: парная правка сама себя не сделает.
 
 ## Ловушки
@@ -110,6 +110,16 @@ README перечисляет ограничения приложения; зд�
   `SupportUnreadBadge`, иначе ответ оператора там не будет виден. Новый
   `ChatStore` открывай как `_openChat` в `support_sheet.dart` — с
   `unread.chatOpen`.
+- **Непрочитанные уведомления — тоже только с сервера.** `NotificationStore`
+  подменяет уведомление ответом `markRead` и отдаёт число в бейдж через
+  `PolledUnread.report()`; не вычитай локально. Новый раздел с шапкой — добавь
+  `NotificationBell` рядом с профилем, ленту открывай `openNotifications()`
+  (репозиторий берётся из scope до маршрута, а не в builder).
+- **Firebase — только через `PushService`/`PushMessaging`** (`lib/push/`), не
+  зови `FirebaseMessaging` из экранов: в тестах Firebase нет, а сбой
+  инициализации должен лишь выключать пуши. Тап по пушу не открывает экран из
+  обработчика FCM — он становится `PushTarget` и уходит в `_RootGate._openPush`.
+  Новый тип пуша — разбор в `PushTarget.fromData` и ветка там же.
 - **Фото чата — только с `ChatRepository.imageHeaders`.** Они на приватном
   диске: `Image.network(url)` без Bearer получит 401 и молча нарисует заглушку.
   Адрес бери из `ChatAttachment.url` (уже переписан на `ApiConfig.origin`), а не

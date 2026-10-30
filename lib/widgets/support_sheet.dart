@@ -27,6 +27,24 @@ Future<void> showSupportSheet(BuildContext context) {
   );
 }
 
+/// Чат в приложении — только с токеном: бекенд пускает в него вошедших.
+/// Стор создаём до маршрута, а не в builder (смена темы пересоздала бы его).
+/// Пока чат открыт, счётчик не опрашивается; закрыли — бейдж
+/// переспрашивает сервер (чат уже отметил прочитанное). Отсюда же чат
+/// открывает тап по пушу поддержки.
+Future<void> pushSupportChat(NavigatorState navigator, SupportChatScope scope) {
+  final store = ChatStore(scope.repository());
+  final unread = scope.unread;
+  unread?.chatOpen = true;
+  return navigator
+      .push(
+        MaterialPageRoute<void>(
+          builder: (_) => SupportChatScreen(store: store),
+        ),
+      )
+      .whenComplete(() => unread?.chatOpen = false);
+}
+
 class _SupportSheet extends StatelessWidget {
   const _SupportSheet();
 
@@ -53,23 +71,10 @@ class _SupportSheet extends StatelessWidget {
     }
   }
 
-  /// Чат в приложении — только с токеном: бекенд пускает в него вошедших.
-  /// Стор создаём до маршрута, а не в builder (смена темы пересоздала бы его).
-  /// Пока чат открыт, счётчик не опрашивается; закрыли — бейдж
-  /// переспрашивает сервер (чат уже отметил прочитанное).
   void _openChat(BuildContext context, SupportChatScope scope) {
     final navigator = Navigator.of(context);
     navigator.pop();
-    final store = ChatStore(scope.repository());
-    final unread = scope.unread;
-    unread?.chatOpen = true;
-    navigator
-        .push(
-          MaterialPageRoute<void>(
-            builder: (_) => SupportChatScreen(store: store),
-          ),
-        )
-        .whenComplete(() => unread?.chatOpen = false);
+    pushSupportChat(navigator, scope);
   }
 
   @override

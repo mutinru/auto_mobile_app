@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "185654237401",
+    "project_id": "bitnebit-c70ca",
+    "storage_bucket": "bitnebit-c70ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:185654237401:android:8f0988d5067f71b4a9c6c8",
+        "android_client_info": {
+          "package_name": "com.bitnebit.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPmTiTe9EtUXgg6KJ1og0tlaw3ELF_kz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:185654237401:android:9989929cd7cf6d2fa9c6c8",
+        "android_client_info": {
+          "package_name": "com.bitnebit.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPmTiTe9EtUXgg6KJ1og0tlaw3ELF_kz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

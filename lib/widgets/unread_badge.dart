@@ -69,14 +69,27 @@ class SupportUnreadBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SupportUnreadBuilder(
-      builder: (context, count) => Stack(
-        clipBehavior: Clip.none,
-        children: [
-          child,
-          if (count > 0)
-            Positioned(top: -6, right: -6, child: UnreadBadge(count)),
-        ],
-      ),
+      builder: (context, count) => CornerBadge(count: count, child: child),
+    );
+  }
+}
+
+/// [UnreadBadge] в правом верхнем углу [child]; при 0 — просто [child].
+class CornerBadge extends StatelessWidget {
+  const CornerBadge({super.key, required this.count, required this.child});
+
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        if (count > 0)
+          Positioned(top: -6, right: -6, child: UnreadBadge(count)),
+      ],
     );
   }
 }

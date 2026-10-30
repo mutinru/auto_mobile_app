@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'data/api_chat_repository.dart';
 import 'data/api_client.dart';
+import 'data/api_device_repository.dart';
+import 'data/api_notification_repository.dart';
 import 'data/api_order_repository.dart';
 import 'data/api_verification_repository.dart';
 import 'data/auth_service.dart';
@@ -11,22 +15,30 @@ import 'data/city_repository.dart';
 import 'data/location_service.dart';
 import 'models/order.dart';
 import 'models/order_kind.dart';
+import 'models/push_target.dart';
+import 'push/firebase_push_messaging.dart';
+import 'push/push_service.dart';
 import 'screens/intent_screen.dart';
 import 'screens/my_orders_screen.dart';
 import 'screens/nearby_orders_screen.dart';
 import 'screens/new_inspection_screen.dart';
 import 'screens/new_order_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/order_routes.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
 import 'screens/profile_screen.dart';
 import 'state/city_locator.dart';
 import 'state/nearby_filter_store.dart';
+import 'state/notification_scope.dart';
+import 'state/notification_unread.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
 import 'state/support_unread.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/order_kind_sheet.dart';
+import 'widgets/support_sheet.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,11 +48,29 @@ Future<void> main() async {
   final auth = AuthService();
   // бейджи непрочитанных поддержки: одна сессия — один счётчик
   final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))..start();
-  runApp(AutoPodborApp(theme: theme, auth: auth, unread: unread));
+  // бейдж колокольчика в шапках разделов — тоже один на сессию
+  final notifications = NotificationUnread(auth, ApiNotificationRepository(ApiClient(auth)))..start();
+  // пуши: Firebase поднимается в фоне, первый кадр его не ждёт
+  final push = PushService(
+    auth: auth,
+    devices: ApiDeviceRepository(ApiClient(auth)),
+    messaging: FirebasePushMessaging(),
+    notifications: notifications,
+    support: unread,
+  );
+  unawaited(push.start());
+  runApp(AutoPodborApp(theme: theme, auth: auth, unread: unread, notifications: notifications, push: push));
 }
 
 class AutoPodborApp extends StatelessWidget {
-  const AutoPodborApp({super.key, required this.theme, required this.auth, this.unread});
+  const AutoPodborApp({
+    super.key,
+    required this.theme,
+    required this.auth,
+    this.unread,
+    this.notifications,
+    this.push,
+  });
 
   final ThemeController theme;
 
@@ -51,6 +81,12 @@ class AutoPodborApp extends StatelessWidget {
 
   /// Непрочитанные в чате поддержки — для бейджей у входов в чат.
   final SupportUnread? unread;
+
+  /// Непрочитанные уведомления — для колокольчиков в шапках разделов.
+  final NotificationUnread? notifications;
+
+  /// Пуши — тапы по ним открывает _RootGate.
+  final PushService? push;
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +108,18 @@ class AutoPodborApp extends StatelessWidget {
           builder: (context, child) => SupportChatScope(
             auth: auth,
             unread: unread,
-            child: AnnotatedRegion<SystemUiOverlayStyle>(
-              value: theme.isLight
-                  ? SystemUiOverlayStyle.dark
-                  : SystemUiOverlayStyle.light,
-              child: child!,
+            child: NotificationScope(
+              auth: auth,
+              unread: notifications,
+              child: AnnotatedRegion<SystemUiOverlayStyle>(
+                value: theme.isLight
+                    ? SystemUiOverlayStyle.dark
+                    : SystemUiOverlayStyle.light,
+                child: child!,
+              ),
             ),
           ),
-          home: _RootGate(auth: auth),
+          home: _RootGate(auth: auth, push: push),
         ),
       ),
     );
@@ -98,9 +138,10 @@ class AutoPodborApp extends StatelessWidget {
 /// самостоятельным модулем — из этого хаба пока не достижимы напрямую,
 /// подключаются к заказу отдельным проходом (см. "Старт осмотра" в макете).
 class _RootGate extends StatefulWidget {
-  const _RootGate({required this.auth});
+  const _RootGate({required this.auth, this.push});
 
   final AuthService auth;
+  final PushService? push;
 
   @override
   State<_RootGate> createState() => _RootGateState();
@@ -120,15 +161,56 @@ class _RootGateState extends State<_RootGate> {
     super.initState();
     // пробуем поднять прошлую сессию с диска
     _auth.restore().then((_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      setState(() {});
+      // тапом по пушу приложение запустили — сессия уже поднята
+      final tap = widget.push?.takePendingTap();
+      if (tap != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _openPush(tap));
+      }
     });
     _auth.addListener(_onAuthChanged);
+    _pushTaps = widget.push?.taps.listen(_openPush);
   }
+
+  StreamSubscription<PushTarget>? _pushTaps;
 
   @override
   void dispose() {
+    _pushTaps?.cancel();
     _auth.removeListener(_onAuthChanged);
     super.dispose();
+  }
+
+  /// Тап по пушу: экран открывается поверх текущего раздела, «назад»
+  /// возвращает туда, где был пользователь. Гостю (вышел, а пуш остался в
+  /// шторке) — ничего: заказ без токена не открыть.
+  Future<void> _openPush(PushTarget target) async {
+    if (!mounted || !_auth.isAuthenticated || _auth.isRestoring) return;
+    switch (target) {
+      case SupportChatTarget():
+        final scope = SupportChatScope.maybeOf(context);
+        if (scope != null) await pushSupportChat(Navigator.of(context), scope);
+      case OrderTarget():
+        final feed = NotificationScope.maybeOf(context);
+        final id = target.notificationId;
+        if (feed != null && id != null) {
+          // прочитано — как тап в ленте; не вышло — не повод не открывать
+          unawaited(feed.repository().markRead(id).then((_) => feed.unread?.refresh(), onError: (_) {}));
+        }
+        if (target.opensOrder) {
+          await openOrderScreen(
+            context,
+            store: _orderStore(),
+            auth: _auth,
+            orderId: target.orderId,
+            isInspection: target.orderKind.isInspection,
+            asExecutor: !target.viewerIsCustomer,
+          );
+        } else {
+          await openNotifications(context, store: _orderStore(), auth: _auth);
+        }
+    }
   }
 
   /// Сервер ответил 401 — токен отозван или протух. Снимаем раздел и всё,

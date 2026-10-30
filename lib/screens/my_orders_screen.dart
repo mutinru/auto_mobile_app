@@ -3,19 +3,20 @@ import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
 import '../models/order.dart';
 import '../models/order_kind.dart';
+import '../state/notification_scope.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/order_card.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/order_kind_sheet.dart';
 import '../widgets/unread_badge.dart';
-import 'assigned_inspection_screen.dart';
-import 'inspection_order_detail_screen.dart';
 import 'inspection_report_screen.dart';
 import 'new_inspection_screen.dart';
 import 'new_order_screen.dart';
-import 'order_detail_screen.dart';
+import 'notifications_screen.dart';
+import 'order_routes.dart';
 
 /// Экран 02 макета — «мои заказы».
 class MyOrdersScreen extends StatefulWidget {
@@ -58,34 +59,45 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     }
   }
 
-  /// У осмотра своя деталь (кадр 04): деталь подбора собрана под бюджет,
-  /// города и список кандидатов. Исполнителю осмотр открывается отдельным
-  /// экраном — там старт осмотра и вердикт, а не отклики.
+  /// Экран заказа выбирает [openOrderScreen] — тот же, что у ленты уведомлений.
   Future<void> _openOrder(Order order) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => order.isInspection && widget.asExecutor
-            ? AssignedInspectionScreen(
-                store: widget.store,
-                orderId: order.id,
-                auth: widget.auth,
-              )
-            : order.isInspection
-            ? InspectionOrderDetailScreen(
-                store: widget.store,
-                orderId: order.id,
-                viewerIsCustomer: !widget.asExecutor,
-                auth: widget.auth,
-              )
-            : OrderDetailScreen(
-                store: widget.store,
-                orderId: order.id,
-                viewerIsCustomer: !widget.asExecutor,
-                auth: widget.auth,
-              ),
-      ),
+    await openOrderScreen(
+      context,
+      store: widget.store,
+      auth: widget.auth,
+      orderId: order.id,
+      isInspection: order.isInspection,
+      asExecutor: widget.asExecutor,
     );
     _reload();
+  }
+
+  /// Уведомление могло увести в заказ и сменить его статус — перечитываем.
+  Future<void> _openNotifications() async {
+    await openNotifications(context, store: widget.store, auth: widget.auth);
+    _reload();
+  }
+
+  /// Колокольчик (есть [NotificationScope]) и профиль — справа в шапке.
+  Widget? _headActions() {
+    final actions = [
+      if (NotificationScope.maybeOf(context) != null)
+        NotificationBell(onTap: _openNotifications),
+      if (widget.onProfile != null && !widget.asExecutor)
+        // поддержка — в профиле, ответ оператора виден на его иконке
+        SupportUnreadBadge(
+          child: SquareIconButton(
+            icon: Icons.person_outline,
+            onTap: widget.onProfile!,
+          ),
+        ),
+    ];
+    if (actions.isEmpty) return null;
+    if (actions.length == 1) return actions.single;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [actions.first, const SizedBox(width: 8), actions.last],
+    );
   }
 
   /// «Новый заказ» открывает лист выбора вида (кадр 02).
@@ -221,15 +233,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   onBack: Navigator.of(context).canPop()
                       ? () => Navigator.of(context).pop()
                       : null,
-                  trailing: widget.onProfile == null || widget.asExecutor
-                      ? null
-                      // поддержка — в профиле, ответ оператора виден на его иконке
-                      : SupportUnreadBadge(
-                          child: SquareIconButton(
-                            icon: Icons.person_outline,
-                            onTap: widget.onProfile!,
-                          ),
-                        ),
+                  trailing: _headActions(),
                 ),
                 AppToggle(
                   labels: const ['Активные', 'Завершённые'],
