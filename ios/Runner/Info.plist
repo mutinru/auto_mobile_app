@@ -8,6 +8,8 @@
 	<string>Чтобы сфотографировать детали при осмотре и считать VIN с кузова.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Чтобы прикрепить фото из галереи к осмотру или в чат поддержки.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Чтобы надиктовать голосовую заметку к детали при осмотре.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Дев-бекенд — http://10.0.2.2:8083. Dart-сокеты политику cleartext
+         не проверяют, а MediaPlayer (голосовые заметки, audioplayers) идёт
+         через сетевой стек Android и без этого флага молча не играет.
+         Только flavor dev: прод ходит по https. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>

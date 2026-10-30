@@ -99,4 +99,14 @@ class InspectionStore extends ChangeNotifier {
     final updated = await _repository.uploadPhoto(panelId, filePath);
     _replacePanel(updated);
   }
+
+  Future<void> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
+    final updated = await _repository.uploadAudioNote(panelId, filePath, durationSeconds);
+    _replacePanel(updated);
+  }
+
+  Future<void> deleteAudioNote(String panelId) async {
+    final updated = await _repository.deleteAudioNote(panelId);
+    _replacePanel(updated);
+  }
 }

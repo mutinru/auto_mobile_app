@@ -156,4 +156,22 @@ class MockInspectionRepository implements InspectionRepository {
     panel.photoCount++;
     return panel;
   }
+
+  @override
+  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
+    final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
+    panel
+      ..audioNoteSeconds = durationSeconds
+      ..audioNoteUrl = 'http://localhost/mock/audio/$panelId.m4a';
+    return panel;
+  }
+
+  @override
+  Future<InspectionPanel> deleteAudioNote(String panelId) async {
+    final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
+    panel
+      ..audioNoteSeconds = null
+      ..audioNoteUrl = null;
+    return panel;
+  }
 }

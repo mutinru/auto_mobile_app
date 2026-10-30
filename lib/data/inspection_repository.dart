@@ -20,4 +20,10 @@ abstract class InspectionRepository {
 
   /// Загрузить снимок детали (multipart). Возвращает обновлённую деталь.
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath);
+
+  /// Загрузить или заменить голосовую заметку детали (одна на деталь).
+  /// Длительность считает клиент — сервер аудио не разбирает.
+  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds);
+
+  Future<InspectionPanel> deleteAudioNote(String panelId);
 }

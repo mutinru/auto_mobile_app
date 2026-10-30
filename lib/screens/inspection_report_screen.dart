@@ -11,6 +11,7 @@ import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/audio_note.dart';
 import '../widgets/car_schematic.dart';
 import '../widgets/inspection_order_parts.dart';
 import '../widgets/inspection_report_parts.dart';
@@ -186,7 +187,8 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
   }
 }
 
-/// Одна деталь в отчёте: оценка, отмеченные дефекты и фото. Только чтение.
+/// Одна деталь в отчёте: оценка, отмеченные дефекты, фото и голосовая
+/// заметка. Только чтение.
 class _PanelReportSheet extends StatelessWidget {
   const _PanelReportSheet({required this.panel});
 
@@ -196,6 +198,8 @@ class _PanelReportSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final condition = panel.condition;
     final color = panel.status.color(context.colors);
+    final audioUrl = panel.audioNoteUrl;
+    final audioSeconds = panel.audioNoteSeconds;
 
     return SafeArea(
       child: Padding(
@@ -334,6 +338,18 @@ class _PanelReportSheet extends StatelessWidget {
                   ],
                 ),
               ),
+            if (audioUrl != null && audioSeconds != null) ...[
+              const SizedBox(height: 20),
+              SectionHead('Голосовая заметка', extra: formatAudioTime(Duration(seconds: audioSeconds))),
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
+                decoration: BoxDecoration(
+                  color: context.colors.bg1,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: AudioNotePlayer(url: audioUrl, seconds: audioSeconds, seed: panel.id),
+              ),
+            ],
           ],
         ),
       ),

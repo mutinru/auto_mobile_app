@@ -6,6 +6,7 @@ import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
+import '../widgets/audio_note.dart';
 import '../widgets/status_dot.dart';
 
 /// Экран 02 из макета: оценка одной детали (состояние, дефекты, фото, аудио).
@@ -295,58 +296,17 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                       const SizedBox(height: 22),
                       _SectionTitle('Голосовая заметка'),
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: context.colors.bg1,
-                          borderRadius: BorderRadius.circular(14),
+                      AudioNoteEditor(
+                        key: ValueKey(_panelId),
+                        seed: panel.id,
+                        url: panel.audioNoteUrl,
+                        seconds: panel.audioNoteSeconds,
+                        readOnly: store.readOnly,
+                        onRecorded: (path, seconds) => _mutate(
+                          () => store.uploadAudioNote(_panelId, path, seconds),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: context.colors.text1,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.play_arrow,
-                                color: context.colors.bg0,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 24,
-                                child: panel.audioNoteSeconds == null
-                                    ? Text(
-                                        'нет записи',
-                                        style: TextStyle(
-                                          color: context.colors.text3,
-                                          fontSize: 12,
-                                        ),
-                                      )
-                                    : Row(
-                                        children: List.generate(
-                                          24,
-                                          (i) => Expanded(
-                                            child: Container(
-                                              margin: const EdgeInsets.symmetric(
-                                                  horizontal: 1),
-                                              height: 6 + (i % 5) * 4,
-                                              color: i < 10
-                                                  ? context.colors.text1
-                                                  : context.colors.text3,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        onDelete: () =>
+                            _mutate(() => store.deleteAudioNote(_panelId)),
                       ),
                     ],
                   ),

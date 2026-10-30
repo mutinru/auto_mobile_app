@@ -58,14 +58,39 @@ class ApiInspectionRepository implements InspectionRepository {
 
   @override
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
-    // multipart идёт мимо ApiClient — тот умеет только JSON
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('${ApiConfig.baseUrl}/inspections/$inspectionId/panels/$panelId/photos'),
-    )
+    return _multipart(
+      '/inspections/$inspectionId/panels/$panelId/photos',
+      await http.MultipartFile.fromPath('photo', filePath),
+    );
+  }
+
+  @override
+  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
+    return _multipart(
+      '/inspections/$inspectionId/panels/$panelId/audio-note',
+      await http.MultipartFile.fromPath('audio', filePath),
+      fields: {'duration_seconds': '$durationSeconds'},
+    );
+  }
+
+  @override
+  Future<InspectionPanel> deleteAudioNote(String panelId) async {
+    final json = await _client.delete('/inspections/$inspectionId/panels/$panelId/audio-note');
+    return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// multipart идёт мимо ApiClient — тот умеет только JSON; ошибки всё равно
+  /// через [ApiClient.failure], чтобы 401 стёр сессию.
+  Future<InspectionPanel> _multipart(
+    String path,
+    http.MultipartFile file, {
+    Map<String, String> fields = const {},
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
       ..headers['Accept'] = 'application/json'
       ..headers['Authorization'] = 'Bearer ${_client.token}'
-      ..files.add(await http.MultipartFile.fromPath('photo', filePath));
+      ..fields.addAll(fields)
+      ..files.add(file);
 
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();

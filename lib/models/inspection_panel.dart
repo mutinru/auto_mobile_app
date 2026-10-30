@@ -18,6 +18,7 @@ class InspectionPanel {
     this.photoCount = 0,
     List<String>? photoUrls,
     this.audioNoteSeconds,
+    this.audioNoteUrl,
   })  : defects = defects ?? <String>{},
         photoUrls = photoUrls ?? <String>[];
 
@@ -35,6 +36,10 @@ class InspectionPanel {
   /// Абсолютные ссылки на снимки детали.
   final List<String> photoUrls;
   int? audioNoteSeconds;
+
+  /// Абсолютная подписанная ссылка на запись: открывается без токена,
+  /// но живёт около часа — после этого осмотр надо перезагрузить.
+  String? audioNoteUrl;
 
   void applyCondition(PanelCondition condition) {
     this.condition = condition;
@@ -64,6 +69,7 @@ class InspectionPanel {
           _absolute((p as Map<String, dynamic>)['url'] as String),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,
+      audioNoteUrl: audioNote == null ? null : _absolute(audioNote['url'] as String),
     );
   }
 }

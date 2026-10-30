@@ -11,13 +11,17 @@
 //
 // Осмотр не угадывается по номеру, а находится так же, как в приложении:
 // взятые заказы исполнителя → кандидат подбора с незакрытым осмотром.
+// Голосовую заметку тест кладёт на деталь без неё и удаляет.
 // Тест возвращает деталь в исходное состояние — повторный прогон без
 // пересидирования тоже зелёный.
 @Tags(['integration'])
 library;
 
+import 'dart:io';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:auto_podbor_mobile/config/api_config.dart';
 import 'package:auto_podbor_mobile/data/api_client.dart';
@@ -104,5 +108,28 @@ void main() {
     final restored = after.panels.firstWhere((p) => p.id == panel.id);
     expect(restored.condition, original);
     expect(restored.defects, panel.defects);
+
+    // голосовая заметка на детали без неё: загрузить, послушать без токена
+    // (ссылка подписанная), удалить. m4a с ftyp isom — как пишет Android.
+    final silent = after.panels.firstWhere((p) => p.audioNoteSeconds == null);
+    final file = File('${Directory.systemTemp.createTempSync('audio_note').path}/note.m4a')
+      ..writeAsBytesSync([
+        0, 0, 0, 24, ...'ftypisom'.codeUnits, 0, 0, 0, 0, ...'isommp42'.codeUnits,
+        0, 0, 0, 16, ...'mdat'.codeUnits, 0, 0, 0, 0, 0, 0, 0, 0,
+      ]);
+    try {
+      final withNote = await repo.uploadAudioNote(silent.id, file.path, 3);
+      expect(withNote.audioNoteSeconds, 3);
+      final audio = await http.get(Uri.parse(withNote.audioNoteUrl!));
+      expect(audio.statusCode, 200);
+
+      final withoutNote = await repo.deleteAudioNote(silent.id);
+      expect(withoutNote.audioNoteSeconds, isNull);
+      expect(withoutNote.audioNoteUrl, isNull);
+    } finally {
+      final left = (await repo.fetchInspection()).panels.firstWhere((p) => p.id == silent.id);
+      if (left.audioNoteSeconds != null) await repo.deleteAudioNote(silent.id);
+      file.parent.deleteSync(recursive: true);
+    }
   });
 }

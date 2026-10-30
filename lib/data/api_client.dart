@@ -52,6 +52,12 @@ class ApiClient {
     return _decode(response);
   }
 
+  Future<Map<String, dynamic>> delete(String path) async {
+    await _auth.ensureUser();
+    final response = await http.delete(_uri(path), headers: _headers);
+    return _decode(response);
+  }
+
   Map<String, dynamic> _decode(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw failure(response.statusCode, response.body);
