@@ -9,6 +9,9 @@ abstract class CarCatalogRepository {
   Future<List<CarMake>> fetchMakes();
 
   Future<List<CarModel>> fetchModels(String makeId);
+
+  /// Что за машина по ссылке на объявление; null — не узнали.
+  Future<ListingGuess?> guessFromListing(String url);
 }
 
 /// Кеширует ответы в памяти на всю сессию: справочник меняется редко,
@@ -39,5 +42,12 @@ class ApiCarCatalogRepository implements CarCatalogRepository {
     return _models[makeId] = (json['data'] as List)
         .map((e) => CarModel.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
+  }
+
+  @override
+  Future<ListingGuess?> guessFromListing(String url) async {
+    final json = await _client.get('/listing/guess?url=${Uri.encodeQueryComponent(url)}');
+    final data = json['data'] as Map<String, dynamic>?;
+    return data == null ? null : ListingGuess.fromJson(data);
   }
 }

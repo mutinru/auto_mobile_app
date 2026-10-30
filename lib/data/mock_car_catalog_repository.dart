@@ -44,4 +44,28 @@ class MockCarCatalogRepository implements CarCatalogRepository {
     if (fail) throw Exception('нет сети');
     return _models[makeId] ?? const [];
   }
+
+  /// Грубое подобие ListingUrlParser на бекенде: марка и модель — по
+  /// вхождению в адрес, год — четыре цифры между «_» (слаг Avito).
+  @override
+  Future<ListingGuess?> guessFromListing(String url) async {
+    if (fail) throw Exception('нет сети');
+    final u = url.toLowerCase();
+    for (final make in _makes) {
+      if (!u.contains('/${make.id.toLowerCase()}') && !u.contains('/${make.name.toLowerCase()}')) {
+        continue;
+      }
+      CarModel? model;
+      for (final m in _models[make.id] ?? const <CarModel>[]) {
+        if (u.contains(m.name.toLowerCase())) model = m;
+      }
+      final year = RegExp(r'_((?:19|20)\d\d)_').firstMatch(u)?.group(1);
+      return ListingGuess(
+        make: make,
+        model: model,
+        year: model == null || year == null ? null : int.parse(year),
+      );
+    }
+    return null;
+  }
 }

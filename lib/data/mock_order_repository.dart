@@ -12,6 +12,7 @@ import '../models/report_summary.dart';
 import '../models/review.dart';
 import '../models/time_slot.dart';
 import '../models/user_summary.dart';
+import '../util/listing_url.dart';
 import 'order_repository.dart';
 
 /// Фейковые заказы по мотивам мокапа (design/app_auto_podbor.html,
@@ -89,7 +90,10 @@ class MockOrderRepository implements OrderRepository {
           inspectOn: DateTime.now().add(const Duration(days: 3)),
           timeSlot: TimeSlot.day,
           askingPrice: 3500,
-          listingUrl: 'auto.ru/cars/used/sale/bmw/x3/1120000123',
+          listingUrl: 'https://auto.ru/cars/used/sale/bmw/x3/1120000123',
+          listingHost: 'auto.ru',
+          listingSite: 'Авто.ру',
+          hasListing: true,
           responses: const [
             OrderResponse(
               id: 21,
@@ -275,7 +279,11 @@ class MockOrderRepository implements OrderRepository {
       timeSlot: timeSlot,
       inspectTime: timeSlot == TimeSlot.exact ? inspectTime : null,
       askingPrice: askingPrice,
-      listingUrl: listingUrl,
+      // как сервер: нормализует ссылку и подписывает площадку
+      listingUrl: listingUrl == null ? null : normalizeListingUrl(listingUrl),
+      listingHost: listingUrl == null ? null : listingHost(listingUrl),
+      listingSite: listingUrl == null ? null : listingSite(listingUrl),
+      hasListing: listingUrl != null && listingUrl.isNotEmpty,
       sellerPhone: sellerPhone,
       comment: comment,
       cars: [

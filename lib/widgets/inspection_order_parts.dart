@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
@@ -50,9 +51,18 @@ class InspectionOrderSummary extends StatelessWidget {
               icon: Icons.speed_outlined,
               text: '${money(order.mileageTo!)} км',
             ),
-          // ссылка — просто текст: разбор объявления не делаем
           if (listing != null && listing.isNotEmpty)
-            _SummaryRow(icon: Icons.link, text: listing),
+            order.listingHost == null
+                // старый заказ с не-ссылкой — как раньше, просто текст
+                ? _SummaryRow(icon: Icons.link, text: listing)
+                : _ListingRow(
+                    url: listing,
+                    host: order.listingHost!,
+                    site: order.listingSite,
+                  )
+          // ссылку сервер отдаёт только сторонам заказа — остальным площадка
+          else if (order.hasListing)
+            _LockedListingRow(site: order.listingSite),
           if (price != null) ...[
             const SizedBox(height: 11),
             Container(height: 1, color: context.colors.line),
@@ -121,6 +131,131 @@ class _SummaryRow extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ссылка на объявление: «Объявление на Авито» для известной площадки,
+/// для чужого сайта — домен и пометка «незнакомый сайт», чтобы было видно,
+/// куда ведёт ссылка от незнакомого заказчика. Открывается во внешнем браузере.
+class _ListingRow extends StatelessWidget {
+  const _ListingRow({required this.url, required this.host, this.site});
+
+  final String url;
+  final String host;
+  final String? site;
+
+  Future<void> _open(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    var ok = false;
+    try {
+      ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Не удалось открыть ссылку')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 12.5, height: 1.4, color: context.colors.text2);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: InkWell(
+        onTap: () => _open(context),
+        borderRadius: BorderRadius.circular(6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(Icons.link, size: 15, color: context.colors.text3),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text.rich(
+                site != null
+                    ? TextSpan(
+                        text: 'Объявление на ',
+                        children: [
+                          TextSpan(
+                            text: site,
+                            style: TextStyle(
+                              color: context.colors.text1,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : TextSpan(
+                        text: host,
+                        style: TextStyle(color: context.colors.text1),
+                        children: [
+                          TextSpan(
+                            text: ' · незнакомый сайт',
+                            style: TextStyle(color: context.colors.statusProgress),
+                          ),
+                        ],
+                      ),
+                style: style,
+              ),
+            ),
+            Icon(Icons.open_in_new, size: 14, color: context.colors.text3),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Объявление есть, но ссылку видят только заказчик и выбранный
+/// исполнитель: через объявление можно выйти на продавца.
+class _LockedListingRow extends StatelessWidget {
+  const _LockedListingRow({this.site});
+
+  final String? site;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(Icons.link, size: 15, color: context.colors.text3),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: site != null ? 'Объявление на ' : 'Объявление на другом сайте',
+                children: [
+                  if (site != null)
+                    TextSpan(
+                      text: site,
+                      style: TextStyle(
+                        color: context.colors.text1,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  TextSpan(
+                    text: ' · откроется после выбора',
+                    style: TextStyle(color: context.colors.text3),
+                  ),
+                ],
+              ),
+              style: TextStyle(fontSize: 12.5, height: 1.4, color: context.colors.text2),
+            ),
+          ),
+          Icon(Icons.lock_outline, size: 14, color: context.colors.text3),
         ],
       ),
     );

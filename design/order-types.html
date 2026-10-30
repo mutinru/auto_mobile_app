@@ -321,6 +321,21 @@
   }
   .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
+  /* подсказка по ссылке: поля заполняются только по кнопке */
+  .guess {
+    display: flex; align-items: center; gap: 10px; margin: -2px 0 10px;
+    background: var(--bg-1); border: 1px solid rgba(91,194,130,0.45); border-radius: 12px;
+    padding: 9px 6px 9px 13px; font-size: 13px; color: var(--text-2);
+  }
+  .guess .ico { color: var(--st-done); display: flex; flex-shrink: 0; }
+  .guess-text { flex: 1; min-width: 0; }
+  .guess-text b { color: var(--text-1); font-weight: 600; }
+  .guess-apply {
+    background: none; border: none; font-family: inherit; cursor: pointer;
+    color: var(--st-done); font-size: 13px; font-weight: 600; padding: 6px 8px;
+  }
+  .guess-close { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 6px; display: flex; }
+
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     background: var(--bg-1); border: 1px solid transparent; padding: 7px 12px;
@@ -615,6 +630,17 @@
             <h3 class="sheet-title">Что нужно сделать?</h3>
             <p class="sheet-sub">От этого зависит форма заказа и кто откликнется</p>
 
+            <button class="kind-opt insp">
+              <span class="kind-opt-ico">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span class="kind-opt-name" style="display:block">Осмотреть конкретную машину</span>
+                <span class="kind-opt-desc" style="display:block">Нашёл объявление. Специалист приедет по адресу, проверит кузов, двигатель и документы и пришлёт отчёт.</span>
+                <span class="kind-opt-facts"><span>1–2 дня</span><span>одна машина</span><span>отчёт</span></span>
+              </span>
+            </button>
+
             <button class="kind-opt pick">
               <span class="kind-opt-ico">
                 <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -623,17 +649,6 @@
                 <span class="kind-opt-name" style="display:block">Подобрать автомобиль</span>
                 <span class="kind-opt-desc" style="display:block">Знаю, чего хочу, но машины ещё нет. Подборщик найдёт варианты и проверит лучшие.</span>
                 <span class="kind-opt-facts"><span>недели</span><span>несколько машин</span></span>
-              </span>
-            </button>
-
-            <button class="kind-opt insp">
-              <span class="kind-opt-ico">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v3H9zM9 13l2 2 4-4"/></svg>
-              </span>
-              <span style="flex:1;min-width:0">
-                <span class="kind-opt-name" style="display:block">Осмотреть конкретную машину</span>
-                <span class="kind-opt-desc" style="display:block">Нашёл объявление. Специалист приедет по адресу, проверит кузов по 13 деталям и пришлёт отчёт.</span>
-                <span class="kind-opt-facts"><span>1–2 дня</span><span>одна машина</span><span>отчёт</span></span>
               </span>
             </button>
           </div>
@@ -678,6 +693,12 @@
                   <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg></span>
                 </div>
               </div>
+              <div class="guess">
+                <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>
+                <span class="guess-text">Похоже, это <b>BMW X3</b></span>
+                <button class="guess-apply">Заполнить</button>
+                <button class="guess-close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+              </div>
               <div class="or">или</div>
               <div class="field">
                 <div class="field-label">VIN</div>
@@ -692,12 +713,12 @@
               <div class="section-head"><div class="section-title">Автомобиль</div></div>
               <div class="field">
                 <div class="field-label">Марка и модель</div>
-                <div class="field-box"><span>BMW X3</span></div>
+                <div class="field-box empty"><span>Выбрать марку и модель</span></div>
               </div>
               <div class="field-pair">
                 <div class="field">
                   <div class="field-label">Год</div>
-                  <div class="field-box"><span class="field-mono">2017</span></div>
+                  <div class="field-box empty"><span class="field-mono">2017</span></div>
                 </div>
                 <div class="field">
                   <div class="field-label">Пробег</div>
@@ -756,7 +777,7 @@
 
         </div>
       </div>
-      <div class="frame-note">Ссылка или VIN заполняют марку, год и пробег. Вместо бюджета и городов поиска — <b>адрес, дата и цена заказчика</b>. Телефон продавца открывается только выбранному исполнителю.</div>
+      <div class="frame-note">По ссылке Auto.ru, Drom или Avito под полем появляется <b>«Похоже, это …»</b> — марка, модель и год из адреса; поля заполняются только по кнопке, не узнали — подсказки нет. Пустое поле подсказывает площадки; не-ссылку форма не отправит, но чужие сайты принимаются — исполнитель увидит домен с пометкой «незнакомый сайт». Вместо бюджета и городов поиска — <b>адрес, дата и цена заказчика</b>. Телефон продавца открывается только выбранному исполнителю.</div>
     </div>
 
     <!-- ===================== 04 · Осмотр · отклики ===================== -->
@@ -797,8 +818,13 @@
                   <span>Москва, Варшавское ш., 170</span>
                 </div>
                 <div class="summary-row">
+                  <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14l4-4M3.3 17a9 9 0 1 1 17.4 0"/></svg></span>
+                  <span>112 000 км</span>
+                </div>
+                <div class="summary-row">
                   <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg></span>
-                  <span>112 000 км · объявление на auto.ru</span>
+                  <span style="flex:1">Объявление на <b>Авто.ру</b></span>
+                  <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></span>
                 </div>
                 <div class="summary-price">
                   <span class="summary-price-cap">Ваша цена</span>
@@ -871,7 +897,7 @@
 
         </div>
       </div>
-      <div class="frame-note">Цена заказчика — точка отсчёта: у каждого отклика видна <b>разница с ней</b>. Выбор исполнителя переводит осмотр в «назначен» с ценой из отклика.</div>
+      <div class="frame-note">Цена заказчика — точка отсчёта: у каждого отклика видна <b>разница с ней</b>. Выбор исполнителя переводит осмотр в «назначен» с ценой из отклика. Ссылку на объявление, как и телефон продавца, видят заказчик и выбранный исполнитель; до выбора исполнитель видит только площадку: <b>«Объявление на Авито · откроется после выбора»</b>.</div>
     </div>
 
     <!-- ===================== 05 · Мои заказы · завершённые ===================== -->

@@ -58,6 +58,16 @@ class _OrderKindSheet extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _KindOption(
+            kind: OrderKind.inspection,
+            icon: Icons.assignment_outlined,
+            iconBg: context.colors.statusInfo,
+            iconInk: context.colors.infoInk,
+            name: 'Осмотреть конкретную машину',
+            description: 'Нашёл объявление. Специалист приедет по адресу, '
+                'проверит кузов, двигатель и документы и пришлёт отчёт.',
+            facts: const ['1–2 дня', 'одна машина', 'отчёт'],
+          ),
+          _KindOption(
             kind: OrderKind.selection,
             icon: Icons.search,
             iconBg: context.colors.modeBuy,
@@ -66,16 +76,6 @@ class _OrderKindSheet extends StatelessWidget {
             description: 'Знаю, чего хочу, но машины ещё нет. '
                 'Подборщик найдёт варианты и проверит лучшие.',
             facts: const ['недели', 'несколько машин'],
-          ),
-          _KindOption(
-            kind: OrderKind.inspection,
-            icon: Icons.assignment_outlined,
-            iconBg: context.colors.statusInfo,
-            iconInk: context.colors.infoInk,
-            name: 'Осмотреть конкретную машину',
-            description: 'Нашёл объявление. Специалист приедет по адресу, '
-                'проверит кузов по 13 деталям и пришлёт отчёт.',
-            facts: const ['1–2 дня', 'одна машина', 'отчёт'],
           ),
         ],
       ),

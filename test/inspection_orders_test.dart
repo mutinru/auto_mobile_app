@@ -4,6 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
+import 'package:auto_podbor_mobile/widgets/inspection_order_parts.dart';
+import 'package:auto_podbor_mobile/models/user_summary.dart';
+import 'package:auto_podbor_mobile/models/order_status.dart';
+import 'package:auto_podbor_mobile/models/order_kind.dart';
+import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/time_slot.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
@@ -74,6 +80,11 @@ void main() {
 
     expect(find.text('Что нужно сделать?'), findsOneWidget);
     expect(find.text('Подобрать автомобиль'), findsOneWidget);
+    // разовый осмотр — первым, подбор — под ним
+    expect(
+      tester.getTopLeft(find.text('Осмотреть конкретную машину')).dy,
+      lessThan(tester.getTopLeft(find.text('Подобрать автомобиль')).dy),
+    );
 
     await tester.tap(find.text('Осмотреть конкретную машину'));
     await tester.pumpAndSettle();
@@ -104,6 +115,35 @@ void main() {
     expect(find.text('Выбрать'), findsNWidgets(3));
   });
 
+  testWidgets('ссылка подписана площадкой, чужой сайт — доменом с пометкой', (tester) async {
+    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: InspectionOrderDetailScreen(store: store, orderId: 2053),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Объявление на Авто.ру', findRichText: true), findsOneWidget);
+
+    final order = await store.createInspectionOrder(
+      brand: 'Kia',
+      model: 'Rio',
+      year: 2019,
+      mileageKm: 60000,
+      address: 'Москва',
+      inspectOn: DateTime.now().add(const Duration(days: 1)),
+      timeSlot: TimeSlot.day,
+      askingPrice: 3500,
+      listingUrl: 'www.example.com/car/1',
+    );
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      // ключ — иначе виджет переиспользует состояние прошлого заказа
+      home: InspectionOrderDetailScreen(key: ValueKey(order.id), store: store, orderId: order.id),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('example.com · незнакомый сайт', findRichText: true), findsOneWidget);
+  });
+
   testWidgets('выбор отклика переводит осмотр в «назначен»', (tester) async {
     final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
     await tester.pumpWidget(MaterialApp(
@@ -119,5 +159,45 @@ void main() {
     expect(find.text('Сергей П.'), findsOneWidget);
     expect(find.text('приедет на осмотр'), findsOneWidget);
     expect(find.text('Выбрать'), findsNothing);
+  });
+
+  testWidgets('до выбора исполнитель видит площадку, но не ссылку', (tester) async {
+    Future<void> show(Order order) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: Scaffold(
+          body: InspectionOrderSummary(order: order, priceLabel: 'Ваш гонорар', price: 3500),
+        ),
+      ));
+    }
+
+    const base = Order(
+      id: 1,
+      kind: OrderKind.inspection,
+      status: OrderStatus.awaitingExecutor,
+      brand: 'Kia',
+      model: 'Rio',
+      customer: UserSummary(id: 1, name: 'Андрей С.'),
+      timeSlot: TimeSlot.day,
+      hasListing: true,
+      listingSite: 'Авито',
+    );
+    await show(base);
+    expect(find.textContaining('Объявление на Авито · откроется после выбора', findRichText: true), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    expect(find.byIcon(Icons.open_in_new), findsNothing);
+
+    // чужой сайт не называем вовсе
+    await show(const Order(
+      id: 2,
+      kind: OrderKind.inspection,
+      status: OrderStatus.awaitingExecutor,
+      brand: 'Kia',
+      model: 'Rio',
+      customer: UserSummary(id: 1, name: 'Андрей С.'),
+      timeSlot: TimeSlot.day,
+      hasListing: true,
+    ));
+    expect(find.textContaining('Объявление на другом сайте', findRichText: true), findsOneWidget);
   });
 }

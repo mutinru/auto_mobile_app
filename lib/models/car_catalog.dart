@@ -71,3 +71,28 @@ bool catalogMatches(String query, String name, String nameRu) {
 
 /// Нижний регистр и «ё» → «е» — общая нормализация поиска по справочникам.
 String normalizeSearch(String s) => s.toLowerCase().replaceAll('ё', 'е');
+
+/// Догадка по ссылке на объявление (GET /listing/guess): марка всегда,
+/// модель и год — если их удалось вытащить из адреса. Только предложение:
+/// форма заполняет поля после согласия пользователя.
+class ListingGuess {
+  const ListingGuess({required this.make, this.model, this.year});
+
+  final CarMake make;
+  final CarModel? model;
+  final int? year;
+
+  factory ListingGuess.fromJson(Map<String, dynamic> json) => ListingGuess(
+        make: CarMake.fromJson(json['make'] as Map<String, dynamic>),
+        model: json['model'] == null
+            ? null
+            : CarModel.fromJson(json['model'] as Map<String, dynamic>),
+        year: json['year'] as int?,
+      );
+
+  /// «Toyota Camry, 2019» / «Toyota».
+  String get label {
+    final car = [make.name, if (model != null) model!.name].join(' ');
+    return year == null ? car : '$car, $year';
+  }
+}

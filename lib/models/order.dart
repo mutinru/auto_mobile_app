@@ -33,6 +33,9 @@ class Order {
     this.timeSlot,
     this.inspectTime,
     this.listingUrl,
+    this.listingHost,
+    this.listingSite,
+    this.hasListing = false,
     this.sellerPhone,
     this.askingPrice,
     this.executor,
@@ -74,6 +77,16 @@ class Order {
   /// «16:00» — только когда timeSlot == TimeSlot.exact.
   final String? inspectTime;
   final String? listingUrl;
+
+  /// Хост ссылки без www./m. и название площадки («Авито») — считает сервер;
+  /// у чужого сайта [listingSite] null, у старой не-ссылки оба null.
+  final String? listingHost;
+  final String? listingSite;
+
+  /// Объявление у заказа есть. Ссылку ([listingUrl], [listingHost]) сервер
+  /// отдаёт только заказчику и выбранному исполнителю — остальные видят
+  /// лишь [listingSite] и «откроется после выбора».
+  final bool hasListing;
 
   /// Телефон продавца: бекенд отдаёт его только заказчику и выбранному
   /// исполнителю, остальным ключа в ответе просто нет.
@@ -187,6 +200,9 @@ class Order {
         timeSlot: timeSlot,
         inspectTime: inspectTime,
         listingUrl: listingUrl,
+        listingHost: listingHost,
+        listingSite: listingSite,
+        hasListing: hasListing,
         sellerPhone: sellerPhone,
         askingPrice: askingPrice,
         customer: customer,
@@ -229,6 +245,10 @@ class Order {
         timeSlot: timeSlotFromApi(json['time_slot'] as String?),
         inspectTime: json['inspect_time'] as String?,
         listingUrl: json['listing_url'] as String?,
+        listingHost: json['listing_host'] as String?,
+        listingSite: json['listing_site'] as String?,
+        // старый бекенд поля не знает — тогда объявление есть, если пришла ссылка
+        hasListing: json['has_listing'] as bool? ?? json['listing_url'] != null,
         sellerPhone: json['seller_phone'] as String?,
         askingPrice: json['asking_price'] as int?,
         customer: UserSummary.fromJson(json['customer'] as Map<String, dynamic>),

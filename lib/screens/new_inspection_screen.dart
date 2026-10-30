@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../models/car_catalog.dart';
 import '../models/order.dart';
 import '../models/time_slot.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/listing_url.dart';
 import '../util/ru_date.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
@@ -41,12 +45,24 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   late int _price;
   bool _submitting = false;
 
+  /// Подсказка по ссылке: догадка сервера и адрес, к которому она относится.
+  /// Отклонённые ✕ адреса больше не предлагаем.
+  ListingGuess? _guess;
+  String? _guessUrl;
+  final _dismissedUrls = <String>{};
+  Timer? _guessDebounce;
+
+  /// Пустое поле — строка «Подставим марку…»; не-ссылка — предупреждение.
+  bool _listingEmpty = true;
+  bool _listingInvalid = false;
+
   /// Шаг цены из макета (.price-step).
   static const _priceStep = 500;
 
   @override
   void initState() {
     super.initState();
+    _listingController.addListener(_onListingChanged);
     final based = widget.basedOn;
     _date = DateTime.now().add(const Duration(days: 1));
     _slot = based?.timeSlot ?? TimeSlot.day;
@@ -66,6 +82,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
 
   @override
   void dispose() {
+    _guessDebounce?.cancel();
     _listingController.dispose();
     _vinController.dispose();
     _brandController.dispose();
@@ -75,6 +92,68 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     _addressController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  /// Спрашиваем сервер, когда ввод замер на полсекунды: вставка ссылки —
+  /// одно событие, а печать руками не должна слать запрос на каждую букву.
+  void _onListingChanged() {
+    final url = _listingController.text.trim();
+    if (url == _guessUrl) return;
+    _guessDebounce?.cancel();
+    if (_guess != null || _listingInvalid || _listingEmpty != url.isEmpty) {
+      setState(() {
+        _guess = null;
+        _listingInvalid = false;
+        _listingEmpty = url.isEmpty;
+      });
+    }
+    _guessUrl = url;
+    if (url.isEmpty) return;
+    // и предупреждение, и подсказка — после паузы, а не на каждую букву
+    _guessDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      if (normalizeListingUrl(url) == null) {
+        setState(() => _listingInvalid = true);
+      } else if (!_dismissedUrls.contains(url)) {
+        _guessFor(url);
+      }
+    });
+  }
+
+  Future<void> _guessFor(String url) async {
+    ListingGuess? guess;
+    try {
+      guess = await widget.store.catalog.guessFromListing(url);
+    } catch (_) {
+      // подсказка необязательна: без сети просто не показываем её
+      return;
+    }
+    // пока ждали ответ, ссылку могли поменять — догадка уже не про неё
+    if (!mounted || url != _guessUrl) return;
+    setState(() => _guess = guess);
+  }
+
+  /// Догадка уже в полях — предлагать нечего.
+  bool _guessApplied(ListingGuess g) =>
+      _brandController.text.trim() == g.make.name &&
+      (g.model == null || _modelController.text.trim() == g.model!.name) &&
+      (g.year == null || _yearController.text.trim() == '${g.year}');
+
+  void _applyGuess(ListingGuess g) {
+    setState(() {
+      if (_brandController.text.trim() != g.make.name) _modelController.clear();
+      _brandController.text = g.make.name;
+      if (g.model != null) _modelController.text = g.model!.name;
+      if (g.year != null) _yearController.text = '${g.year}';
+      _guess = null;
+    });
+  }
+
+  void _dismissGuess() {
+    setState(() {
+      if (_guessUrl != null) _dismissedUrls.add(_guessUrl!);
+      _guess = null;
+    });
   }
 
   String get _carLabel {
@@ -145,6 +224,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
     final address = _addressController.text.trim();
     final vin = _vinController.text.trim();
+    final listing = _listingController.text.trim();
 
     final problem = switch (null) {
       _ when brand.isEmpty || model.isEmpty => 'Укажите марку и модель',
@@ -152,6 +232,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _ when mileage == null => 'Укажите пробег',
       _ when address.isEmpty => 'Укажите адрес осмотра',
       _ when vin.isNotEmpty && vin.length != 17 => 'VIN — ровно 17 символов',
+      _ when listing.isNotEmpty && normalizeListingUrl(listing) == null =>
+        'Похоже, это не ссылка на объявление',
       _ => null,
     };
     if (problem != null) {
@@ -172,7 +254,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         askingPrice: _price,
         inspectTime: _slot == TimeSlot.exact ? _exactTimeLabel : null,
         vin: vin.isEmpty ? null : vin,
-        listingUrl: _listingController.text.trim(),
+        listingUrl: listing,
         sellerPhone: _phoneController.text.trim(),
       );
       // созданный заказ — результатом: витрина по нему открывает «Мои заказы»
@@ -206,9 +288,20 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                   FieldBoxInput(
                     label: 'Ссылка на объявление',
                     controller: _listingController,
-                    hint: 'auto.ru/cars/used/sale/…',
+                    hint: 'Ссылка с Авито, Авто.ру или Дрома',
                     mono: true,
                   ),
+                  if (_listingInvalid)
+                    _FieldNote('Похоже, это не ссылка', error: true)
+                  else if (_listingEmpty)
+                    const _FieldNote('Подставим марку, модель и год'),
+                  if (_guess case final guess? when !_guessApplied(guess))
+                    _ListingGuessCard(
+                      guess: guess,
+                      replace: _brandController.text.trim().isNotEmpty,
+                      onApply: () => _applyGuess(guess),
+                      onDismiss: _dismissGuess,
+                    ),
                   // .or — разделитель «или»
                   const _OrDivider(),
                   FieldBoxInput(
@@ -371,6 +464,105 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
           Expanded(child: Divider(color: context.colors.line, height: 1)),
+        ],
+      ),
+    );
+  }
+}
+
+/// .field-hint — строка под полем: подсказка или (error) предупреждение.
+class _FieldNote extends StatelessWidget {
+  const _FieldNote(this.text, {this.error = false});
+
+  final String text;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      // поле уже отступает на 10 снизу — подтягиваем строку к нему
+      padding: const EdgeInsets.fromLTRB(2, 0, 2, 10),
+      child: Transform.translate(
+        offset: const Offset(0, -4),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            height: 1.45,
+            color: error ? context.colors.statusDefect : context.colors.text3,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// .guess — «Похоже, это Toyota Camry, 2019» под полем ссылки: поля
+/// заполняются только по кнопке.
+class _ListingGuessCard extends StatelessWidget {
+  const _ListingGuessCard({
+    required this.guess,
+    required this.replace,
+    required this.onApply,
+    required this.onDismiss,
+  });
+
+  final ListingGuess guess;
+
+  /// Поля уже заполнены чем-то другим — кнопка «Заменить», а не «Заполнить».
+  final bool replace;
+  final VoidCallback onApply;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+      decoration: BoxDecoration(
+        color: context.colors.bg1,
+        border: Border.all(color: context.colors.statusDone.withValues(alpha: 0.45)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome_outlined, size: 16, color: context.colors.statusDone),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: 'Похоже, это ',
+                style: TextStyle(fontSize: 13, color: context.colors.text2),
+                children: [
+                  TextSpan(
+                    text: guess.label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.text1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onApply,
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.statusDone,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 36),
+            ),
+            child: Text(
+              replace ? 'Заменить' : 'Заполнить',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          IconButton(
+            onPressed: onDismiss,
+            tooltip: 'Не то',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.close, size: 16, color: context.colors.text3),
+          ),
         ],
       ),
     );
