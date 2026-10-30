@@ -6,29 +6,68 @@ import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import 'inspection_repository.dart';
 
+const _body = {
+  'front_bumper', 'front_left_fender', 'front_right_fender', 'hood',
+  'front_left_door', 'front_right_door', 'rear_left_door', 'rear_right_door',
+  'roof', 'rear_left_fender', 'rear_right_fender', 'trunk', 'rear_bumper',
+};
+
+/// Тот же каталог и привязки, что в DefectSeeder на бекенде.
 const _mockDefects = [
-  DefectDef(id: 1, label: 'Царапины'),
-  DefectDef(id: 2, label: 'Скол ЛКП'),
-  DefectDef(id: 3, label: 'Вмятина'),
-  DefectDef(id: 4, label: 'Коррозия'),
-  DefectDef(id: 5, label: 'Перекрашено'),
-  DefectDef(id: 6, label: 'Зазоры'),
+  DefectDef(id: 1, label: 'Царапины', panelCodes: _body),
+  DefectDef(id: 2, label: 'Скол ЛКП', panelCodes: _body),
+  DefectDef(id: 3, label: 'Вмятина', panelCodes: {..._body, 'sills'}),
+  DefectDef(id: 4, label: 'Коррозия', panelCodes: {..._body, 'sills'}),
+  DefectDef(id: 5, label: 'Перекрашено', panelCodes: {..._body, 'sills'}),
+  DefectDef(id: 6, label: 'Зазоры', panelCodes: _body),
+  DefectDef(id: 7, label: 'Сквозная гниль', panelCodes: {'sills'}),
+  DefectDef(id: 8, label: 'Следы сварки', panelCodes: {'sills'}),
+  DefectDef(id: 9, label: 'Течь масла', panelCodes: {'engine'}),
+  DefectDef(id: 10, label: 'Течь ОЖ', panelCodes: {'engine'}),
+  DefectDef(id: 11, label: 'Посторонний стук', panelCodes: {'engine'}),
+  DefectDef(id: 12, label: 'Нестабильные обороты', panelCodes: {'engine'}),
+  DefectDef(id: 13, label: 'Дым из выхлопа', panelCodes: {'engine'}),
+  DefectDef(id: 14, label: 'Ошибки ЭБУ', panelCodes: {'engine'}),
+  DefectDef(id: 15, label: 'Скол', panelCodes: {'windows'}),
+  DefectDef(id: 16, label: 'Трещина', panelCodes: {'windows'}),
+  DefectDef(id: 17, label: 'Не заводское стекло', panelCodes: {'windows'}),
+  DefectDef(id: 18, label: 'Неисправен стеклоподъёмник', panelCodes: {'windows'}),
+  DefectDef(id: 19, label: 'VIN не совпадает', panelCodes: {'documents'}),
+  DefectDef(id: 20, label: 'Дубликат ПТС', panelCodes: {'documents'}),
+  DefectDef(id: 21, label: 'Залог или ограничения', panelCodes: {'documents'}),
+  DefectDef(id: 22, label: 'Много владельцев', panelCodes: {'documents'}),
+  DefectDef(id: 23, label: 'Пробег не сходится', panelCodes: {'documents'}),
 ];
 
 /// Повторяет ровно тот датасет, что зашит в HTML-макете
 /// (design/app_auto_podbor.html) и в DemoInspectionSeeder на бекенде:
-/// 6 done, 2 in-progress, 1 defect, 4 none — итого 9/13 оценено.
+/// 8 done, 3 in-progress, 1 defect, 5 none — итого 12/17 оценено
+/// (точки боковых кнопок: двигатель и окна готовы, пороги в работе).
 ///
 /// Хранит панели в памяти (не пересоздаёт на каждый fetch), чтобы
 /// поведение мутаций (updateCondition/toggleDefect) было таким же,
 /// как у ApiInspectionRepository — стору без разницы, с каким источником
 /// он работает.
 class MockInspectionRepository implements InspectionRepository {
-  MockInspectionRepository();
+  MockInspectionRepository() : _blank = false;
+
+  /// Только что начатый осмотр: те же пункты, ни одной оценки.
+  MockInspectionRepository.blank() : _blank = true;
+
+  final bool _blank;
 
   List<InspectionPanel>? _panels;
 
-  List<InspectionPanel> get _loadedPanels => _panels ??= _buildPanels();
+  List<InspectionPanel> get _loadedPanels =>
+      _panels ??= _blank ? [for (final p in _buildPanels()) _unrated(p)] : _buildPanels();
+
+  static InspectionPanel _unrated(InspectionPanel p) => InspectionPanel(
+        id: p.id,
+        name: p.name,
+        zone: p.zone,
+        kind: p.kind,
+        status: PanelStatus.none,
+      );
 
   @override
   Future<InspectionSnapshot> fetchInspection() async {
@@ -146,6 +185,37 @@ class MockInspectionRepository implements InspectionRepository {
           id: 'rear_bumper',
           name: 'Задний бампер',
           zone: 'Зад',
+          status: PanelStatus.none,
+        ),
+        InspectionPanel(
+          id: 'engine',
+          name: 'Двигатель',
+          zone: 'Дополнительно',
+          kind: 'extra',
+          condition: PanelCondition.good,
+          status: PanelStatus.done,
+        ),
+        InspectionPanel(
+          id: 'sills',
+          name: 'Пороги',
+          zone: 'Дополнительно',
+          kind: 'extra',
+          condition: PanelCondition.satisfactory,
+          status: PanelStatus.inProgress,
+        ),
+        InspectionPanel(
+          id: 'windows',
+          name: 'Окна',
+          zone: 'Дополнительно',
+          kind: 'extra',
+          condition: PanelCondition.excellent,
+          status: PanelStatus.done,
+        ),
+        InspectionPanel(
+          id: 'documents',
+          name: 'Документы',
+          zone: 'Дополнительно',
+          kind: 'extra',
           status: PanelStatus.none,
         ),
       ];

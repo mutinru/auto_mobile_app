@@ -12,7 +12,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/audio_note.dart';
-import '../widgets/car_schematic.dart';
+import '../widgets/inspection_schematic.dart';
 import '../widgets/inspection_order_parts.dart';
 import '../widgets/inspection_report_parts.dart';
 import 'panel_list_view.dart';
@@ -151,12 +151,12 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
         ReportStats(panels: panels),
 
         const SizedBox(height: 22),
-        const SectionHead('Схема', extra: 'нажмите на деталь'),
+        const SectionHead('Схема', extra: 'нажмите на пункт'),
         // схема 360×720: по высоте 380 — читается и не съедает экран
         SizedBox(
           height: 380,
-          child: CarSchematic(
-            statuses: {for (final p in panels) p.id: p.status},
+          child: InspectionSchematic(
+            panels: panels,
             onTapPanel: (id) => _openPanel(store.panelById(id)),
           ),
         ),

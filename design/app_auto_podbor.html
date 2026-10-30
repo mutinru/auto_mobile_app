@@ -262,6 +262,17 @@
     box-shadow: 0 1px 0 rgba(255,255,255,0.04);
   }
 
+  /* подсказка над схемой: пока ничего не оценено (исполнитель) или всегда (заказчик) */
+  .schematic-hint {
+    margin: -4px 22px 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+
   /* ============== Car schematic ============== */
   .schematic {
     padding: 4px 20px 6px;
@@ -755,6 +766,10 @@
     align-items: center;
     min-height: 0;
   }
+
+  /* без stretch .schematic берёт высоту содержимого, и height:100% у SVG
+     не ограничен: машина вылезает на переключатель и подсказку */
+  .schematic-wrap > .schematic { align-self: stretch; }
 
   /* ============== Side rail buttons ============== */
   .side-rail {
@@ -2149,6 +2164,226 @@
       </div>
     </div>
 
+    <!-- ===================== Phone 1a: Overview, новый осмотр ===================== -->
+    <div class="frame">
+      <div class="frame-label">06а · схема, новый осмотр</div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+
+          <div class="status-bar">
+            <span>9:41</span>
+            <div class="status-bar-icons">
+              <div class="signal"><span></span><span></span><span></span><span></span></div>
+              <div class="battery"></div>
+            </div>
+          </div>
+
+          <div class="head">
+            <div class="head-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 17a2 2 0 1 0 4 0M15 17a2 2 0 1 0 4 0M3 17h2M19 17h2M3 17v-4l2-5h14l2 5v4M5 13h14"/>
+              </svg>
+            </div>
+            <div class="head-text">
+              <div class="head-title">Toyota Camry 2019</div>
+              <div class="head-meta">VIN ··· KX24P · 127 450 км</div>
+            </div>
+            <div class="head-action">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+            </div>
+          </div>
+
+          <div class="toggle">
+            <div class="toggle-btn active">Схема</div>
+            <div class="toggle-btn">Список</div>
+          </div>
+
+          <div class="schematic-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9.5V4a2 2 0 0 0-4 0v10l-1.4-1.4a2 2 0 0 0-2.8 2.8l3.6 3.6C6.9 20.5 8.6 22 12 22h2a8 8 0 0 0 8-8v-3a2 2 0 1 0-4 0M14 10V9a2 2 0 0 0-4 0v1M18 11v-1a2 2 0 0 0-4 0"/></svg>
+            Нажмите на деталь или пункт сбоку
+          </div>
+
+          <!-- Schematic -->
+          <div class="schematic-wrap">
+            <div class="panel-label"></div>
+
+            <div class="side-rail left">
+              <button class="side-btn">
+                <span class="side-btn-dot" style="background:var(--st-none)"></span>
+                <span class="side-btn-label">Двигатель</span>
+              </button>
+              <button class="side-btn">
+                <span class="side-btn-dot" style="background:var(--st-none)"></span>
+                <span class="side-btn-label">Пороги</span>
+              </button>
+            </div>
+
+            <div class="side-rail right">
+              <button class="side-btn">
+                <span class="side-btn-dot" style="background:var(--st-none)"></span>
+                <span class="side-btn-label">Окна</span>
+              </button>
+              <button class="side-btn">
+                <span class="side-btn-dot" style="background:var(--st-none)"></span>
+                <span class="side-btn-label">Документы</span>
+              </button>
+            </div>
+
+            <div class="schematic">
+              <svg class="car-svg" viewBox="0 0 360 720" xmlns="http://www.w3.org/2000/svg">
+
+                <!-- wheels -->
+                <g class="deco">
+                  <rect x="30"  y="150" width="30" height="90" rx="14" fill="#0B0E11" stroke="#232B34"/>
+                  <rect x="300" y="150" width="30" height="90" rx="14" fill="#0B0E11" stroke="#232B34"/>
+                  <rect x="30"  y="512" width="30" height="90" rx="14" fill="#0B0E11" stroke="#232B34"/>
+                  <rect x="300" y="512" width="30" height="90" rx="14" fill="#0B0E11" stroke="#232B34"/>
+                </g>
+
+                <!-- body -->
+                <path class="deco" d="M180 24 C 232 24, 272 38, 288 84 C 298 114, 303 150, 305 195
+                         C 307 255, 309 320, 309 370 C 309 430, 307 500, 303 555
+                         C 300 606, 288 652, 262 674 C 240 690, 212 696, 180 696
+                         C 148 696, 120 690, 98 674 C 72 652, 60 606, 57 555
+                         C 53 500, 51 430, 51 370 C 51 320, 53 255, 55 195
+                         C 57 150, 62 114, 72 84 C 88 38, 128 24, 180 24 Z"
+                      fill="#141A20" stroke="#242D37" stroke-width="2"/>
+
+                <!-- Front bumper -->
+                <path class="panel none" data-name="Передний бампер"
+                      d="M67 150 C 69 112, 78 80, 92 60 C 112 36, 144 30, 180 30
+                         C 216 30, 248 36, 268 60 C 282 80, 291 112, 293 150
+                         C 258 120, 226 112, 180 112 C 134 112, 102 120, 67 150 Z"/>
+                <!-- headlights -->
+                <g class="deco" fill="#2C3946">
+                  <path d="M84 96 L128 78 L134 92 L92 112 Z"/>
+                  <path d="M276 96 L232 78 L226 92 L268 112 Z"/>
+                </g>
+
+                <!-- Front-left fender -->
+                <path class="panel none" data-name="Переднее левое крыло"
+                      d="M67 154 C 62 186, 59 219, 58 252 L100 252 C 100 218, 101 186, 104 158 C 90 151, 78 150, 67 154 Z"/>
+                <!-- Front-right fender -->
+                <path class="panel none" data-name="Переднее правое крыло"
+                      d="M293 154 C 298 186, 301 219, 302 252 L260 252 C 260 218, 259 186, 256 158 C 270 151, 282 150, 293 154 Z"/>
+
+                <!-- Hood -->
+                <path class="panel none" data-name="Капот"
+                      d="M104 158 C 130 122, 150 116, 180 116 C 210 116, 230 122, 256 158
+                         C 259 190, 260 221, 260 252 L100 252 C 100 221, 101 190, 104 158 Z"/>
+                <!-- hood creases -->
+                <g class="deco" stroke="#0F1317" stroke-width="2" opacity=".45" fill="none">
+                  <path d="M150 142 C 146 176, 144 210, 144 246"/>
+                  <path d="M210 142 C 214 176, 216 210, 216 246"/>
+                </g>
+
+                <!-- Windshield (glass) -->
+                <path class="glass" d="M106 256 L254 256 C 250 279, 242 300, 231 314 L129 314 C 118 300, 110 279, 106 256 Z"/>
+
+                <!-- mirrors -->
+                <g class="deco" fill="#2C3946" stroke="#0F1317" stroke-width="2">
+                  <path d="M56 258 C 40 250, 29 256, 32 269 C 35 280, 52 278, 57 268 Z"/>
+                  <path d="M304 258 C 320 250, 331 256, 328 269 C 325 280, 308 278, 303 268 Z"/>
+                </g>
+
+                <!-- Front-left door -->
+                <path class="panel none" data-name="Передняя левая дверь" d="M58 256 L100 256 L100 380 L57 380 C 56.4 338, 56.8 297, 58 256 Z"/>
+                <!-- Front-right door -->
+                <path class="panel none" data-name="Передняя правая дверь" d="M302 256 L260 256 L260 380 L303 380 C 303.6 338, 303.2 297, 302 256 Z"/>
+                <!-- Rear-left door -->
+                <path class="panel none" data-name="Задняя левая дверь" d="M57 384 L100 384 L100 504 L58.5 504 C 57.4 464, 56.9 424, 57 384 Z"/>
+                <!-- Rear-right door -->
+                <path class="panel none" data-name="Задняя правая дверь" d="M303 384 L260 384 L260 504 L301.5 504 C 302.6 464, 303.1 424, 303 384 Z"/>
+                <!-- door handles -->
+                <g class="deco" fill="#0F1317" opacity=".55">
+                  <rect x="84" y="268" width="12" height="4" rx="2"/><rect x="264" y="268" width="12" height="4" rx="2"/>
+                  <rect x="84" y="394" width="12" height="4" rx="2"/><rect x="264" y="394" width="12" height="4" rx="2"/>
+                </g>
+
+                <!-- Roof -->
+                <path class="panel none" data-name="Крыша"
+                      d="M126 318 L234 318 C 246 320, 252 328, 253 340 L255 464 L105 464 L107 340 C 108 328, 114 320, 126 318 Z"/>
+                <!-- sunroof + antenna -->
+                <g class="deco">
+                  <rect x="138" y="336" width="84" height="58" rx="10" fill="#10161C" stroke="#0F1317" stroke-width="2"/>
+                  <path d="M174 452 L186 452 L181 442 Z" fill="#0F1317"/>
+                </g>
+
+                <!-- Rear window (glass) -->
+                <path class="glass" d="M105 468 L255 468 C 258 488, 263 504, 269 516 L91 516 C 97 504, 102 488, 105 468 Z"/>
+
+                <!-- Rear-left fender -->
+                <path class="panel none" data-name="Заднее левое крыло" d="M57 508 L100 508 L100 612 L64 612 C 60.5 578, 58.4 544, 57 508 Z"/>
+                <!-- Rear-right fender -->
+                <path class="panel none" data-name="Заднее правое крыло" d="M303 508 L260 508 L260 612 L296 612 C 299.5 578, 301.6 544, 303 508 Z"/>
+
+                <!-- Trunk -->
+                <path class="panel none" data-name="Крышка багажника"
+                      d="M92 520 C 122 529, 238 529, 268 520 C 265 551, 263 581, 261 610 L99 610 C 97 581, 95 551, 92 520 Z"/>
+
+                <!-- Rear bumper -->
+                <path class="panel none" data-name="Задний бампер"
+                      d="M63 616 L297 616 C 294 646, 280 668, 254 682 C 232 692, 208 696, 180 696
+                         C 152 696, 128 692, 106 682 C 80 668, 66 646, 63 616 Z"/>
+                <!-- taillights -->
+                <g class="deco" fill="#3A2530">
+                  <path d="M92 640 L146 632 L148 646 L96 655 Z"/>
+                  <path d="M268 640 L214 632 L212 646 L264 655 Z"/>
+                </g>
+
+              </svg>
+            </div>
+          </div>
+
+          <div class="progress-block">
+            <div class="progress-row">
+              <div class="progress-count">0<span class="slash">/</span><span class="total">17</span></div>
+              <div class="progress-label">пунктов оценено</div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+            </div>
+            <div class="legend">
+              <div class="legend-item"><span class="legend-dot" style="background:var(--st-done)"></span>Готово</div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--st-progress)"></span>В работе</div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--st-defect)"></span>Дефект</div>
+              <div class="legend-item"><span class="legend-dot" style="background:var(--st-none)"></span>Не начато</div>
+            </div>
+          </div>
+
+          <div class="cta-area">
+            <button class="next-btn">
+              <div class="next-btn-text">
+                <div class="next-btn-label">Начать осмотр</div>
+                <div class="next-btn-name">Передний бампер</div>
+              </div>
+              <div class="next-btn-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </div>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <!-- ===================== Phone 1: Overview ===================== -->
     <div class="frame">
       <div class="frame-label">06 · схема</div>
@@ -2318,22 +2553,26 @@
 
           <div class="progress-block">
             <div class="progress-row">
-              <div class="progress-count">9<span class="slash">/</span><span class="total">13</span></div>
-              <div class="progress-label">деталей оценено</div>
+              <div class="progress-count">12<span class="slash">/</span><span class="total">17</span></div>
+              <div class="progress-label">пунктов оценено</div>
             </div>
             <div class="progress-bar">
-              <div class="progress-seg" style="background:var(--st-done)"></div>
-              <div class="progress-seg" style="background:var(--st-done)"></div>
-              <div class="progress-seg" style="background:var(--st-done)"></div>
-              <div class="progress-seg" style="background:var(--st-done)"></div>
-              <div class="progress-seg" style="background:var(--st-done)"></div>
-              <div class="progress-seg" style="background:var(--st-done)"></div>
               <div class="progress-seg" style="background:var(--st-progress)"></div>
-              <div class="progress-seg" style="background:var(--st-progress)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
               <div class="progress-seg" style="background:var(--st-defect)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
+              <div class="progress-seg" style="background:var(--st-progress)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
               <div class="progress-seg" style="background:var(--st-none)"></div>
               <div class="progress-seg" style="background:var(--st-none)"></div>
               <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-none)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
+              <div class="progress-seg" style="background:var(--st-progress)"></div>
+              <div class="progress-seg" style="background:var(--st-done)"></div>
               <div class="progress-seg" style="background:var(--st-none)"></div>
             </div>
             <div class="legend">
@@ -2345,9 +2584,14 @@
           </div>
 
           <div class="cta-area">
-            <button class="cta-btn">
-              <span>Сформировать отчёт</span>
-              <span class="cta-btn-tail">осталось 4</span>
+            <button class="next-btn">
+              <div class="next-btn-text">
+                <div class="next-btn-label">Продолжить</div>
+                <div class="next-btn-name">Заднее левое крыло</div>
+              </div>
+              <div class="next-btn-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </div>
             </button>
           </div>
 

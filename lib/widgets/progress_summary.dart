@@ -5,7 +5,7 @@ import '../models/panel_status.dart';
 import '../theme/app_colors.dart';
 import 'status_dot.dart';
 
-/// Блок "X/Total деталей оценено" + сегментированный прогресс-бар + легенда.
+/// Блок "X/Total пунктов оценено" + сегментированный прогресс-бар + легенда.
 /// Соответствует .progress-block из макета.
 class ProgressSummary extends StatelessWidget {
   const ProgressSummary({super.key, required this.panels});
@@ -47,7 +47,7 @@ class ProgressSummary extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                'деталей оценено',
+                'пунктов оценено',
                 style: TextStyle(color: context.colors.text2, fontSize: 12),
               ),
             ],

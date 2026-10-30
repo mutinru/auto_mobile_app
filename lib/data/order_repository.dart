@@ -106,7 +106,7 @@ abstract class OrderRepository {
     String? licensePlate,
   });
 
-  /// Начать осмотр кандидата — бекенд сам создаёт 13 деталей.
+  /// Начать осмотр кандидата — бекенд сам создаёт все пункты (кузов и extra).
   /// Возвращает id созданного осмотра.
   Future<int> startInspection(
     int orderId,

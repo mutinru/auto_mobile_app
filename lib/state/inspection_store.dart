@@ -26,6 +26,10 @@ class InspectionStore extends ChangeNotifier {
   Car? _car;
   List<InspectionPanel> _panels = const [];
   List<DefectDef> _defectCatalog = const [];
+
+  /// код пункта -> метки доступных дефектов в порядке каталога; строится
+  /// один раз при [load], экран детали читает его на каждой перерисовке.
+  Map<String, List<String>> _defectsByPanel = const {};
   bool _loading = false;
   String? _loadError;
 
@@ -35,13 +39,29 @@ class InspectionStore extends ChangeNotifier {
   /// гейт там ещё и на car == null.
   String? get loadError => _loadError;
   List<InspectionPanel> get panels => List.unmodifiable(_panels);
-  List<String> get defectLabels => _defectCatalog.map((d) => d.label).toList();
+
+  /// Чипы дефектов для пункта: доступные ему плюс уже отмеченные вне списка
+  /// (каталог могли поменять после отметки — снять такой дефект сервер даёт).
+  List<String> defectLabelsFor(InspectionPanel panel) {
+    final allowed = _defectsByPanel[panel.id] ?? const <String>[];
+    final stale = panel.defects.where((d) => !allowed.contains(d));
+    return stale.isEmpty ? allowed : [...allowed, ...stale];
+  }
   bool get isLoading => _loading;
 
   int get totalCount => _panels.length;
   int get evaluatedCount =>
       _panels.where((p) => p.status != PanelStatus.none).length;
   int get remainingCount => totalCount - evaluatedCount;
+
+  /// Первый неоценённый пункт в серверном порядке (кузов, затем extra) —
+  /// с него схема предлагает начать или продолжить осмотр.
+  InspectionPanel? get firstUnrated {
+    for (final p in _panels) {
+      if (p.status == PanelStatus.none) return p;
+    }
+    return null;
+  }
 
   /// Ошибка не пробрасывается — она в [loadError], экран рисует её с
   /// «Повторить» вместо вечного спиннера.
@@ -58,12 +78,28 @@ class InspectionStore extends ChangeNotifier {
       _car = snapshot.car;
       _panels = snapshot.panels;
       _defectCatalog = results[1] as List<DefectDef>;
+      _defectsByPanel = _indexDefects(_defectCatalog, _panels);
     } catch (e) {
       _loadError = apiErrorText(e);
     } finally {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  static Map<String, List<String>> _indexDefects(
+    List<DefectDef> catalog,
+    List<InspectionPanel> panels,
+  ) {
+    // Бекенд без привязок (поле panels не пришло) — весь каталог на всё, как раньше.
+    final unscoped = catalog.every((d) => d.panelCodes.isEmpty);
+    return {
+      for (final p in panels)
+        p.id: [
+          for (final d in catalog)
+            if (unscoped || d.panelCodes.contains(p.id)) d.label,
+        ],
+    };
   }
 
   InspectionPanel panelById(String id) =>

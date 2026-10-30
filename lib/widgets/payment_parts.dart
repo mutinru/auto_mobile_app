@@ -116,7 +116,7 @@ class _CopyRow extends StatelessWidget {
   }
 }
 
-/// «Осмотрено 13 из 13 деталей · 2 дефекта · 5 фото» — без вердикта.
+/// «Осмотрено 17 из 17 пунктов · 2 дефекта · 5 фото» — без вердикта.
 class ReportSummaryBox extends StatelessWidget {
   const ReportSummaryBox({super.key, required this.summary});
 
@@ -137,7 +137,7 @@ class ReportSummaryBox extends StatelessWidget {
               children: [
                 Text(
                   'Осмотрено ${s.panelsInspected} из ${s.panelsTotal} '
-                  '${plural(s.panelsTotal, 'детали', 'деталей', 'деталей')} · '
+                  '${plural(s.panelsTotal, 'пункта', 'пунктов', 'пунктов')} · '
                   '${counted(s.defectsCount, 'дефект', 'дефекта', 'дефектов')} · '
                   '${s.photosCount} фото',
                   style: TextStyle(

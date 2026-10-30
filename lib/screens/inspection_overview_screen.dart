@@ -5,7 +5,7 @@ import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
-import '../widgets/car_schematic.dart';
+import '../widgets/inspection_schematic.dart';
 import '../widgets/progress_summary.dart';
 import 'inspection_summary_screen.dart';
 import 'panel_detail_screen.dart';
@@ -46,6 +46,32 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
       ),
     );
     setState(() {});
+  }
+
+  /// Главная кнопка ведёт по осмотру: пока есть неоценённые пункты, она
+  /// открывает первый из них (дальше по цепочке — «Дальше» в карточке),
+  /// после — сводка и отчёт.
+  Widget _primaryAction(InspectionStore store) {
+    final next = store.firstUnrated;
+    if (next != null) {
+      return NextStepButton(
+        caption: store.evaluatedCount == 0 ? 'Начать осмотр' : 'Продолжить',
+        title: next.name,
+        onPressed: () => _openPanel(next.id),
+      );
+    }
+    return NextStepButton(
+      caption: 'Осмотр завершён',
+      title: 'Сформировать отчёт',
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => InspectionSummaryScreen(
+            store: store,
+            onSendReport: widget.onSendReport,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -151,14 +177,21 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                   activeIndex: _tab,
                   onChanged: (i) => setState(() => _tab = i),
                 ),
+                // Подсказка только на схеме: в списке строки и так читаются как
+                // кнопки. Исполнителю — пока ничего не оценено, заказчику — всегда.
+                if (_tab == 0 && (store.readOnly || store.evaluatedCount == 0))
+                  _SchematicHint(
+                    // одна строка: «по порядку» и так говорит зелёная кнопка внизу
+                    store.readOnly
+                        ? 'Нажмите на деталь, чтобы посмотреть оценку'
+                        : 'Нажмите на деталь или пункт сбоку',
+                  ),
                 Expanded(
                   child: _tab == 0
                       ? Padding(
                           padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
-                          child: CarSchematic(
-                            statuses: {
-                              for (final p in store.panels) p.id: p.status,
-                            },
+                          child: InspectionSchematic(
+                            panels: store.panels,
                             onTapPanel: _openPanel,
                           ),
                         )
@@ -181,67 +214,46 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                     ),
                   )
                 else
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
-                  child: SizedBox(
-                    width: double.infinity,
-                    // .cta-btn — приглушённая кнопка, пока осмотр не завершён
-                    child: OutlinedButton(
-                      onPressed: store.remainingCount == 0
-                          ? () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => InspectionSummaryScreen(
-                                  store: store,
-                                  onSendReport: widget.onSendReport,
-                                ),
-                              ),
-                            )
-                          : null,
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: context.colors.bg1,
-                        side: BorderSide(color: context.colors.line),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 15,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Сформировать отчёт',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: store.remainingCount == 0
-                                  ? context.colors.text1
-                                  : context.colors.text3,
-                            ),
-                          ),
-                          Text(
-                            store.remainingCount == 0
-                                ? 'готово'
-                                : 'осталось ${store.remainingCount}',
-                            style: TextStyle(
-                              fontFamily: AppTheme.monoFamily,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: context.colors.text3,
-                            ),
-                          ),
-                        ],
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: _primaryAction(store),
                     ),
                   ),
-                ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// .schematic-hint — строка над схемой: что здесь можно нажать.
+class _SchematicHint extends StatelessWidget {
+  const _SchematicHint(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.touch_app_outlined, size: 14, color: context.colors.text3),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: context.colors.text3),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -308,8 +308,8 @@ class MockOrderRepository implements OrderRepository {
       status: OrderStatus.reportReady,
       payout: mockPayout,
       reportSummary: const ReportSummary(
-        panelsTotal: 13,
-        panelsInspected: 13,
+        panelsTotal: 17,
+        panelsInspected: 17,
         defectsCount: 2,
         photosCount: 5,
       ),

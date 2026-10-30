@@ -40,6 +40,21 @@ class ApiClient {
     return _decode(response);
   }
 
+  /// GET с If-None-Match: null — ресурс не изменился (304), вызывающий
+  /// берёт свою копию. Для статичных справочников вроде /defects.
+  Future<({Map<String, dynamic> json, String? etag})?> getIfChanged(
+    String path, {
+    String? etag,
+  }) async {
+    await _auth.ensureUser();
+    final response = await http.get(
+      _uri(path),
+      headers: {..._headers, 'If-None-Match': ?etag},
+    );
+    if (response.statusCode == 304) return null;
+    return (json: _decode(response), etag: response.headers['etag']);
+  }
+
   Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) async {
     await _auth.ensureUser();
     final response = await http.patch(_uri(path), headers: _headers, body: jsonEncode(body));

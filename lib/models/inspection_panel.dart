@@ -2,16 +2,18 @@ import '../config/api_config.dart';
 import 'panel_condition.dart';
 import 'panel_status.dart';
 
-/// Деталь кузова в рамках одного осмотра.
+/// Пункт осмотра: деталь кузова на схеме или пункт вне её
+/// (двигатель, пороги, окна, документы) — см. [isExtra].
 ///
 /// Поля зеркалят InspectionPanelResource на бекенде
 /// (app/Http/Resources/InspectionPanelResource.php):
-/// id, name, zone, status, condition, defects, photoCount, audio*.
+/// id, name, zone, kind, status, condition, defects, photoCount, audio*.
 class InspectionPanel {
   InspectionPanel({
     required this.id,
     required this.name,
     required this.zone,
+    this.kind = 'body',
     required this.status,
     this.condition,
     Set<String>? defects,
@@ -25,8 +27,13 @@ class InspectionPanel {
   final String id;
   final String name;
 
-  /// Зона кузова для группировки в списке (Перед / Двери и крылья / Верх / Зад).
+  /// Зона для группировки в списке (Перед / Двери / Верх / Зад / Дополнительно).
   final String zone;
+
+  /// body — деталь на схеме кузова, extra — кнопка в боковой колонке схемы.
+  final String kind;
+
+  bool get isExtra => kind == 'extra';
 
   PanelStatus status;
   PanelCondition? condition;
@@ -58,6 +65,7 @@ class InspectionPanel {
       id: json['id'] as String,
       name: json['name'] as String,
       zone: json['zone'] as String,
+      kind: json['kind'] as String? ?? 'body',
       status: panelStatusFromApi(json['status'] as String),
       condition: panelConditionFromApi(json['condition'] as String?),
       defects: {

@@ -30,7 +30,7 @@ import 'inspection_report_screen.dart';
 ///
 /// Отдельный экран, а не ветка в [InspectionOrderDetailScreen]: у заказчика
 /// там выбор исполнителя по откликам, у исполнителя — работа по заказу.
-/// Тип осмотра не выбирается — всегда полный (13 деталей).
+/// Тип осмотра не выбирается — всегда полный (17 пунктов).
 class AssignedInspectionScreen extends StatefulWidget {
   const AssignedInspectionScreen({
     super.key,
@@ -139,7 +139,7 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     );
   }
 
-  /// Бекенд создаёт осмотр с 13 деталями и переводит заказ в «на осмотре»;
+  /// Бекенд создаёт осмотр со всеми пунктами и переводит заказ в «на осмотре»;
   /// сразу открываем осмотр, чтобы не искать его вторым нажатием.
   Future<void> _start(Order order) async {
     int? inspectionId;

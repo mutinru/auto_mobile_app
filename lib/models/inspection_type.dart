@@ -4,7 +4,7 @@ enum InspectionType { full, express, bodyOnly, prePurchase }
 
 extension InspectionTypeX on InspectionType {
   String get label => switch (this) {
-        InspectionType.full => 'Полный · 13 деталей',
+        InspectionType.full => 'Полный · 17 пунктов',
         InspectionType.express => 'Экспресс',
         InspectionType.bodyOnly => 'Кузов',
         InspectionType.prePurchase => 'Перед покупкой',

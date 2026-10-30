@@ -39,7 +39,7 @@ void main() {
         executorDeadlineAt: deadline,
         payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,
         reportSummary: status.isAwaitingPayment
-            ? const ReportSummary(panelsTotal: 13, panelsInspected: 13, defectsCount: 2, photosCount: 5)
+            ? const ReportSummary(panelsTotal: 17, panelsInspected: 17, defectsCount: 2, photosCount: 5)
             : null,
         cars: const [
           OrderCar(
@@ -149,7 +149,7 @@ void main() {
 
     expect(find.text('3 500 ₽'), findsWidgets);
     expect(find.text('2200 7000 0000 0009'), findsOneWidget);
-    expect(find.textContaining('Осмотрено 13 из 13'), findsOneWidget);
+    expect(find.textContaining('Осмотрено 17 из 17 пунктов'), findsOneWidget);
     // вердикт до оплаты не показываем, даже если он пришёл
     expect(find.text('Не рекомендую'), findsNothing);
 

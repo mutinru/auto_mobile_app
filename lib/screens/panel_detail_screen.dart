@@ -6,6 +6,7 @@ import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
+import '../widgets/app_ui.dart';
 import '../widgets/audio_note.dart';
 import '../widgets/status_dot.dart';
 
@@ -209,7 +210,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          for (final d in store.defectLabels)
+                          for (final d in store.defectLabelsFor(panel))
                             _DefectChip(
                               label: d,
                               on: panel.defects.contains(d),
@@ -315,58 +316,12 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                   child: SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
+                    child: NextStepButton(
+                      caption: 'Дальше',
+                      title: next?.name ?? 'Завершить осмотр',
                       onPressed: next == null
                           ? () => Navigator.of(context).pop()
                           : () => setState(() => _panelId = next.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.colors.statusDone,
-                        foregroundColor: context.colors.modeBuyInk,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 14, horizontal: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'ДАЛЬШЕ',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                next?.name ?? 'Завершить осмотр',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: context.colors.modeBuyInk,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward,
-                              color: context.colors.statusDone,
-                              size: 16,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),

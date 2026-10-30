@@ -641,3 +641,77 @@ class VinFormatter extends TextInputFormatter {
     );
   }
 }
+
+/// .next-btn — зелёная кнопка «следующий шаг»: подпись капсом, название
+/// пункта и круг со стрелкой. «Дальше» на экране детали и «Начать осмотр» /
+/// «Продолжить» на схеме.
+class NextStepButton extends StatelessWidget {
+  const NextStepButton({
+    super.key,
+    required this.caption,
+    required this.title,
+    required this.onPressed,
+  });
+
+  final String caption;
+  final String title;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: context.colors.statusDone,
+        foregroundColor: context.colors.modeBuyInk,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  caption.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: context.colors.modeBuyInk,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.arrow_forward,
+              color: context.colors.statusDone,
+              size: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

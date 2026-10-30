@@ -20,6 +20,11 @@ class ApiInspectionRepository implements InspectionRepository {
   final ApiClient _client;
   final int inspectionId;
 
+  /// Каталог дефектов общий для всех осмотров и меняется только сидером на
+  /// бекенде — держим одну копию на процесс и переспрашиваем по ETag (304).
+  static List<DefectDef>? _catalog;
+  static String? _catalogEtag;
+
   @override
   Future<InspectionSnapshot> fetchInspection() async {
     final json = await _client.get('/inspections/$inspectionId');
@@ -33,10 +38,18 @@ class ApiInspectionRepository implements InspectionRepository {
 
   @override
   Future<List<DefectDef>> fetchDefectCatalog() async {
-    final json = await _client.get('/defects');
-    return (json['data'] as List)
-        .map((d) => DefectDef(id: d['id'] as int, label: d['label'] as String))
-        .toList();
+    // ETag шлём только при наличии копии — иначе 304 нечем было бы ответить
+    final fresh = await _client.getIfChanged(
+      '/defects',
+      etag: _catalog == null ? null : _catalogEtag,
+    );
+    if (fresh != null) {
+      _catalog = [
+        for (final d in fresh.json['data'] as List) DefectDef.fromJson(d as Map<String, dynamic>),
+      ];
+      _catalogEtag = fresh.etag;
+    }
+    return _catalog!;
   }
 
   @override
