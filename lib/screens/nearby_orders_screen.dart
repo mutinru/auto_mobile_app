@@ -520,7 +520,7 @@ class _JobCard extends StatelessWidget {
             _responsesLabel(order.responsesCount),
           ].join(' · ')
         : [
-            if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
+            ?budgetShort(order.budgetMin, order.budgetMax),
             _responsesLabel(order.responsesCount),
           ].join(' · ');
 

@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/budget_scale.dart';
 import '../widgets/car_picker_sheet.dart';
 import '../widgets/city_picker_sheet.dart';
 
@@ -33,7 +34,14 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   final _mileageController = TextEditingController();
   final _commentController = TextEditingController();
 
-  RangeValues _budget = const RangeValues(1800000, 2400000);
+  /// Положения ручек — индексы отметок `BudgetScale`, не рубли.
+  RangeValues _budget = RangeValues(
+    BudgetScale.indexOf(1800000).toDouble(),
+    BudgetScale.indexOf(2400000).toDouble(),
+  );
+
+  int get _budgetMin => BudgetScale.minAt(_budget.start.round());
+  int? get _budgetMax => BudgetScale.maxAt(_budget.end.round());
   /// Пусто, пока не определили по геопозиции или не выбрали в листе.
   Set<String> _cities = {};
 
@@ -107,10 +115,17 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   Future<void> _submit() async {
-    if (_brandController.text.trim().isEmpty || _modelController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Укажите марку и модель')),
-      );
+    final year = int.tryParse(_yearController.text);
+    final problem = switch (null) {
+      _ when _brandController.text.trim().isEmpty || _modelController.text.trim().isEmpty =>
+        'Укажите марку и модель',
+      _ when year != null && yearProblem(year) != null => yearProblem(year),
+      // без города исполнитель не поймёт, где искать; сервер тоже требует
+      _ when _cities.isEmpty => 'Выберите город поиска',
+      _ => null,
+    };
+    if (problem != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
 
@@ -119,10 +134,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       final order = await widget.store.createOrder(
         brand: _brandController.text.trim(),
         model: _modelController.text.trim(),
-        yearFrom: int.tryParse(_yearController.text),
+        yearFrom: year,
         mileageTo: int.tryParse(_mileageController.text.replaceAll(' ', '')),
-        budgetMin: _budget.start.round(),
-        budgetMax: _budget.end.round(),
+        budgetMin: _budgetMin,
+        budgetMax: _budgetMax,
         cities: _cities.toList(),
         requirements: _requirements.toList(),
         comment: _commentController.text.trim().isEmpty
@@ -184,6 +199,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                           hint: '2018',
                           mono: true,
                           keyboardType: TextInputType.number,
+                          inputFormatters: digitsOnly,
+                          maxLength: 4,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -191,10 +208,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         child: FieldBoxInput(
                           label: 'Пробег до',
                           controller: _mileageController,
-                          hint: '120 000',
+                          hint: '120000',
                           mono: true,
                           unit: 'км',
                           keyboardType: TextInputType.number,
+                          inputFormatters: digitsOnly,
+                          maxLength: 7,
                         ),
                       ),
                     ],
@@ -204,7 +223,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   const SectionHead('Бюджет', extra: 'с учётом торга'),
                   // .budget-val
                   Text(
-                    '${money(_budget.start.round())} — ${money(_budget.end.round())} ₽',
+                    budgetRange(_budgetMin, _budgetMax)!,
                     style: TextStyle(
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 18,
@@ -233,11 +252,11 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     ),
                     child: RangeSlider(
                       values: _budget,
-                      // 300 тыс. — 5 млн шагом по 100 тыс.: типичный бюджет
-                      // ложится на середину дорожки, как в макете
-                      min: 300000,
-                      max: 5000000,
-                      divisions: 47,
+                      // 150 тыс. — 15 млн+ по нелинейной шкале (BudgetScale);
+                      // крайняя правая отметка — бюджет без потолка
+                      min: 0,
+                      max: BudgetScale.openIndex.toDouble(),
+                      divisions: BudgetScale.openIndex,
                       onChanged: (v) => setState(() => _budget = v),
                     ),
                   ),
@@ -283,6 +302,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     controller: _commentController,
                     hint: 'Пожелания к цвету, комплектации, срокам…',
                     maxLines: 3,
+                    maxLength: 2000,
                     minHeight: 64,
                   ),
                 ],

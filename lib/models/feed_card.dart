@@ -7,6 +7,7 @@ class FeedCard {
     required this.status,
     required this.car,
     this.city,
+    this.budgetMin,
     this.budgetMax,
     this.executorName,
     this.executorCompleted,
@@ -19,6 +20,8 @@ class FeedCard {
   final OrderStatus status;
   final String car;
   final String? city;
+  /// без потолка («15 млн+») max = null, тогда показываем «от min»
+  final int? budgetMin;
   final int? budgetMax;
   final String? executorName;
   final int? executorCompleted;
@@ -39,6 +42,7 @@ class FeedCard {
       status: orderStatusFromApi(json['status'] as String),
       car: json['car'] as String,
       city: json['city'] as String?,
+      budgetMin: json['budget_min'] as int?,
       budgetMax: json['budget_max'] as int?,
       executorName: executor?['name'] as String?,
       executorCompleted: executor?['completed_orders'] as int?,

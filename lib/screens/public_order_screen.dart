@@ -140,9 +140,7 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                 children: [
                   _Hero(
                     label: 'Бюджет заказчика',
-                    value: order.budgetMax != null
-                        ? '${money(order.budgetMax!)} ₽'
-                        : '—',
+                    value: budgetShort(order.budgetMin, order.budgetMax) ?? '—',
                     mono: true,
                   ),
                   _Hero(

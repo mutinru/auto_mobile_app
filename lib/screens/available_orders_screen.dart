@@ -127,7 +127,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           spot: _pinSpots[i],
                           label: orders[i].budgetMax != null
                               ? '${money(orders[i].budgetMax! ~/ 1000)}К'
-                              : '#${orders[i].id}',
+                              : orders[i].budgetMin != null
+                                  // без потолка — «от min»
+                                  ? '${money(orders[i].budgetMin! ~/ 1000)}К+'
+                                  : '#${orders[i].id}',
                           hot: i == 0,
                           onTap: () => _respond(orders[i]),
                         ),
@@ -410,7 +413,7 @@ class _JobCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = <String>[
       if (order.cities.isNotEmpty) order.cities.first,
-      if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
+      ?budgetShort(order.budgetMin, order.budgetMax),
       '${order.responsesCount} откл.',
     ];
 
@@ -441,9 +444,11 @@ class _JobCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (order.budgetMax != null)
+              if (order.budgetMax != null || order.budgetMin != null)
                 Text(
-                  '${money(order.budgetMax!)} ₽',
+                  order.budgetMax != null
+                      ? '${money(order.budgetMax!)} ₽'
+                      : 'от ${money(order.budgetMin!)} ₽',
                   style: TextStyle(
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 13,

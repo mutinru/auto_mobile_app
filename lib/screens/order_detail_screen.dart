@@ -120,16 +120,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  /// «2 000 000 — 2 400 000 ₽», «от …» или «до …»; без границ — ничего.
-  static String? _budget(Order order) {
-    final min = order.budgetMin;
-    final max = order.budgetMax;
-    if (min != null && max != null) return '${money(min)} — ${money(max)} ₽';
-    if (min != null) return 'от ${money(min)} ₽';
-    if (max != null) return 'до ${money(max)} ₽';
-    return null;
-  }
-
   /// Покупка закрывает подбор; заказ — из ответа сервера, и в нём сразу
   /// can_review, так что блок отзыва появится без перезагрузки.
   Future<void> _completePurchase(Order order) async {
@@ -278,7 +268,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           [
             if (order.cities.isNotEmpty) order.cities.join(', '),
             if (order.mileageTo != null) 'пробег до ${money(order.mileageTo!)} км',
-            ?_budget(order),
+            ?budgetRange(order.budgetMin, order.budgetMax),
           ].join(' · '),
           style: TextStyle(fontSize: 12.5, color: context.colors.text2),
         ),

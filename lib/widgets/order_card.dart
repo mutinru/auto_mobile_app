@@ -108,7 +108,7 @@ class OrderCard extends StatelessWidget {
 
   static String _selectionMeta(Order order) => [
         if (order.cities.isNotEmpty) order.cities.first,
-        if (order.budgetMax != null) 'до ${money(order.budgetMax!)} ₽',
+        ?budgetShort(order.budgetMin, order.budgetMax),
         if (order.requirements.isNotEmpty) order.requirements.first,
       ].join(' · ');
 }

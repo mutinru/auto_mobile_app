@@ -270,7 +270,7 @@ class _FeedCardView extends StatelessWidget {
           Text(
             [
               if (card.city != null) card.city!,
-              if (card.budgetMax != null) 'до ${money(card.budgetMax!)} ₽',
+              ?budgetShort(card.budgetMin, card.budgetMax),
             ].join(' · '),
             style: context.text.orderMeta,
           ),

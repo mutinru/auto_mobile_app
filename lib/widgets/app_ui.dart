@@ -604,6 +604,35 @@ String money(int value) {
   return buf.toString();
 }
 
+/// Числовые поля (год, пробег): только цифры — иначе «120.000» молча
+/// превратится в null у `int.tryParse` и уйдёт пустым.
+final digitsOnly = <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly];
+
+/// Год выпуска — те же границы, что на бекенде (1990 … следующий год).
+/// null — год в порядке.
+String? yearProblem(int year, {DateTime? now}) {
+  final max = (now ?? DateTime.now()).year + 1;
+  if (year < 1990 || year > max) return 'Год — от 1990 до $max';
+  return null;
+}
+
+/// Бюджет целиком: «2 000 000 — 2 400 000 ₽», «от …» (без потолка) или
+/// «до …»; без обеих границ — null.
+String? budgetRange(int? min, int? max) {
+  if (min != null && max != null) return '${money(min)} — ${money(max)} ₽';
+  if (min != null) return 'от ${money(min)} ₽';
+  if (max != null) return 'до ${money(max)} ₽';
+  return null;
+}
+
+/// Бюджет для мета-строк списков: «до max ₽», а без потолка («15 млн+») —
+/// «от min ₽», чтобы такой заказ не остался без бюджета.
+String? budgetShort(int? min, int? max) {
+  if (max != null) return 'до ${money(max)} ₽';
+  if (min != null) return 'от ${money(min)} ₽';
+  return null;
+}
+
 /// Инициалы для .avatar из имени вида «Максим К.» → «МК».
 String initialsOf(String name) {
   final parts = name.trim().split(RegExp(r'\s+'));
