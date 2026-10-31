@@ -1,0 +1,114 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
+import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_car.dart';
+import 'package:auto_podbor_mobile/models/order_kind.dart';
+import 'package:auto_podbor_mobile/models/order_status.dart';
+import 'package:auto_podbor_mobile/models/user_summary.dart';
+import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
+import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+/// Мок, который считает добавленные машины: форма с ошибками не должна
+/// ничего отправлять.
+class _CountingRepository extends MockOrderRepository {
+  int added = 0;
+
+  @override
+  Future<OrderCar> addCar(
+    int orderId, {
+    required String brand,
+    required String model,
+    required int year,
+    required String vin,
+    required int mileageKm,
+    String? licensePlate,
+  }) {
+    added++;
+    return super.addCar(orderId,
+        brand: brand, model: model, year: year, vin: vin, mileageKm: mileageKm, licensePlate: licensePlate);
+  }
+}
+
+/// «Начать осмотр» в подборе: обязательность видна, ошибки — все сразу.
+void main() {
+  const order = Order(
+    id: 37,
+    kind: OrderKind.selection,
+    status: OrderStatus.sourcing,
+    brand: 'Kia',
+    model: 'Sportage',
+    yearFrom: 2020,
+    customer: UserSummary(id: 6, name: 'Сергей П.'),
+  );
+
+  Future<_CountingRepository> open(WidgetTester tester) async {
+    final repo = _CountingRepository();
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: StartInspectionScreen(
+        repository: repo,
+        catalog: MockCarCatalogRepository(),
+        order: order,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    return repo;
+  }
+
+  Future<void> start(WidgetTester tester) async {
+    await tester.tap(find.text('Начать осмотр'));
+    await tester.pump();
+  }
+
+  testWidgets('пустая форма — все ошибки сразу, ничего не отправлено', (tester) async {
+    final repo = await open(tester);
+    await start(tester);
+
+    expect(find.text('VIN — 17 символов'), findsOneWidget);
+    expect(find.text('Укажите пробег'), findsOneWidget);
+    expect(find.text('Укажите год выпуска'), findsOneWidget);
+    // марка и модель подставлены из заказа — к ним претензий нет
+    expect(find.text('Выберите марку и модель'), findsNothing);
+    expect(repo.added, 0);
+  });
+
+  testWidgets('правка поля убирает только его ошибку', (tester) async {
+    await open(tester);
+    await start(tester);
+
+    // поля ввода по порядку: госномер, пробег, год
+    await tester.enterText(find.byType(TextField).at(1), '64000');
+    await tester.pump();
+
+    expect(find.text('Укажите пробег'), findsNothing);
+    expect(find.text('Укажите год выпуска'), findsOneWidget);
+    expect(find.text('VIN — 17 символов'), findsOneWidget);
+  });
+
+  testWidgets('год вне границ — своя ошибка у поля', (tester) async {
+    await open(tester);
+    await tester.enterText(find.byType(TextField).at(2), '1985');
+    await start(tester);
+
+    expect(find.textContaining('Год — от 1990'), findsOneWidget);
+  });
+
+  testWidgets('без черновика; госномер необязателен; тип — только полный', (tester) async {
+    await open(tester);
+
+    expect(find.text('Сохранить как черновик'), findsNothing);
+    expect(find.text('необязательно'), findsOneWidget);
+
+    // «Экспресс» виден, но не выбирается
+    await tester.scrollUntilVisible(find.text('Экспресс'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Экспресс'));
+    await tester.pump();
+    final full = tester.widget<Text>(find.text('Полный · 17 пунктов'));
+    final express = tester.widget<Text>(find.text('Экспресс'));
+    expect(full.style!.color, isNot(express.style!.color));
+  });
+}

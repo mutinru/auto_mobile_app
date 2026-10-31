@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/api_exception.dart';
 import '../data/car_catalog_repository.dart';
 import '../data/order_repository.dart';
 import '../models/inspection_type.dart';
@@ -39,8 +40,31 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
 
   final _vinController = TextEditingController();
   bool _scanning = false;
-  InspectionType _type = InspectionType.full;
   bool _submitting = false;
+
+  /// Ошибки по полям — ключи как у бекенда (`OrderCarController::store`),
+  /// чтобы 422 сервера легли на те же поля.
+  Map<String, String> _errors = {};
+
+  /// Поля, у которых экран умеет показать ошибку; прочие — строкой.
+  static const _fieldKeys = {'vin', 'brand', 'model', 'mileage_km', 'year', 'license_plate'};
+
+  @override
+  void initState() {
+    super.initState();
+    // поправили поле — его ошибка уходит, остальные остаются
+    void clearOnEdit(TextEditingController c, List<String> keys) => c.addListener(() {
+          if (keys.any(_errors.containsKey)) {
+            setState(() => _errors = {..._errors}..removeWhere((k, _) => keys.contains(k)));
+          }
+        });
+    clearOnEdit(_vinController, ['vin']);
+    clearOnEdit(_brandController, ['brand', 'model']);
+    clearOnEdit(_modelController, ['brand', 'model']);
+    clearOnEdit(_mileageController, ['mileage_km']);
+    clearOnEdit(_yearController, ['year']);
+    clearOnEdit(_plateController, ['license_plate']);
+  }
 
   @override
   void dispose() {
@@ -191,19 +215,23 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
 
   Future<void> _start() async {
     final vin = _vinController.text.trim().toUpperCase();
-    if (vin.length != 17) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('VIN должен быть из 17 символов')),
-      );
-      return;
-    }
     final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
-    if (mileage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Укажите пробег')),
-      );
-      return;
-    }
+    // год не подставляем молча: машина в отчёте должна быть с настоящим годом
+    final year = int.tryParse(_yearController.text);
+
+    // все ошибки разом — исполнитель видит сразу всё, что не заполнено
+    final errors = <String, String>{
+      if (vin.length != 17) 'vin': 'VIN — 17 символов',
+      if (_brandController.text.trim().isEmpty || _modelController.text.trim().isEmpty)
+        'brand': 'Выберите марку и модель',
+      if (mileage == null) 'mileage_km': 'Укажите пробег',
+      if (year == null)
+        'year': 'Укажите год выпуска'
+      else if (yearProblem(year) != null)
+        'year': yearProblem(year)!,
+    };
+    setState(() => _errors = errors);
+    if (errors.isNotEmpty) return;
 
     setState(() => _submitting = true);
     try {
@@ -211,15 +239,29 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         widget.order.id,
         brand: _brandController.text.trim(),
         model: _modelController.text.trim(),
-        year: int.tryParse(_yearController.text) ?? DateTime.now().year,
+        year: year!,
         vin: vin,
         licensePlate: _plateController.text.trim().isEmpty
             ? null
             : _plateController.text.trim(),
-        mileageKm: mileage,
+        mileageKm: mileage!,
       );
-      await widget.repository.startInspection(widget.order.id, car.id, type: _type);
+      // другие типы пока не реализованы: набор пунктов у осмотра один
+      await widget.repository.startInspection(widget.order.id, car.id, type: InspectionType.full);
       if (mounted) Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      // 422 по полям (VIN уже занят и т. п.) — к своим полям, остальное строкой
+      final fields = {
+        for (final f in e.fieldErrors.entries)
+          if (_fieldKeys.contains(f.key)) f.key: f.value,
+      };
+      if (mounted && fields.isNotEmpty) {
+        setState(() => _errors = fields);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorText(e))),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -254,7 +296,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                         ? 'распознаём…'
                         : (vin.isEmpty ? 'нажмите, чтобы снять или ввести' : vin),
                     onTap: _scanning ? null : _vinTapped,
+                    error: _errors.containsKey('vin'),
                   ),
+                  FieldError(_errors['vin']),
 
                   const SizedBox(height: 22),
                   const SectionHead('Данные', extra: 'из заказа'),
@@ -267,6 +311,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                       color: context.colors.text3,
                     ),
                     onTap: _pickCar,
+                    error: _errors['brand'] ?? _errors['model'],
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,6 +322,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                           controller: _plateController,
                           hint: 'А432ВС',
                           mono: true,
+                          optional: true,
+                          error: _errors['license_plate'],
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -284,10 +331,13 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                         child: FieldBoxInput(
                           label: 'Пробег',
                           controller: _mileageController,
-                          hint: '127 450',
+                          hint: '127450',
                           mono: true,
                           unit: 'км',
                           keyboardType: TextInputType.number,
+                          inputFormatters: digitsOnly,
+                          maxLength: 7,
+                          error: _errors['mileage_km'],
                         ),
                       ),
                     ],
@@ -298,6 +348,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                     hint: '${widget.order.yearFrom ?? 2019}',
                     mono: true,
                     keyboardType: TextInputType.number,
+                    inputFormatters: digitsOnly,
+                    maxLength: 4,
+                    error: _errors['year'],
                   ),
                   // «Клиент» из макета не нужен: осмотр всегда идёт внутри
                   // заказа, заказчик уже известен
@@ -308,6 +361,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
 
                   const SizedBox(height: 22),
                   const SectionHead('Тип осмотра'),
+                  // Пока доступен только полный: бекенд при любом типе создаёт
+                  // одни и те же 17 пунктов. Остальные чипы видны, но не
+                  // выбираются — до настоящей реализации.
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -315,8 +371,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                       for (final t in InspectionType.values)
                         AppChip(
                           label: t.label,
-                          on: _type == t,
-                          onTap: () => setState(() => _type = t),
+                          on: t == InspectionType.full,
+                          enabled: t == InspectionType.full,
                         ),
                     ],
                   ),
@@ -331,7 +387,6 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                   loading: _submitting,
                   onPressed: _start,
                 ),
-                CtaGhost(label: 'Сохранить как черновик', onPressed: () {}),
               ],
             ),
           ],

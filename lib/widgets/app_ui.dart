@@ -202,10 +202,18 @@ class FieldBox extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.minHeight,
+    this.error,
+    this.optional = false,
   });
 
   final String label;
   final String value;
+
+  /// Текст ошибки под полем; поле — в красной рамке.
+  final String? error;
+
+  /// Серое «необязательно» справа от подписи.
+  final bool optional;
 
   /// true → значение показывается цветом text-3 (.field-box.empty)
   final bool placeholder;
@@ -231,7 +239,7 @@ class FieldBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(), style: context.text.fieldLabel),
+          FieldLabel(label, optional: optional),
           const SizedBox(height: 6),
           InkWell(
             onTap: onTap,
@@ -241,7 +249,9 @@ class FieldBox extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
               decoration: BoxDecoration(
                 color: context.colors.bg1,
-                border: Border.all(color: context.colors.line),
+                border: Border.all(
+                  color: error != null ? context.colors.statusDefect : context.colors.line,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -269,8 +279,51 @@ class FieldBox extends StatelessWidget {
               ),
             ),
           ),
+          FieldError(error),
         ],
       ),
+    );
+  }
+}
+
+/// Подпись поля капсом; у необязательного — серое «необязательно» справа.
+class FieldLabel extends StatelessWidget {
+  const FieldLabel(this.label, {super.key, this.optional = false});
+
+  final String label;
+  final bool optional;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(label.toUpperCase(), style: context.text.fieldLabel);
+    if (!optional) return text;
+    return Row(
+      children: [
+        Expanded(child: text),
+        Text(
+          'необязательно',
+          style: context.text.fieldLabel.copyWith(
+            color: context.colors.text3,
+            letterSpacing: 0,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ошибка под полем — цвет `statusDefect`, как у `SheetError`; null — ничего.
+class FieldError extends StatelessWidget {
+  const FieldError(this.text, {super.key});
+
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.statusDefect)),
     );
   }
 }
@@ -292,7 +345,15 @@ class FieldBoxInput extends StatelessWidget {
     this.inputFormatters,
     this.autofocus = false,
     this.maxLength,
+    this.error,
+    this.optional = false,
   });
+
+  /// Текст ошибки под полем; поле — в красной рамке.
+  final String? error;
+
+  /// Серое «необязательно» справа от подписи.
+  final bool optional;
 
   final String label;
   final TextEditingController controller;
@@ -318,7 +379,7 @@ class FieldBoxInput extends StatelessWidget {
           // в макете «Комментарий» — голый field-box под section-head,
           // без собственной подписи
           if (label.isNotEmpty) ...[
-            Text(label.toUpperCase(), style: context.text.fieldLabel),
+            FieldLabel(label, optional: optional),
             const SizedBox(height: 6),
           ],
           Container(
@@ -326,7 +387,9 @@ class FieldBoxInput extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
               color: context.colors.bg1,
-              border: Border.all(color: context.colors.line),
+              border: Border.all(
+                color: error != null ? context.colors.statusDefect : context.colors.line,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -368,6 +431,7 @@ class FieldBoxInput extends StatelessWidget {
               ],
             ),
           ),
+          FieldError(error),
         ],
       ),
     );
@@ -383,11 +447,15 @@ class AppChip extends StatelessWidget {
     required this.on,
     this.onTap,
     this.activeColor,
+    this.enabled = true,
   });
 
   final String label;
   final bool on;
   final VoidCallback? onTap;
+
+  /// false — чип виден, но не нажимается и приглушён.
+  final bool enabled;
   /// null — оранжевый statusProgress текущей темы.
   final Color? activeColor;
 
@@ -395,7 +463,7 @@ class AppChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = activeColor ?? context.colors.statusProgress;
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(999),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -408,7 +476,9 @@ class AppChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: context.text.chip.copyWith(color: on ? active : context.colors.text2),
+          style: context.text.chip.copyWith(
+            color: on ? active : (enabled ? context.colors.text2 : context.colors.text3),
+          ),
         ),
       ),
     );
