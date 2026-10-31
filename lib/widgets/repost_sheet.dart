@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/order.dart';
 import '../models/time_slot.dart';
@@ -7,6 +6,7 @@ import 'api_error.dart';
 import 'app_sheet.dart';
 import 'app_ui.dart';
 import 'inspection_when_picker.dart';
+import 'price_box.dart';
 
 /// «Разместить заново» для осмотра, который ждёт решения заказчика: новая
 /// дата обязательна (прошлая уже прошла), время и цену можно поменять.
@@ -36,7 +36,9 @@ class _RepostSheet extends StatefulWidget {
 
 class _RepostSheetState extends State<_RepostSheet> {
   late InspectionWhen _when;
-  late final _price = TextEditingController(text: '${widget.order.askingPrice ?? ''}');
+  /// Прежняя цена заказа: не изменилась — не шлём, сервер её оставит.
+  late final int _previous = widget.order.askingPrice ?? 3500;
+  late int _price = _previous;
   bool _sending = false;
   String? _error;
 
@@ -50,26 +52,16 @@ class _RepostSheetState extends State<_RepostSheet> {
     );
   }
 
-  @override
-  void dispose() {
-    _price.dispose();
-    super.dispose();
-  }
-
   Future<void> _send() async {
-    final text = _price.text.replaceAll(' ', '');
-    final price = int.tryParse(text);
-    if (text.isNotEmpty && price == null) {
-      setState(() => _error = 'Цена — числом, в рублях');
-      return;
-    }
+    final priceProblem = PriceBox.problem(_price);
+    if (priceProblem != null) return setState(() => _error = priceProblem);
     setState(() {
       _sending = true;
       _error = null;
     });
     try {
       // цена не изменилась — не шлём, сервер оставит прежнюю
-      await widget.onSubmit(_when, price == widget.order.askingPrice ? null : price);
+      await widget.onSubmit(_when, _price == widget.order.askingPrice ? null : _price);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) setState(() => _error = apiErrorText(e));
@@ -91,14 +83,14 @@ class _RepostSheetState extends State<_RepostSheet> {
           onChanged: (when) => setState(() => _when = when),
         ),
         const SizedBox(height: 14),
-        FieldBoxInput(
-          label: 'Ваша цена',
-          controller: _price,
-          mono: true,
-          unit: '₽',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        ),
+        const SectionHead('Ваша цена'),
+        PriceBox(value: _price, onChanged: (v) => setState(() => _price = v)),
+        if (_price != _previous)
+          PriceResetLink(
+            label: 'Вернуть прежнюю цену · ${money(_previous)} ₽',
+            onTap: () => setState(() => _price = _previous),
+          ),
+        const SizedBox(height: 10),
         SheetError(_error),
         CtaPrimary(
           label: 'Разместить',

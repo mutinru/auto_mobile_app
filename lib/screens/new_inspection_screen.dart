@@ -8,7 +8,6 @@ import '../models/order.dart';
 import '../models/time_slot.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../util/listing_url.dart';
 import '../widgets/address_field.dart';
 import '../widgets/api_error.dart';
@@ -16,6 +15,8 @@ import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';
 import '../widgets/city_picker_sheet.dart';
 import '../widgets/inspection_when_picker.dart';
+import '../widgets/phone_input.dart';
+import '../widgets/price_box.dart';
 
 /// Кадр 03 макета order-types.html — «новый осмотр». Вместо бюджета и
 /// городов поиска: ссылка или VIN, город и адрес, дата и цена заказчика.
@@ -67,9 +68,6 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   bool _listingEmpty = true;
   bool _listingInvalid = false;
 
-  /// Шаг цены из макета (.price-step).
-  static const _priceStep = 500;
-
   @override
   void initState() {
     super.initState();
@@ -87,7 +85,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       // адрес могут поправить — сервер возьмёт центр города
       if (based.cities.isNotEmpty) _city = CityChoice(based.cities.first);
       _addressController.text = based.address ?? '';
-      _phoneController.text = based.sellerPhone ?? '';
+      _phoneController.text = _sellerDigits(based.sellerPhone ?? '');
     }
     if (_city == null) _detectCity();
   }
@@ -210,6 +208,17 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     });
   }
 
+  /// «+79161234567» прежнего заказа → «916 123 45 67» для поля с маской.
+  static String _sellerDigits(String phone) {
+    var digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+      digits = digits.substring(1);
+    }
+    return const PhoneMask()
+        .formatEditUpdate(TextEditingValue.empty, TextEditingValue(text: digits))
+        .text;
+  }
+
   Future<void> _submit() async {
     final brand = _brandController.text.trim();
     final model = _modelController.text.trim();
@@ -220,16 +229,22 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     final address = _addressController.text.trim();
     final vin = _vinController.text.trim();
     final listing = _listingController.text.trim();
+    // поле с маской «+7 | 900 123 45 67» — здесь 10 цифр без кода страны
+    final phoneDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
 
     final problem = switch (null) {
       _ when brand.isEmpty || model.isEmpty => 'Укажите марку и модель',
       _ when year == null => 'Укажите год',
+      _ when yearProblem(year) != null => yearProblem(year),
       _ when mileageText.isNotEmpty && mileage == null => 'Пробег — числом, в км',
       _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
       _ when vin.isNotEmpty && vin.length != 17 => 'VIN — ровно 17 символов',
       _ when listing.isNotEmpty && normalizeListingUrl(listing) == null =>
         'Похоже, это не ссылка на объявление',
+      _ when phoneDigits.isNotEmpty && phoneDigits.length != 10 =>
+        'Телефон продавца — 10 цифр после +7',
+      _ when PriceBox.problem(_price) != null => PriceBox.problem(_price),
       _ => null,
     };
     if (problem != null) {
@@ -256,7 +271,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         inspectTime: _when.inspectTime,
         vin: vin.isEmpty ? null : vin,
         listingUrl: listing,
-        sellerPhone: _phoneController.text.trim(),
+        sellerPhone: phoneDigits.isEmpty ? null : '+7$phoneDigits',
       );
       // созданный заказ — результатом: витрина по нему открывает «Мои заказы»
       if (mounted) Navigator.of(context).pop(order);
@@ -291,6 +306,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                     controller: _listingController,
                     hint: 'Ссылка с Авито, Авто.ру или Дрома',
                     mono: true,
+                    maxLength: 500,
                   ),
                   if (_listingInvalid)
                     _FieldNote('Похоже, это не ссылка', error: true)
@@ -336,6 +352,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                           hint: '2017',
                           mono: true,
                           keyboardType: TextInputType.number,
+                          inputFormatters: digitsOnly,
+                          maxLength: 4,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -343,10 +361,12 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                         child: FieldBoxInput(
                           label: 'Пробег',
                           controller: _mileageController,
-                          hint: '112 000',
+                          hint: '112000',
                           mono: true,
                           unit: 'км',
                           keyboardType: TextInputType.number,
+                          inputFormatters: digitsOnly,
+                          maxLength: 7,
                         ),
                       ),
                     ],
@@ -378,23 +398,12 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
 
                   const SizedBox(height: 22),
                   const SectionHead('Продавец', extra: 'увидит только выбранный'),
-                  FieldBoxInput(
-                    label: '',
-                    controller: _phoneController,
-                    hint: '+7 · телефон продавца',
-                    mono: true,
-                    keyboardType: TextInputType.phone,
-                  ),
+                  // та же маска, что на входе: «+7 | 900 123 45 67»
+                  PhoneField(controller: _phoneController),
 
                   const SizedBox(height: 12),
                   const SectionHead('Ваша цена'),
-                  _PriceBox(
-                    value: _price,
-                    onMinus: _price > _priceStep
-                        ? () => setState(() => _price -= _priceStep)
-                        : null,
-                    onPlus: () => setState(() => _price += _priceStep),
-                  ),
+                  PriceBox(value: _price, onChanged: (v) => setState(() => _price = v)),
                   Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
@@ -544,74 +553,6 @@ class _ListingGuessCard extends StatelessWidget {
             icon: Icon(Icons.close, size: 16, color: context.colors.text3),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// .price-box — цена заказчика с шагом ±500 ₽.
-class _PriceBox extends StatelessWidget {
-  const _PriceBox({required this.value, required this.onMinus, required this.onPlus});
-
-  final int value;
-  final VoidCallback? onMinus;
-  final VoidCallback onPlus;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: context.colors.bg1,
-        border: Border.all(color: context.colors.line),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '${money(value)} ₽',
-              style: TextStyle(
-                fontFamily: AppTheme.monoFamily,
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
-                letterSpacing: -0.66,
-                color: context.colors.text1,
-              ),
-            ),
-          ),
-          _PriceStep(icon: Icons.remove, onTap: onMinus),
-          const SizedBox(width: 6),
-          _PriceStep(icon: Icons.add, onTap: onPlus),
-        ],
-      ),
-    );
-  }
-}
-
-class _PriceStep extends StatelessWidget {
-  const _PriceStep({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: context.colors.bg3,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          size: 14,
-          color: onTap == null ? context.colors.text3 : context.colors.text1,
-        ),
       ),
     );
   }

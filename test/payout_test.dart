@@ -53,18 +53,38 @@ void main() {
 
   testWidgets('первый отклик на осмотр просит реквизиты и отдаёт их', (tester) async {
     Payout? sent;
+    int? sentPrice;
     await openSheet(
       tester,
       (context) => showRespondSheet(
         context,
         order: order,
         requiresPayout: true,
-        onSubmit: (price, message, payout) async => sent = payout,
+        onSubmit: (price, message, payout) async {
+          sentPrice = price;
+          sent = payout;
+        },
       ),
     );
 
     expect(find.text('КУДА ЗАКАЗЧИК ПЕРЕВЕДЁТ ОПЛАТУ'), findsOneWidget);
-    await tester.enterText(field('Ваша цена'), '3500');
+    // цена — от цены заказчика, ± с шагом 100 ₽ (до 5 000)
+    expect(find.text('3 500'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+    expect(find.text('3 700'), findsOneWidget);
+
+    // сдвинули — можно одним тапом вернуться к цене заказчика
+    await tester.tap(find.text('Вернуть цену заказчика · 3 500 ₽'));
+    await tester.pump();
+    expect(find.text('3 500'), findsOneWidget);
+    expect(find.textContaining('Вернуть цену заказчика'), findsNothing);
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+    expect(find.text('3 600'), findsOneWidget);
+
     await tester.enterText(field('Номер карты'), '4111111111111112');
     await tester.tap(find.text('Отправить отклик'));
     await tester.pumpAndSettle();
@@ -73,10 +93,13 @@ void main() {
     expect(sent, isNull);
 
     await tester.enterText(field('Номер карты'), '4111111111111111');
+    // со строкой «Вернуть цену заказчика» и ошибкой лист выше экрана теста
+    await tester.ensureVisible(find.text('Отправить отклик'));
     await tester.tap(find.text('Отправить отклик'));
     await tester.pumpAndSettle();
 
     expect(sent!.card, '4111111111111111');
+    expect(sentPrice, 3600);
     // лист закрылся
     expect(find.text('Отправить отклик'), findsNothing);
   });
@@ -104,7 +127,6 @@ void main() {
       ),
     );
 
-    await tester.enterText(field('Ваша цена'), '3500');
     await tester.enterText(field('Номер карты'), '4111111111111111');
     await tester.tap(find.text('Отправить отклик'));
     await tester.pumpAndSettle();

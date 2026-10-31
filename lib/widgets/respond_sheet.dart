@@ -7,6 +7,7 @@ import 'api_error.dart';
 import 'app_sheet.dart';
 import 'app_ui.dart';
 import 'payout_fields.dart';
+import 'price_box.dart';
 
 /// Отклик на свободный заказ. true — отклик отправлен, null — лист закрыли.
 ///
@@ -44,34 +45,39 @@ class RespondSheet extends StatefulWidget {
 }
 
 class RespondSheetState extends State<RespondSheet> {
-  final _priceController = TextEditingController();
+  /// Старт для подбора — у него нет цены заказчика.
+  static const _defaultPrice = 15000;
+
+  late int _price;
   final _messageController = TextEditingController();
   final _payout = PayoutFormController();
   bool _sending = false;
-  String? _priceError;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _price = widget.order.askingPrice ?? _defaultPrice;
+  }
+
+  @override
   void dispose() {
-    _priceController.dispose();
     _messageController.dispose();
     _payout.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
-    final price = int.tryParse(_priceController.text.replaceAll(' ', ''));
+    final priceProblem = PriceBox.problem(_price);
+    if (priceProblem != null) return setState(() => _error = priceProblem);
     final payout = widget.requiresPayout ? _payout.validate() : null;
-    setState(() {
-      _priceError = price == null ? 'Укажите цену числом' : null;
-      _error = null;
-    });
-    if (price == null || (widget.requiresPayout && payout == null)) return;
+    setState(() => _error = null);
+    if (widget.requiresPayout && payout == null) return;
 
     final message = _messageController.text.trim();
     setState(() => _sending = true);
     try {
-      await widget.onSubmit(price, message.isEmpty ? null : message, payout);
+      await widget.onSubmit(_price, message.isEmpty ? null : message, payout);
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -92,20 +98,20 @@ class RespondSheetState extends State<RespondSheet> {
       title: widget.order.carTitle,
       subtitle: asking != null ? 'Заказчик назвал ${money(asking)} ₽' : null,
       children: [
-        FieldBoxInput(
-          label: 'Ваша цена',
-          controller: _priceController,
-          hint: asking != null ? money(asking) : '15 000',
-          mono: true,
-          unit: '₽',
-          keyboardType: TextInputType.number,
-        ),
-        SheetError(_priceError),
+        const SectionHead('Ваша цена'),
+        PriceBox(value: _price, onChanged: (v) => setState(() => _price = v)),
+        if (asking != null && _price != asking)
+          PriceResetLink(
+            label: 'Вернуть цену заказчика · ${money(asking)} ₽',
+            onTap: () => setState(() => _price = asking),
+          ),
+        const SizedBox(height: 10),
         FieldBoxInput(
           label: 'Сообщение',
           controller: _messageController,
           hint: 'Необязательно',
           maxLines: 2,
+          maxLength: 1000,
           minHeight: 56,
         ),
         if (widget.requiresPayout) ...[
