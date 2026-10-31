@@ -4,7 +4,9 @@ import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
 import '../models/inspection_outcome.dart';
+import '../models/inspection_verdict.dart';
 import '../models/order.dart';
+import '../models/order_car.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
 import '../models/user_summary.dart';
@@ -19,6 +21,7 @@ import '../widgets/order_review_section.dart';
 import '../widgets/order_status_pill.dart';
 import '../widgets/purchase_sheet.dart';
 import '../widgets/review_sheet.dart';
+import '../widgets/verdict_sheet.dart';
 import 'executor_reviews_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'start_inspection_screen.dart';
@@ -77,22 +80,69 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  Future<void> _openInspection(int inspectionId) async {
+  Future<void> _openInspection(OrderCar car) async {
     final repo = ApiInspectionRepository(
       ApiClient(widget.auth!),
-      inspectionId: inspectionId,
+      inspectionId: car.inspectionId!,
     );
     // править кандидата может только исполнитель; заказчик смотрит —
     // сервер ему запись всё равно не разрешит (403)
     final isExecutor = _order?.executor != null && _order!.executor!.id == widget.auth!.user?.id;
+    // завершить можно только начатый осмотр: завершённый правится, но итог уже есть
+    final canFinish = isExecutor && car.inspectionStatus == 'in_progress';
     // стор — до маршрута: builder перезапускается при смене темы
     final store = InspectionStore(repo, readOnly: !isExecutor);
-    await Navigator.of(context).push(
+    final navigator = Navigator.of(context);
+    final ownRoute = ModalRoute.of(context);
+    var finish = false;
+    await navigator.push(
       MaterialPageRoute(
-        builder: (_) => InspectionOverviewScreen(store: store),
+        builder: (_) => InspectionOverviewScreen(
+          store: store,
+          sendLabel: 'Завершить осмотр',
+          // «Завершить осмотр» в сводке закрывает осмотр до карточки заказа
+          // и открывает лист вердикта — как у разового осмотра
+          onSendReport: canFinish
+              ? () {
+                  finish = true;
+                  navigator.popUntil((route) => route == ownRoute);
+                }
+              : null,
+        ),
       ),
     );
     await _load();
+    if (finish && mounted && _order != null) await _finishCandidate(_order!, car);
+  }
+
+  /// Итог осмотра кандидата: вердикт и комментарий. Заказ остаётся в поиске,
+  /// заказчик получает итог по машине сразу.
+  Future<void> _finishCandidate(Order order, OrderCar car) async {
+    final result = await showModalBottomSheet<(InspectionVerdict, String?)>(
+      context: context,
+      backgroundColor: context.colors.bg0,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (context) => VerdictSheet(
+        order: order,
+        subject: car.title,
+        submitLabel: 'Завершить осмотр',
+      ),
+    );
+    if (result == null || !mounted) return;
+    try {
+      final updated = await widget.store.completeCandidate(
+        order.id,
+        car.id,
+        verdict: result.$1,
+        comment: result.$2,
+      );
+      if (mounted) setState(() => _order = updated);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    }
   }
 
   Future<void> _startInspection(Order order) async {
@@ -257,7 +307,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
       children: [
-        OrderStatusPill(status: order.status),
+        OrderStatusPill(status: order.shownStatus, label: order.statusLabel),
         const SizedBox(height: 10),
         Text(
           order.carTitle,
@@ -320,11 +370,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             _InfoRow(
               label: car.title,
               trailing: car.inspectionLabel,
+              // исход покупки важнее вердикта; вердикт — его цветом
               trailingColor: car.inspectionOutcome == InspectionOutcome.purchased
                   ? context.colors.statusDone
-                  : null,
+                  : (car.inspectionOutcome == null ? car.verdict?.color(context.colors) : null),
               onTap: car.inspectionId != null && widget.auth != null
-                  ? () => _openInspection(car.inspectionId!)
+                  ? () => _openInspection(car)
                   : null,
             ),
         ],

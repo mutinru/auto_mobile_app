@@ -227,6 +227,15 @@ class OrderStore extends ChangeNotifier {
     return order;
   }
 
+  /// Вердикт кандидата и его статус — из ответа сервера.
+  Future<Order> completeCandidate(
+    int orderId,
+    int carId, {
+    required InspectionVerdict verdict,
+    String? comment,
+  }) =>
+      _mutate(_repository.completeCandidate(orderId, carId, verdict: verdict, comment: comment));
+
   /// Исход кандидатов и can_review — из ответа сервера.
   Future<Order> completeSelection(int orderId, {required int carId}) =>
       _mutate(_repository.completeSelection(orderId, carId: carId));

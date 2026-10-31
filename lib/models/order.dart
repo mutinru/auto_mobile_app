@@ -186,6 +186,27 @@ class Order {
     return '$brand $model $yearFrom${isInspection ? '' : '+'}';
   }
 
+  /// Статус для подписи. У подбора `inspecting` ставится первым осмотром и
+  /// назад не возвращается, поэтому «на осмотре» — только пока осмотр идёт,
+  /// а между осмотрами — «идёт подбор». Сам статус заказа не меняется: на нём
+  /// держатся проверки сервера. Без загруженных машин — как пришло.
+  OrderStatus get shownStatus {
+    if (isInspection || cars.isEmpty) return status;
+    if (status != OrderStatus.sourcing && status != OrderStatus.inspecting) return status;
+    return cars.any((c) => c.inspectionStatus == 'in_progress')
+        ? OrderStatus.inspecting
+        : OrderStatus.sourcing;
+  }
+
+  /// Подпись статуса: у подбора между осмотрами — «идёт подбор · осмотрено 3».
+  /// Осмотренной считается машина с завершённым осмотром, не просто добавленная.
+  String get statusLabel {
+    final shown = shownStatus;
+    if (isInspection || shown != OrderStatus.sourcing) return shown.labelFor(kind);
+    final done = cars.where((c) => c.inspectionStatus == 'completed').length;
+    return done > 0 ? '${shown.labelFor(kind)} · осмотрено $done' : shown.labelFor(kind);
+  }
+
   /// Вердикт завершённого осмотра (у заказа-осмотра машина одна).
   InspectionVerdict? get verdict => cars.isEmpty ? null : cars.first.verdict;
 

@@ -341,6 +341,7 @@ class _NotificationCard extends StatelessWidget {
         NotificationType.reportReady => Icons.description_outlined,
         NotificationType.reportOpened => Icons.lock_open,
         NotificationType.inspectionDatePassed => Icons.event_busy_outlined,
+        NotificationType.candidateInspected => Icons.fact_check_outlined,
         NotificationType.executorAssigned => Icons.check_circle_outline,
         NotificationType.responseRejected => Icons.do_not_disturb_alt,
         NotificationType.deadlineSoon => Icons.timer_outlined,

@@ -11,13 +11,17 @@ class InspectionSummaryScreen extends StatelessWidget {
     super.key,
     required this.store,
     this.onSendReport,
+    this.sendLabel = 'Отправить отчёт клиенту',
   });
+
+  /// У подбора — «Завершить осмотр»: итог по кандидату, заказ не закрывается.
+  final String sendLabel;
 
   final InspectionStore store;
 
-  /// «Отправить отчёт клиенту». У разового осмотра ведёт к вердикту
-  /// ([AssignedInspectionScreen]); у подбора отправки пока нет — кнопка
-  /// остаётся заглушкой.
+  /// Главная кнопка сводки ведёт к вердикту: у разового осмотра —
+  /// [AssignedInspectionScreen], у подбора — итог кандидата в
+  /// [OrderDetailScreen]. Без колбэка (только просмотр) кнопка ничего не делает.
   final VoidCallback? onSendReport;
 
   @override
@@ -96,7 +100,7 @@ class InspectionSummaryScreen extends StatelessWidget {
                 BottomCta(
                   children: [
                     CtaPrimary(
-                      label: 'Отправить отчёт клиенту',
+                      label: sendLabel,
                       icon: Icons.send,
                       onPressed: store.remainingCount == 0
                           ? (onSendReport ?? () {})

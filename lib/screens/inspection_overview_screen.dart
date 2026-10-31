@@ -17,9 +17,13 @@ class InspectionOverviewScreen extends StatefulWidget {
     super.key,
     required this.store,
     this.onSendReport,
+    this.sendLabel = 'Отправить отчёт клиенту',
   });
 
   final InspectionStore store;
+
+  /// Подпись главной кнопки сводки — см. [InspectionSummaryScreen.sendLabel].
+  final String sendLabel;
 
   /// Пробрасывается в [InspectionSummaryScreen] — см. там.
   final VoidCallback? onSendReport;
@@ -68,6 +72,7 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
           builder: (_) => InspectionSummaryScreen(
             store: store,
             onSendReport: widget.onSendReport,
+            sendLabel: widget.sendLabel,
           ),
         ),
       ),

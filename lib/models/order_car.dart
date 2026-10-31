@@ -38,10 +38,12 @@ class OrderCar {
 
   String get title => '$brand $model $year';
 
-  /// Подпись в списке кандидатов: исход важнее статуса осмотра. Статус у
-  /// бекенда — строка без энама, незнакомое значение не выводим как есть.
+  /// Подпись в списке кандидатов: исход покупки важнее вердикта, вердикт —
+  /// статуса осмотра. Статус у бекенда — строка без энама, незнакомое
+  /// значение не выводим как есть.
   String get inspectionLabel {
     if (inspectionOutcome != null) return inspectionOutcome!.label;
+    if (verdict != null) return verdict!.label.toLowerCase();
     if (inspectionId == null) return 'осмотр не начат';
     return switch (inspectionStatus) {
       'in_progress' => 'идёт осмотр',

@@ -59,9 +59,11 @@ class OrderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Pill(
-                  order.status.labelFor(order.kind),
-                  color: order.status.pillColor(context.colors),
+                Flexible(
+                  child: Pill(
+                    order.statusLabel,
+                    color: order.shownStatus.pillColor(context.colors),
+                  ),
                 ),
                 _KindTag(kind: order.kind, id: order.id),
               ],

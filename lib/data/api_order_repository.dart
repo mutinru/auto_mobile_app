@@ -164,6 +164,18 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order> completeCandidate(
+    int orderId,
+    int carId, {
+    required InspectionVerdict verdict,
+    String? comment,
+  }) =>
+      _orderAction('/orders/$orderId/cars/$carId/inspection/complete', {
+        'verdict': verdict.apiValue,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
+      });
+
+  @override
   Future<Order> completeSelection(int orderId, {required int carId}) =>
       _orderAction('/orders/$orderId/complete', {'car_id': carId});
 

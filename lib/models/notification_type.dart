@@ -8,6 +8,7 @@ enum NotificationType {
   reportReady,
   reportOpened,
   inspectionDatePassed,
+  candidateInspected,
   // исполнителю
   executorAssigned,
   responseRejected,
@@ -30,6 +31,7 @@ const _apiValues = {
   'report_ready': NotificationType.reportReady,
   'report_opened': NotificationType.reportOpened,
   'inspection_date_passed': NotificationType.inspectionDatePassed,
+  'candidate_inspected': NotificationType.candidateInspected,
   'executor_assigned': NotificationType.executorAssigned,
   'response_rejected': NotificationType.responseRejected,
   'deadline_soon': NotificationType.deadlineSoon,

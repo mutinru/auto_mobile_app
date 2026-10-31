@@ -83,6 +83,15 @@ abstract class OrderRepository {
 
   Future<Order> acceptResponse(int orderId, int responseId);
 
+  /// Исполнитель подбора завершает осмотр кандидата [carId] вердиктом:
+  /// осмотр — completed, заказ остаётся в поиске, заказчику — уведомление.
+  Future<Order> completeCandidate(
+    int orderId,
+    int carId, {
+    required InspectionVerdict verdict,
+    String? comment,
+  });
+
   /// Заказчик закрывает подбор покупкой кандидата [carId]: остальные
   /// кандидаты становятся отклонёнными, заказ — завершённым.
   Future<Order> completeSelection(int orderId, {required int carId});

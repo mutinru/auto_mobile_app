@@ -378,6 +378,37 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order> completeCandidate(
+    int orderId,
+    int carId, {
+    required InspectionVerdict verdict,
+    String? comment,
+  }) async {
+    final order = await fetchOrder(orderId);
+    // как Order::finishCandidateInspection(): статус заказа прежний
+    final updated = order.copyWith(cars: [
+      for (final c in order.cars)
+        c.id != carId
+            ? c
+            : OrderCar(
+                id: c.id,
+                brand: c.brand,
+                model: c.model,
+                year: c.year,
+                vinMasked: c.vinMasked,
+                mileageKm: c.mileageKm,
+                inspectionId: c.inspectionId,
+                inspectionStatus: 'completed',
+                inspectionOutcome: c.inspectionOutcome,
+                verdict: verdict,
+                verdictComment: comment,
+              ),
+    ]);
+    _replace(updated);
+    return updated;
+  }
+
+  @override
   Future<Order> completeSelection(int orderId, {required int carId}) async {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(

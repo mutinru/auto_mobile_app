@@ -5,9 +5,12 @@ import '../theme/app_colors.dart';
 
 /// Соответствует .pill/.pill.search/.pill.check/.pill.done из макета.
 class OrderStatusPill extends StatelessWidget {
-  const OrderStatusPill({super.key, required this.status});
+  const OrderStatusPill({super.key, required this.status, this.label});
 
   final OrderStatus status;
+
+  /// Своя подпись (например, «идёт подбор · осмотрено 3»); null — по статусу.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +21,7 @@ class OrderStatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status.label.toUpperCase(),
+        (label ?? status.label).toUpperCase(),
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w700,

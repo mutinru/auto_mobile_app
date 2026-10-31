@@ -8,8 +8,13 @@ import 'app_ui.dart';
 /// Лист завершения разового осмотра: вердикт и комментарий. Возвращает через
 /// Navigator.pop пару (вердикт, комментарий?) или null, если лист закрыли.
 class VerdictSheet extends StatefulWidget {
-  const VerdictSheet({super.key, required this.order});
+  const VerdictSheet({super.key, required this.order, this.subject, this.submitLabel = 'Отправить отчёт'});
   final Order order;
+
+  /// Какую машину итожим; null — машина заказа (разовый осмотр). У подбора —
+  /// конкретный кандидат: «Kia Sportage 2021».
+  final String? subject;
+  final String submitLabel;
 
   @override
   State<VerdictSheet> createState() => _VerdictSheetState();
@@ -49,7 +54,7 @@ class _VerdictSheetState extends State<VerdictSheet> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              '${widget.order.carTitle} · отчёт увидит заказчик',
+              '${widget.subject ?? widget.order.carTitle} · отчёт увидит заказчик',
               style: TextStyle(fontSize: 11.5, color: context.colors.text2),
             ),
           ),
@@ -70,7 +75,7 @@ class _VerdictSheetState extends State<VerdictSheet> {
           ),
           const SizedBox(height: 6),
           CtaPrimary(
-            label: 'Отправить отчёт',
+            label: widget.submitLabel,
             onPressed: _verdict == null
                 ? null
                 : () {
