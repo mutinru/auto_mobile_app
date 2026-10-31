@@ -327,8 +327,9 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     };
   }
 
-  /// Кнопки внизу по статусу: назначен → начать, на осмотре → продолжить
-  /// и завершить, отчёт готов → поправить, оплачен → подтвердить.
+  /// Кнопки внизу по статусу: назначен → начать, на осмотре → продолжить,
+  /// отчёт готов → поправить, оплачен → подтвердить. Отчёт с вердиктом
+  /// отправляется только из сводки осмотра, когда оценены все пункты.
   /// Отказаться можно до готовности отчёта.
   List<Widget> _actions(Order order) {
     final inspectionId = order.cars.isEmpty
@@ -361,11 +362,6 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
               onPressed: canOpen && inspectionId != null
                   ? () => _openInspection(inspectionId)
                   : null,
-            ),
-            const SizedBox(height: 4),
-            CtaGhost(
-              label: 'Завершить осмотр',
-              onPressed: _busy ? null : () => _complete(order),
             ),
             CtaGhost(
               label: 'Отказаться от заказа',

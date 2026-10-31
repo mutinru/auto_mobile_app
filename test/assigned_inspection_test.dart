@@ -15,7 +15,7 @@ import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
 /// Мок, в котором осмотр уже начат: штатный мок не двигает статус
-/// при startInspection, а «Завершить» доступно только «на осмотре».
+/// при startInspection.
 class _InspectingRepository extends MockOrderRepository {
   @override
   Future<Order> fetchOrder(int id) async {
@@ -60,24 +60,15 @@ void main() {
     expect(find.text('Завершить осмотр'), findsNothing);
   });
 
-  testWidgets('«Завершить осмотр» отправляет вердикт и показывает итог', (
+  testWidgets('на осмотре: продолжить и отказаться, без «Завершить»', (
     tester,
   ) async {
     await tester.pumpWidget(app(2051, _InspectingRepository()));
     await tester.pumpAndSettle();
 
     expect(find.text('Продолжить осмотр'), findsOneWidget);
-    await tester.tap(find.text('Завершить осмотр'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('С оговорками'));
-    await tester.enterText(find.byType(TextField), 'Скол на капоте');
-    await tester.tap(find.text('Отправить отчёт'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('ИТОГ ОСМОТРА'), findsOneWidget);
-    expect(find.text('С оговорками'), findsOneWidget);
-    expect(find.text('Скол на капоте'), findsOneWidget);
+    expect(find.text('Отказаться от заказа'), findsOneWidget);
+    // вердикт — только из сводки, когда оценены все пункты
     expect(find.text('Завершить осмотр'), findsNothing);
   });
 
