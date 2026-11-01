@@ -117,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text('Выйти', style: TextStyle(color: c.statusDefect, fontWeight: FontWeight.w600)),
+            child: Text('Выйти', style: TextStyle(color: c.defectText, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -410,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _SettingsRow(
                         icon: Icons.logout,
                         label: 'Выйти',
-                        labelColor: context.colors.statusDefect,
+                        labelColor: context.colors.defectText,
                         trailing: const SizedBox.shrink(),
                         onTap: _confirmLogout,
                       ),
@@ -457,7 +457,7 @@ class _NoteBox extends StatelessWidget {
             child: Icon(
               Icons.info_outline,
               size: 15,
-              color: context.colors.statusInfo,
+              color: context.colors.infoText,
             ),
           ),
           const SizedBox(width: 11),
@@ -759,7 +759,7 @@ class _SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: labelColor ?? c.text1,
+                      color: labelColor == null ? c.text1 : c.textFor(labelColor!),
                     ),
                   ),
                 ),

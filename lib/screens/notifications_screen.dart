@@ -277,7 +277,7 @@ class _NotificationCard extends StatelessWidget {
                     color: tone.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(_icon(n.type), size: 17, color: tone),
+                  child: Icon(_icon(n.type), size: 17, color: c.textFor(tone)),
                 ),
                 const SizedBox(width: 11),
                 Expanded(

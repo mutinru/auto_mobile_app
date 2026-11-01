@@ -188,7 +188,7 @@ class DisputeBox extends StatelessWidget {
             style: TextStyle(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
-              color: context.colors.statusDefect,
+              color: context.colors.defectText,
             ),
           ),
           if (dispute != null && dispute.reason.isNotEmpty) ...[
@@ -229,7 +229,7 @@ class StatusNote extends StatelessWidget {
       accent: context.colors.statusProgress,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: context.colors.statusProgress),
+          Icon(icon, size: 18, color: context.colors.progressText),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

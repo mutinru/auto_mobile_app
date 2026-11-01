@@ -33,8 +33,8 @@ class ResponseCard extends StatelessWidget {
     final diff = response.proposedPrice - askingPrice!;
     if (diff == 0) return ('ваша цена', c.text3);
     return diff < 0
-        ? ('−${money(-diff)} ₽', c.statusDone)
-        : ('+${money(diff)} ₽', c.statusProgress);
+        ? ('−${money(-diff)} ₽', c.doneText)
+        : ('+${money(diff)} ₽', c.progressText);
   }
 
   @override

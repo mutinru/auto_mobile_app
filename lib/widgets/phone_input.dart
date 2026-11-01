@@ -71,7 +71,7 @@ class PhoneField extends StatelessWidget {
                 hintStyle: TextStyle(
                   fontFamily: AppTheme.monoFamily,
                   fontSize: 15,
-                  color: context.colors.text3,
+                  color: context.colors.textHint,
                 ),
               ),
             ),

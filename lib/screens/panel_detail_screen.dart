@@ -404,7 +404,7 @@ class _ConditionTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: selected ? context.colors.statusDone : context.colors.text1,
+                color: selected ? context.colors.doneText : context.colors.text1,
               ),
             ),
           ],
@@ -447,7 +447,7 @@ class _DefectChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: on ? context.colors.statusProgress : context.colors.text2,
+            color: on ? context.colors.progressText : context.colors.text2,
           ),
         ),
       ),

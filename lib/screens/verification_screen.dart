@@ -255,7 +255,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, size: 15, color: context.colors.statusInfo),
+              Icon(Icons.info_outline, size: 15, color: context.colors.infoText),
               SizedBox(width: 11),
               Expanded(
                 child: Text(
@@ -294,7 +294,7 @@ class _StepRow extends StatelessWidget {
       'passed' => (context.colors.statusDone, context.colors.modeBuyInk),
       'in_review' => (
           context.colors.statusProgress.withValues(alpha: 0.16),
-          context.colors.statusProgress
+          context.colors.progressText
         ),
       _ => (context.colors.bg3, context.colors.text3),
     };
@@ -375,9 +375,9 @@ class _StepRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.8,
                     color: switch (status) {
-                      'passed' => context.colors.statusDone,
-                      'in_review' => context.colors.statusProgress,
-                      'failed' => context.colors.statusDefect,
+                      'passed' => context.colors.doneText,
+                      'in_review' => context.colors.progressText,
+                      'failed' => context.colors.defectText,
                       _ => context.colors.text3,
                     },
                   ),

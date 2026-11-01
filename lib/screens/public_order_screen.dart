@@ -345,7 +345,7 @@ class _Hero extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.15,
-            color: color ?? context.colors.text1,
+            color: color == null ? context.colors.text1 : context.colors.textFor(color!),
           ),
         ),
       ],

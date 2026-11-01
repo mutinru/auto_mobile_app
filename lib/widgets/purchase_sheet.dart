@@ -91,7 +91,7 @@ class _CarOption extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: selected ? accent : context.colors.text1,
+                        color: selected ? context.colors.doneText : context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -102,7 +102,7 @@ class _CarOption extends StatelessWidget {
                   ],
                 ),
               ),
-              if (selected) Icon(Icons.check, size: 16, color: accent),
+              if (selected) Icon(Icons.check, size: 16, color: context.colors.doneText),
             ],
           ),
         ),

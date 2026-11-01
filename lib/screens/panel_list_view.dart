@@ -163,15 +163,15 @@ class _Trailing extends StatelessWidget {
       final (bg, fg) = switch (condition) {
         PanelCondition.excellent || PanelCondition.good => (
             context.colors.statusDone.withValues(alpha: 0.14),
-            context.colors.statusDone
+            context.colors.doneText
           ),
         PanelCondition.satisfactory => (
             context.colors.statusProgress.withValues(alpha: 0.14),
-            context.colors.statusProgress
+            context.colors.progressText
           ),
         PanelCondition.needsRepair => (
             context.colors.statusDefect.withValues(alpha: 0.14),
-            context.colors.statusDefect
+            context.colors.defectText
           ),
       };
 

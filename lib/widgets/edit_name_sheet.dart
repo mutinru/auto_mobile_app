@@ -127,7 +127,7 @@ class _EditNameSheetState extends State<_EditNameSheet> {
                 _error!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: context.colors.statusDefect,
+                  color: context.colors.defectText,
                 ),
               ),
             ),

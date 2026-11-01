@@ -232,7 +232,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
                   style: TextStyle(fontSize: 14, color: c.text1),
                   decoration: InputDecoration(
                     hintText: 'Сообщение',
-                    hintStyle: TextStyle(fontSize: 14, color: c.text3),
+                    hintStyle: TextStyle(fontSize: 14, color: c.textHint),
                     counterText: '',
                     isDense: true,
                     filled: true,

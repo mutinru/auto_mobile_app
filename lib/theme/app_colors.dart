@@ -21,11 +21,16 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.text1,
     required this.text2,
     required this.text3,
+    required this.textHint,
     required this.statusNone,
     required this.statusProgress,
     required this.statusDone,
     required this.statusDefect,
     required this.statusInfo,
+    required this.doneText,
+    required this.progressText,
+    required this.defectText,
+    required this.infoText,
     required this.modeBuy,
     required this.modeBuyInk,
     required this.buySoft,
@@ -58,11 +63,24 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color text2;
   final Color text3;
 
+  /// Плейсхолдер в поле: светлее значения, но читается на солнце.
+  /// Отдельно от [text3], чтобы подсказку не спутать с введённым.
+  final Color textHint;
+
   final Color statusNone;
   final Color statusProgress;
   final Color statusDone;
   final Color statusDefect;
   final Color statusInfo;
+
+  /// Акценты как цвет текста и мелких иконок на светлом фоне. В тёмной теме
+  /// совпадают со status*; в светлой — темнее, иначе на солнце не видно
+  /// (оранжевый буквами на белом ~2:1). Заливки, рамки, кольца, точки —
+  /// по-прежнему status*. Подобрать по цвету акцента — [textFor].
+  final Color doneText;
+  final Color progressText;
+  final Color defectText;
+  final Color infoText;
 
   // Акценты режимов из design/car-storefront-modes.html (:root).
   // Значения совпадают со statusDone/statusProgress, но означают режим
@@ -114,6 +132,19 @@ class AppColors extends ThemeExtension<AppColors> {
 
   bool get isLight => bg0.computeLuminance() > 0.5;
 
+  /// Цвет текста для акцента [accent]: для status*/mode*/online — их
+  /// текстовый оттенок, для прочих цветов — сам цвет. Для виджетов, которым
+  /// акцент приходит параметром (Pill, чипы, плашки).
+  Color textFor(Color accent) {
+    if (accent == statusDone || accent == modeBuy || accent == online) {
+      return doneText;
+    }
+    if (accent == statusProgress || accent == modeWork) return progressText;
+    if (accent == statusDefect) return defectText;
+    if (accent == statusInfo) return infoText;
+    return accent;
+  }
+
   static const dark = AppColors(
     bg0: Color(0xFF0B0D10),
     bg1: Color(0xFF15181D),
@@ -123,11 +154,16 @@ class AppColors extends ThemeExtension<AppColors> {
     text1: Color(0xFFF2F4F7),
     text2: Color(0xFF8A93A1),
     text3: Color(0xFF5B6371),
+    textHint: Color(0xFF5B6371),
     statusNone: Color(0xFF323843),
     statusProgress: Color(0xFFF5A623),
     statusDone: Color(0xFF5BC282),
     statusDefect: Color(0xFFE94B3B),
     statusInfo: Color(0xFF4A9BE8),
+    doneText: Color(0xFF5BC282),
+    progressText: Color(0xFFF5A623),
+    defectText: Color(0xFFE94B3B),
+    infoText: Color(0xFF4A9BE8),
     modeBuy: Color(0xFF5BC282),
     modeBuyInk: Color(0xFF07150E),
     buySoft: Color(0x0F5BC282),
@@ -156,16 +192,24 @@ class AppColors extends ThemeExtension<AppColors> {
     bg1: Color(0xFFFFFFFF),
     bg2: Color(0xFFF0F2F5),
     bg3: Color(0xFFE6E9EE),
-    line: Color(0xFFDFE3E9),
-    text1: Color(0xFF12151A),
-    text2: Color(0xFF5A6372),
-    text3: Color(0xFF8C94A1),
+    // рамки темнее — на солнце светлые линии пропадают
+    line: Color(0xFFC8CED7),
+    // текст под улицу: все уровни ≥ 7:1 к фону, иерархия — весом и
+    // размером, а не серостью (#8C94A1 давал ~2.8:1)
+    text1: Color(0xFF0A0C0F),
+    text2: Color(0xFF2E3440),
+    text3: Color(0xFF4B5361),
+    textHint: Color(0xFF646C79),
     statusNone: Color(0xFFCDD2DA),
     statusProgress: Color(0xFFF2A11F),
     // зелёный и синий темнее — для контраста на светлом
     statusDone: Color(0xFF2E9E5E),
     statusDefect: Color(0xFFD63B2C),
     statusInfo: Color(0xFF2F7FD1),
+    doneText: Color(0xFF17663A),
+    progressText: Color(0xFF7A4800),
+    defectText: Color(0xFFA82216),
+    infoText: Color(0xFF1A5596),
     modeBuy: Color(0xFF2E9E5E),
     modeBuyInk: Color(0xFFFFFFFF),
     buySoft: Color(0x122E9E5E),
@@ -205,11 +249,16 @@ class AppColors extends ThemeExtension<AppColors> {
       text1: l(text1, other.text1),
       text2: l(text2, other.text2),
       text3: l(text3, other.text3),
+      textHint: l(textHint, other.textHint),
       statusNone: l(statusNone, other.statusNone),
       statusProgress: l(statusProgress, other.statusProgress),
       statusDone: l(statusDone, other.statusDone),
       statusDefect: l(statusDefect, other.statusDefect),
       statusInfo: l(statusInfo, other.statusInfo),
+      doneText: l(doneText, other.doneText),
+      progressText: l(progressText, other.progressText),
+      defectText: l(defectText, other.defectText),
+      infoText: l(infoText, other.infoText),
       modeBuy: l(modeBuy, other.modeBuy),
       modeBuyInk: l(modeBuyInk, other.modeBuyInk),
       buySoft: l(buySoft, other.buySoft),

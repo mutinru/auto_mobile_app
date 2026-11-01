@@ -268,7 +268,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
       if (q.isEmpty && widget.locator != null)
         _Row(
           title: _locating ? 'Определяем…' : 'Определить по геопозиции',
-          leading: Icon(Icons.my_location, size: 16, color: context.colors.statusDone),
+          leading: Icon(Icons.my_location, size: 16, color: context.colors.doneText),
           accent: true,
           onTap: _locating ? null : _locate,
         ),
@@ -286,7 +286,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
     if (q.isNotEmpty && !exact) {
       rows.add(_Row(
         title: 'Указать «$q»',
-        leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.statusDone),
+        leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.doneText),
         accent: true,
         checked: _selected.contains(q),
         onTap: () => _pick(q),
@@ -382,7 +382,7 @@ class _Row extends StatelessWidget {
               child: Text(
                 title,
                 style: accent
-                    ? context.text.fieldValue.copyWith(color: context.colors.statusDone)
+                    ? context.text.fieldValue.copyWith(color: context.colors.doneText)
                     : context.text.fieldValue,
               ),
             ),
@@ -397,7 +397,7 @@ class _Row extends StatelessWidget {
               ),
             if (checked) ...[
               const SizedBox(width: 10),
-              Icon(Icons.check, size: 18, color: context.colors.statusProgress),
+              Icon(Icons.check, size: 18, color: context.colors.progressText),
             ],
           ],
         ),

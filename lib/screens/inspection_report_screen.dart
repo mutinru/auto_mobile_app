@@ -246,7 +246,7 @@ class _PanelReportSheet extends StatelessWidget {
                         fontFamily: AppTheme.monoFamily,
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: color,
+                        color: context.colors.textFor(color),
                       ),
                     ),
                   )

@@ -134,7 +134,7 @@ class _VerdictOption extends StatelessWidget {
                   color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(verdict.icon, size: 15, color: color),
+                child: Icon(verdict.icon, size: 15, color: context.colors.textFor(color)),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -143,11 +143,11 @@ class _VerdictOption extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: selected ? color : context.colors.text1,
+                    color: selected ? context.colors.textFor(color) : context.colors.text1,
                   ),
                 ),
               ),
-              if (selected) Icon(Icons.check, size: 16, color: color),
+              if (selected) Icon(Icons.check, size: 16, color: context.colors.textFor(color)),
             ],
           ),
         ),

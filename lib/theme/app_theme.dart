@@ -28,10 +28,13 @@ class AppTheme {
         onSurface: c.text1,
         outline: c.line,
       ),
-      textTheme: base.textTheme.apply(
-        fontFamily: fontFamily,
-        bodyColor: c.text1,
-        displayColor: c.text1,
+      textTheme: _lightWeight(
+        base.textTheme.apply(
+          fontFamily: fontFamily,
+          bodyColor: c.text1,
+          displayColor: c.text1,
+        ),
+        isDark,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: c.bg0,
@@ -56,6 +59,24 @@ class AppTheme {
       extensions: [c, AppText(c)],
     );
   }
+
+  /// В светлой теме обычный текст — w500: Inter w400 на солнце выглядит
+  /// волосяным. Через DefaultTextStyle это доходит и до inline-TextStyle без
+  /// явного веса; явные w600/w700 не трогаются.
+  static TextTheme _lightWeight(TextTheme t, bool isDark) {
+    if (isDark) return t;
+    TextStyle? m(TextStyle? s) => s?.copyWith(fontWeight: FontWeight.w500);
+    return t.copyWith(
+      bodyLarge: m(t.bodyLarge),
+      bodyMedium: m(t.bodyMedium),
+      bodySmall: m(t.bodySmall),
+      labelLarge: m(t.labelLarge),
+      labelMedium: m(t.labelMedium),
+      labelSmall: m(t.labelSmall),
+      titleMedium: m(t.titleMedium),
+      titleSmall: m(t.titleSmall),
+    );
+  }
 }
 
 /// Типографика прямо из CSS макета — чтобы кегли/трекинг не подбирались
@@ -75,6 +96,9 @@ class AppText extends ThemeExtension<AppText> {
   @override
   AppText lerp(AppText? other, double t) =>
       other == null ? this : AppText(c.lerp(other.c, t));
+
+  /// Вес обычного текста: в светлой теме плотнее (см. AppTheme._lightWeight).
+  FontWeight? get _regular => c.isLight ? FontWeight.w500 : null;
 
 
   /// .detail-title — заголовок экрана
@@ -105,6 +129,7 @@ class AppText extends ThemeExtension<AppText> {
   TextStyle get sectionExtra => TextStyle(
     fontFamily: AppTheme.monoFamily,
     fontSize: 11,
+    fontWeight: _regular,
     color: c.text3,
   );
 
@@ -117,12 +142,14 @@ class AppText extends ThemeExtension<AppText> {
   );
 
   /// .order-meta — строка параметров под названием
-  TextStyle get orderMeta => TextStyle(fontSize: 12, color: c.text2);
+  TextStyle get orderMeta =>
+      TextStyle(fontSize: 12, fontWeight: _regular, color: c.text2);
 
   /// .order-id — номер заказа (моно)
   TextStyle get orderId => TextStyle(
     fontFamily: AppTheme.monoFamily,
     fontSize: 11,
+    fontWeight: _regular,
     color: c.text3,
   );
 
@@ -135,7 +162,8 @@ class AppText extends ThemeExtension<AppText> {
   );
 
   /// .order-exec — строка про исполнителя
-  TextStyle get orderExec => TextStyle(fontSize: 12, color: c.text2);
+  TextStyle get orderExec =>
+      TextStyle(fontSize: 12, fontWeight: _regular, color: c.text2);
 
   /// .pill — статусная плашка
   TextStyle get pill => TextStyle(
@@ -153,21 +181,24 @@ class AppText extends ThemeExtension<AppText> {
   );
 
   /// .field-box — значение внутри поля
-  TextStyle get fieldValue => TextStyle(fontSize: 14, color: c.text1);
+  TextStyle get fieldValue =>
+      TextStyle(fontSize: 14, fontWeight: _regular, color: c.text1);
 
   /// .field-box.empty — плейсхолдер
-  TextStyle get fieldPlaceholder => TextStyle(fontSize: 14, color: c.text3);
+  TextStyle get fieldPlaceholder =>
+      TextStyle(fontSize: 14, fontWeight: _regular, color: c.textHint);
 
   /// .field-mono — моноширинное значение в поле
   TextStyle get fieldMono => TextStyle(
     fontFamily: AppTheme.monoFamily,
     fontSize: 14,
+    fontWeight: _regular,
     letterSpacing: 0.56, // 0.04em
     color: c.text1,
   );
 
   /// .chip
-  TextStyle get chip => TextStyle(fontSize: 12);
+  TextStyle get chip => TextStyle(fontSize: 12, fontWeight: _regular);
 
   /// .cta-primary
   TextStyle get ctaPrimary => TextStyle(
@@ -201,6 +232,7 @@ class AppText extends ThemeExtension<AppText> {
   /// .fl-sub — пояснение под вопросом
   TextStyle get flSub => TextStyle(
     fontSize: 13.5,
+    fontWeight: _regular,
     color: c.text2,
     height: 1.5,
   );
@@ -216,6 +248,7 @@ class AppText extends ThemeExtension<AppText> {
   /// .fl-desc — подпись варианта
   TextStyle get flDesc => TextStyle(
     fontSize: 11.5,
+    fontWeight: _regular,
     color: c.text2,
     height: 1.4,
   );
@@ -223,6 +256,7 @@ class AppText extends ThemeExtension<AppText> {
   /// .fl-note — сноска внизу экрана намерения
   TextStyle get flNote => TextStyle(
     fontSize: 11,
+    fontWeight: _regular,
     color: c.text3,
     height: 1.5,
   );

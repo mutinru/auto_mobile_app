@@ -175,7 +175,7 @@ class _ReviewSheetState extends State<ReviewSheet> {
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
                 _error!,
-                style: TextStyle(fontSize: 12, color: context.colors.statusDefect),
+                style: TextStyle(fontSize: 12, color: context.colors.defectText),
               ),
             ),
           const SizedBox(height: 4),

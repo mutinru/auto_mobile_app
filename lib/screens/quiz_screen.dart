@@ -292,7 +292,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 Icon(
                   Icons.warning_amber_outlined,
                   size: 15,
-                  color: context.colors.statusProgress,
+                  color: context.colors.progressText,
                 ),
                 const SizedBox(width: 11),
                 Expanded(

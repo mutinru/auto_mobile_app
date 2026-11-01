@@ -185,7 +185,7 @@ class _Stat extends StatelessWidget {
                 fontSize: 19,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.38,
-                color: color ?? context.colors.text1,
+                color: color == null ? context.colors.text1 : context.colors.textFor(color!),
               ),
             ),
             const SizedBox(height: 3),

@@ -138,7 +138,7 @@ class _ReviewRow extends StatelessWidget {
             Text(
               'Оценить исполнителя',
               style: style.copyWith(
-                color: context.colors.statusProgress,
+                color: context.colors.progressText,
                 fontWeight: FontWeight.w600,
               ),
             )
@@ -257,7 +257,7 @@ class _ActionRow extends StatelessWidget {
               color: color.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, size: 15, color: color),
+            child: Icon(icon, size: 15, color: context.colors.textFor(color)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -303,7 +303,7 @@ class _WhenRow extends StatelessWidget {
               color: color.withValues(alpha: soon ? 0.16 : 0.14),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(Icons.calendar_today_outlined, size: 15, color: color),
+            child: Icon(Icons.calendar_today_outlined, size: 15, color: context.colors.textFor(color)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -417,7 +417,7 @@ class _ReportButton extends StatelessWidget {
           ),
           style: OutlinedButton.styleFrom(
             backgroundColor: context.colors.buySoft,
-            foregroundColor: context.colors.modeBuy,
+            foregroundColor: context.colors.doneText,
             side: BorderSide(color: context.colors.buyEdge),
             padding: const EdgeInsets.symmetric(vertical: 10),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),

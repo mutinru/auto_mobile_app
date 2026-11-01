@@ -59,12 +59,12 @@ class _DeadlineCountdownState extends State<DeadlineCountdown> {
       ),
       child: Row(
         children: [
-          Icon(Icons.timer_outlined, size: 16, color: color),
+          Icon(Icons.timer_outlined, size: 16, color: context.colors.textFor(color)),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               label == null ? 'Срок осмотра вышел' : '${widget.prefix} $label · до $time',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color),
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: context.colors.textFor(color)),
             ),
           ),
         ],

@@ -478,7 +478,7 @@ class _FieldNote extends StatelessWidget {
           style: TextStyle(
             fontSize: 11,
             height: 1.45,
-            color: error ? context.colors.statusDefect : context.colors.text3,
+            color: error ? context.colors.defectText : context.colors.text3,
           ),
         ),
       ),
@@ -515,7 +515,7 @@ class _ListingGuessCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 16, color: context.colors.statusDone),
+          Icon(Icons.auto_awesome_outlined, size: 16, color: context.colors.doneText),
           const SizedBox(width: 10),
           Expanded(
             child: Text.rich(
@@ -537,7 +537,7 @@ class _ListingGuessCard extends StatelessWidget {
           TextButton(
             onPressed: onApply,
             style: TextButton.styleFrom(
-              foregroundColor: context.colors.statusDone,
+              foregroundColor: context.colors.doneText,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               minimumSize: const Size(0, 36),
             ),

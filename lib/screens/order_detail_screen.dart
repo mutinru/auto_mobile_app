@@ -495,7 +495,12 @@ class _InfoRow extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(fontSize: 13, color: context.colors.text1)),
           if (trailing != null)
-            Text(trailing!, style: TextStyle(fontSize: 12, color: trailingColor ?? context.colors.text2)),
+            Text(trailing!, style: TextStyle(
+              fontSize: 12,
+              color: trailingColor == null
+                  ? context.colors.text2
+                  : context.colors.textFor(trailingColor!),
+            )),
           if (onTap != null) ...[
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 16, color: context.colors.text3),

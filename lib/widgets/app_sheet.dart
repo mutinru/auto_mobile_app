@@ -85,7 +85,7 @@ class SheetError extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.statusDefect)),
+      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.defectText)),
     );
   }
 }

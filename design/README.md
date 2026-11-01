@@ -11,7 +11,7 @@
 | `car-storefront-challenge.html` | Вариант В входа в витрину — через действие |
 | `car-storefront-modes.html` | Вариант Б входа — два режима. Кадр 01 → `IntentScreen`, кадр 03 → `NearbyOrdersScreen` |
 | `order-types.html` | Два вида заказа: подбор и разовый осмотр. Кадры 01–05 реализованы, кадр 06 («подборщик нанимает осмотр») — нет. `.resp-stats` («★ 4.9 · …») перенесён в `ExecutorStats`, но вместо «212 осмотров» показываем отзывы и заказы. Макета листа отзыва и экрана отзывов нет — собраны из тех же кирпичей. Рендер: `order_types_mockup.png` |
-| `first-launch-screen.html` | Светлая тема (обе палитры в `:root`), переключатель темы и шторка поддержки на стартовом экране. Реализовано: `AppColors.light`, `ThemeSwitch`, `support_sheet.dart`, `FaqScreen`. Чат из шторки — `SupportChatScreen` для вошедших (макета чата нет, собран из токенов), гостя ведёт в Telegram |
+| `first-launch-screen.html` | Светлая тема (обе палитры в `:root`; светлая — под солнце: текст ≥ 7:1, обычный текст w500, акценты буквами — `--*-text`), переключатель темы и шторка поддержки на стартовом экране. Реализовано: `AppColors.light`, `ThemeSwitch`, `support_sheet.dart`, `FaqScreen`. Чат из шторки — `SupportChatScreen` для вошедших (макета чата нет, собран из токенов), гостя ведёт в Telegram |
 | `tab-bar-navigation.html` | Нижние вкладки вместо цепочки `Navigator.push`. **Не реализовано.** Рендер: `tab-bar-mockup.png` |
 
 Понятия «режим» в приложении нет — `mode-switch` из `car-storefront-modes.html`

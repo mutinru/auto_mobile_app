@@ -387,7 +387,7 @@ class _VerificationGate extends StatelessWidget {
                 child: Icon(
                   Icons.lock_outline,
                   size: 17,
-                  color: context.colors.modeWork,
+                  color: context.colors.progressText,
                 ),
               ),
               const SizedBox(width: 11),
@@ -582,7 +582,7 @@ class _JobCard extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.3,
-                    color: context.colors.modeWork,
+                    color: context.colors.progressText,
                   ),
                 ),
               ],

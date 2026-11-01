@@ -297,7 +297,7 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
 
     return _Row(
       title: label,
-      leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.statusDone),
+      leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.doneText),
       accent: true,
       onTap: onTap,
     );
@@ -396,7 +396,7 @@ class _Row extends StatelessWidget {
               child: Text(
                 title,
                 style: accent
-                    ? context.text.fieldValue.copyWith(color: context.colors.statusDone)
+                    ? context.text.fieldValue.copyWith(color: context.colors.doneText)
                     : context.text.fieldValue,
               ),
             ),

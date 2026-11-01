@@ -44,7 +44,7 @@ class ExecutorStats extends StatelessWidget {
           if (!user.isNewcomer && user.rating != null) ...[
             TextSpan(
               text: '★ ${user.rating!.toStringAsFixed(1)}',
-              style: TextStyle(color: context.colors.statusProgress),
+              style: TextStyle(color: context.colors.progressText),
             ),
             const TextSpan(text: ' · '),
           ],

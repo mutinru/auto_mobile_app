@@ -225,7 +225,7 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
             const SizedBox(height: 10),
             Text(
               _error!,
-              style: TextStyle(fontSize: 12, color: context.colors.statusDefect),
+              style: TextStyle(fontSize: 12, color: context.colors.defectText),
             ),
           ],
           const SizedBox(height: 12),

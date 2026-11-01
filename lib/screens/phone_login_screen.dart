@@ -251,7 +251,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   Text(
                     _error!,
                     style: TextStyle(
-                      color: context.colors.statusDefect,
+                      color: context.colors.defectText,
                       fontSize: 12,
                     ),
                   ),

@@ -200,7 +200,7 @@ class _ListingRow extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: ' · незнакомый сайт',
-                            style: TextStyle(color: context.colors.statusProgress),
+                            style: TextStyle(color: context.colors.progressText),
                           ),
                         ],
                       ),

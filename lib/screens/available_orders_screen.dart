@@ -453,7 +453,7 @@ class _JobCard extends StatelessWidget {
                     fontFamily: AppTheme.monoFamily,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: context.colors.statusDone,
+                    color: context.colors.doneText,
                   ),
                 ),
             ],

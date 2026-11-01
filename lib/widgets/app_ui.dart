@@ -130,7 +130,9 @@ class Pill extends StatelessWidget {
       ),
       child: Text(
         text.toUpperCase(),
-        style: context.text.pill.copyWith(color: color ?? context.colors.text2),
+        style: context.text.pill.copyWith(
+          color: color == null ? context.colors.text2 : context.colors.textFor(color!),
+        ),
       ),
     );
   }
@@ -323,7 +325,7 @@ class FieldError extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.statusDefect)),
+      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.defectText)),
     );
   }
 }
@@ -477,7 +479,9 @@ class AppChip extends StatelessWidget {
         child: Text(
           label,
           style: context.text.chip.copyWith(
-            color: on ? active : (enabled ? context.colors.text2 : context.colors.text3),
+            color: on
+                ? context.colors.textFor(active)
+                : (enabled ? context.colors.text2 : context.colors.text3),
           ),
         ),
       ),
