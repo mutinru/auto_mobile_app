@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/models/nearby_filter.dart';
@@ -117,5 +119,54 @@ void main() {
     expect(ordersCount(11), '11 заказов');
     expect(ordersCount(22), '22 заказа');
     expect(ordersCount(25), '25 заказов');
+  });
+
+  test('сохранение: фильтры и сортировка переживают JSON, «Когда» — нет', () {
+    const filter = NearbyFilter(
+      kind: OrderKind.inspection,
+      cities: {'Казань', 'Москва'},
+      when: NearbyWhen.week,
+      minPrice: 12000,
+      brands: {'Kia'},
+      sort: NearbySort.priceDesc,
+    );
+    final restored = NearbyFilter.fromJson(
+      jsonDecode(jsonEncode(filter.toJson())) as Map<String, dynamic>,
+    );
+    expect(restored.kind, OrderKind.inspection);
+    expect(restored.cities, {'Казань', 'Москва'});
+    expect(restored.when, NearbyWhen.any);
+    expect(restored.minPrice, 12000);
+    expect(restored.brands, {'Kia'});
+    expect(restored.sort, NearbySort.priceDesc);
+  });
+
+  test('сохранение: старая и битая запись берут значения по умолчанию', () {
+    final old = NearbyFilter.fromJson({
+      'kind': 'selection',
+      'cities': ['Казань'],
+      'when': 'week',
+    });
+    expect(old.kind, OrderKind.selection);
+    expect(old.cities, {'Казань'});
+    expect(old.when, NearbyWhen.any);
+    expect(old.minPrice, isNull);
+    expect(old.brands, isEmpty);
+    expect(old.sort, NearbySort.newest);
+
+    final broken = NearbyFilter.fromJson({
+      'kind': null,
+      'cities': 'Казань',
+      'when': 'yesterday',
+      'min_price': '100',
+      'brands': [1, 'Kia'],
+      'sort': 42,
+    });
+    expect(broken.kind, isNull);
+    expect(broken.cities, isEmpty);
+    expect(broken.when, NearbyWhen.any);
+    expect(broken.minPrice, isNull);
+    expect(broken.brands, {'Kia'});
+    expect(broken.sort, NearbySort.newest);
   });
 }

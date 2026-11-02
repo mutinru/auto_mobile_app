@@ -110,6 +110,15 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     if (next != null) _filters.set(next);
   }
 
+  /// Город по GPS, если ленту опустошил только он, — тогда пустая лента
+  /// объясняется городом и предлагает все города, а не «сбросить фильтры».
+  String? get _onlyAutoCity {
+    final f = _filters.filter;
+    if (!_filters.isAutoCity || _fewResponsesOnly) return null;
+    if (f.cities.length != 1 || f.activeCount != 1) return null;
+    return f.cities.first;
+  }
+
   void _resetFilters() {
     setState(() => _fewResponsesOnly = false);
     _filters.set(NearbyFilter(sort: _filters.filter.sort));
@@ -312,7 +321,27 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
               summary: gate,
               onTap: widget.auth == null ? null : _openVerification,
             ),
-          if (orders.isEmpty && hiddenByFilter)
+          if (orders.isEmpty && hiddenByFilter && _onlyAutoCity != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: Column(
+                children: [
+                  Text(
+                    'В городе $_onlyAutoCity свободных заказов нет',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: context.colors.text2),
+                  ),
+                  const SizedBox(height: 6),
+                  CtaGhost(
+                    label: 'Показать все города',
+                    onPressed: () => _filters.set(
+                      _filters.filter.copyWith(cities: const {}),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else if (orders.isEmpty && hiddenByFilter)
             Padding(
               padding: const EdgeInsets.only(top: 24),
               child: Column(

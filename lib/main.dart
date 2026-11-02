@@ -165,6 +165,7 @@ class _RootGateState extends State<_RootGate> {
     _auth.restore().then((_) {
       if (!mounted) return;
       setState(() {});
+      _warmUpCity();
       // тапом по пушу приложение запустили — сессия уже поднята
       final tap = widget.push?.takePendingTap();
       if (tap != null) {
@@ -172,15 +173,34 @@ class _RootGateState extends State<_RootGate> {
       }
     });
     _auth.addListener(_onAuthChanged);
+    _auth.addListener(_warmUpCity);
     _pushTaps = widget.push?.taps.listen(_openPush);
   }
 
   StreamSubscription<PushTarget>? _pushTaps;
 
+  /// Прогрев уже запущен в этой сессии входа — [AuthService] уведомляет
+  /// часто (профиль, выход), второй раз GPS не дёргаем.
+  bool _cityWarmedUp = false;
+
+  /// Город по GPS фоном сразу после входа: формы и фильтры получат его
+  /// без ожидания. /cities/nearest требует токен, поэтому только вошедшему.
+  /// Разрешение тут не спрашивается — см. [CityLocator.warmUp].
+  void _warmUpCity() {
+    if (!_auth.isAuthenticated || _auth.isRestoring) {
+      _cityWarmedUp = false;
+      return;
+    }
+    if (_cityWarmedUp) return;
+    _cityWarmedUp = true;
+    unawaited(_cityLocator.warmUp());
+  }
+
   @override
   void dispose() {
     _pushTaps?.cancel();
     _auth.removeListener(_onAuthChanged);
+    _auth.removeListener(_warmUpCity);
     super.dispose();
   }
 
@@ -396,7 +416,9 @@ class _RootGateState extends State<_RootGate> {
         verification: ApiVerificationRepository(ApiClient(_auth)),
         auth: _auth,
         onProfile: () => _switchTo(_Section.profile),
-        filters: NearbyFilterStore.persistent()..load(),
+        filters: NearbyFilterStore.persistent(
+          locator: _cityLocator,
+        )..load(),
       ),
       _Section.profile => ProfileScreen(
         auth: _auth,

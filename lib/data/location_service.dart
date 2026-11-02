@@ -6,6 +6,11 @@ abstract class LocationService {
   /// (широта, долгота) или null: геолокация выключена, доступ не дали,
   /// не успели за таймаут. Не бросает.
   Future<(double, double)?> current();
+
+  /// Геолокация включена и доступ уже дан. Разрешение **не** спрашивает —
+  /// для фонового прогрева города, где окно запроса было бы некстати.
+  /// Не бросает.
+  Future<bool> isGranted();
 }
 
 /// Грубая точность (ACCESS_COARSE_LOCATION): нужен город, а не подъезд —
@@ -15,6 +20,18 @@ class GeolocatorLocationService implements LocationService {
 
   /// Последняя известная точка старше этого — не доверяем, ждём новую.
   static const _maxAge = Duration(minutes: 30);
+
+  @override
+  Future<bool> isGranted() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return false;
+      final permission = await Geolocator.checkPermission();
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   Future<(double, double)?> current() async {

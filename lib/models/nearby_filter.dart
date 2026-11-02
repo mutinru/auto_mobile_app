@@ -58,6 +58,42 @@ class NearbyFilter {
 
   bool get isEmpty => activeCount == 0;
 
+  /// Для хранилища устройства ([NearbyFilterStore]). Энамы — по имени:
+  /// переименование значения сбросит сохранённое поле к умолчанию, а не
+  /// уронит разбор. «Когда» не сохраняется намеренно: «Сегодня» назавтра
+  /// прятало бы всю ленту — после перезапуска оно снова «Любая».
+  Map<String, dynamic> toJson() => {
+    'kind': kind?.apiValue,
+    'cities': cities.toList(),
+    'min_price': minPrice,
+    'brands': brands.toList(),
+    'sort': sort.name,
+  };
+
+  /// Неизвестные и битые поля молча берут значение по умолчанию: старая
+  /// запись (только kind и cities) тоже разбирается.
+  factory NearbyFilter.fromJson(Map<String, dynamic> json) {
+    T? byName<T extends Enum>(List<T> values, Object? name) {
+      for (final v in values) {
+        if (v.name == name) return v;
+      }
+      return null;
+    }
+
+    Set<String> strings(Object? list) =>
+        list is List ? {...list.whereType<String>()} : const {};
+
+    final kind = json['kind'];
+    final minPrice = json['min_price'];
+    return NearbyFilter(
+      kind: kind is String ? orderKindFromApi(kind) : null,
+      cities: strings(json['cities']),
+      minPrice: minPrice is int ? minPrice : null,
+      brands: strings(json['brands']),
+      sort: byName(NearbySort.values, json['sort']) ?? NearbySort.newest,
+    );
+  }
+
   NearbyFilter copyWith({
     OrderKind? Function()? kind,
     Set<String>? cities,

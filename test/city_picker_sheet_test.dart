@@ -13,10 +13,16 @@ import 'package:auto_podbor_mobile/widgets/city_picker_sheet.dart';
 
 /// Геопозиция без плагина: [point] — что «вернул GPS», [calls] — сколько раз спросили.
 class FakeLocation implements LocationService {
-  FakeLocation(this.point);
+  FakeLocation(this.point, {this.granted = true});
 
   final (double, double)? point;
+
+  /// Что ответит [isGranted] — доступ уже дан или нет.
+  final bool granted;
   int calls = 0;
+
+  @override
+  Future<bool> isGranted() async => granted;
 
   @override
   Future<(double, double)?> current() async {
