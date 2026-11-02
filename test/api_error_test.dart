@@ -5,6 +5,8 @@ import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
+import 'package:auto_podbor_mobile/models/available_page.dart';
+import 'package:auto_podbor_mobile/models/nearby_filter.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
@@ -25,7 +27,11 @@ class _FailingRepository extends MockOrderRepository {
   Future<List<Order>> fetchAssignedOrders() async => throw error;
 
   @override
-  Future<List<Order>> fetchAvailableOrders() async => throw error;
+  Future<AvailablePage> fetchAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+    int page = 1,
+  }) async => throw error;
 }
 
 void main() {

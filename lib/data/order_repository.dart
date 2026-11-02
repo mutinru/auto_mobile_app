@@ -1,5 +1,7 @@
+import '../models/available_page.dart';
 import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/payout.dart';
@@ -11,7 +13,19 @@ import '../models/time_slot.dart';
 /// [ApiOrderRepository] поверх Laravel API (routes/api.php, группа orders).
 abstract class OrderRepository {
   Future<List<Order>> fetchMyOrders();
-  Future<List<Order>> fetchAvailableOrders();
+
+  /// Лента «Заказы рядом»: фильтр, сортировка и страницы — на сервере.
+  Future<AvailablePage> fetchAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+    int page = 1,
+  });
+
+  /// Сколько заказов под фильтром — счётчик «Показать N» в шторке.
+  Future<int> countAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+  });
 
   /// Заказы, где пользователь — назначенный исполнитель.
   Future<List<Order>> fetchAssignedOrders();

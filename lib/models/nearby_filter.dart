@@ -1,8 +1,8 @@
 import 'order.dart';
 import 'order_kind.dart';
 
-/// Сортировка ленты «Заказы рядом». newest — порядок сервера:
-/// /orders/available уже отдаёт заказы через latest().
+/// Сортировка ленты «Заказы рядом» — делает сервер. [apiValue] — зеркало
+/// AvailableOrders::SORTS на бекенде.
 enum NearbySort { newest, soonest, priceDesc }
 
 extension NearbySortX on NearbySort {
@@ -10,6 +10,12 @@ extension NearbySortX on NearbySort {
     NearbySort.newest => 'Новые',
     NearbySort.soonest => 'Ближе по дате',
     NearbySort.priceDesc => 'Дороже',
+  };
+
+  String get apiValue => switch (this) {
+    NearbySort.newest => 'newest',
+    NearbySort.soonest => 'soonest',
+    NearbySort.priceDesc => 'price_desc',
   };
 }
 
@@ -23,10 +29,19 @@ extension NearbyWhenX on NearbyWhen {
     NearbyWhen.tomorrow => 'Завтра',
     NearbyWhen.week => 'На неделе',
   };
+
+  /// Зеркало AvailableOrders::WHEN на бекенде; any — параметра нет.
+  String? get apiValue => switch (this) {
+    NearbyWhen.any => null,
+    NearbyWhen.today => 'today',
+    NearbyWhen.tomorrow => 'tomorrow',
+    NearbyWhen.week => 'week',
+  };
 }
 
-/// Фильтры шторки «Заказов рядом». Считаются на клиенте: /orders/available
-/// отдаёт всё одним списком без пагинации и без параметров запроса.
+/// Фильтры шторки «Заказов рядом». Фильтрует и сортирует сервер
+/// (/orders/available, параметры — [toQuery]); [applyNearbyFilter] — та же
+/// логика для мок-репозитория.
 class NearbyFilter {
   const NearbyFilter({
     this.kind,
@@ -57,6 +72,22 @@ class NearbyFilter {
       brands.length;
 
   bool get isEmpty => activeCount == 0;
+
+  /// Параметры /orders/available и /orders/available/count (без «?»).
+  /// «Когда» уходит на сервер, хотя и не сохраняется ([toJson]).
+  /// [fewResponses] — быстрый фильтр «Мало откликов» с экрана.
+  String toQuery({bool fewResponses = false}) {
+    String enc(String v) => Uri.encodeQueryComponent(v);
+    return [
+      if (kind != null) 'kind=${kind!.apiValue}',
+      for (final city in cities.toList()..sort()) 'cities[]=${enc(city)}',
+      for (final brand in brands.toList()..sort()) 'brands[]=${enc(brand)}',
+      if (when.apiValue != null) 'when=${when.apiValue}',
+      if (minPrice != null) 'min_price=$minPrice',
+      if (fewResponses) 'few_responses=1',
+      if (sort != NearbySort.newest) 'sort=${sort.apiValue}',
+    ].join('&');
+  }
 
   /// Для хранилища устройства ([NearbyFilterStore]). Энамы — по имени:
   /// переименование значения сбросит сохранённое поле к умолчанию, а не

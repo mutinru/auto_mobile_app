@@ -4,7 +4,9 @@ import '../data/address_repository.dart';
 import '../data/car_catalog_repository.dart';
 import '../data/city_repository.dart';
 import '../data/order_repository.dart';
+import '../models/available_page.dart';
 import '../models/inspection_verdict.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/payout.dart';
 import '../models/time_slot.dart';
@@ -81,21 +83,129 @@ class OrderStore extends ChangeNotifier {
     }
   }
 
-  /// Загрузка с обработкой ошибки: экран показывает её вместо вечного
-  /// спиннера.
-  Future<void> loadAvailableOrders() async {
+  // --- «Заказы рядом»: фильтрует и листает сервер ---
+
+  NearbyFilter _availableFilter = const NearbyFilter();
+  bool _availableFew = false;
+  int _availablePage = 0;
+  bool _availableHasMore = false;
+  bool _loadingMoreAvailable = false;
+  String? _availableMoreError;
+  int _availableTotal = 0;
+  int _availableAll = 0;
+  List<Facet> _cityFacets = const [];
+  List<Facet> _brandFacets = const [];
+
+  /// Номер запроса ленты: ответ на устаревший фильтр (пользователь успел
+  /// сменить его) отбрасываем, а не подмешиваем.
+  int _availableGeneration = 0;
+
+  bool get hasMoreAvailable => _availableHasMore;
+
+  /// Растёт с каждой принятой страницей — ключ подвала подгрузки: после
+  /// перезагрузки список той же длины, а подвал должен сработать заново.
+  int get availableVersion => _availableVersion;
+  int _availableVersion = 0;
+  bool get isLoadingMoreAvailable => _loadingMoreAvailable;
+
+  /// Ошибка подгрузки следующей страницы — подвал с «Повторить», а не
+  /// экран ошибки: загруженное остаётся на месте.
+  String? get availableMoreError => _availableMoreError;
+
+  /// Заказов под фильтром на всех страницах.
+  int get availableTotal => _availableTotal;
+
+  /// Свободных без фильтров.
+  int get availableAll => _availableAll;
+
+  /// Варианты шторки — по всем свободным, с первой страницы.
+  List<Facet> get cityFacets => _cityFacets;
+  List<Facet> get brandFacets => _brandFacets;
+
+  /// Первая страница ленты. Без аргументов — с прошлым фильтром
+  /// («Повторить», обновление жестом, возврат из уведомлений). Пока идёт
+  /// загрузка, прежний список остаётся на экране.
+  Future<void> loadAvailableOrders({
+    NearbyFilter? filter,
+    bool? fewResponses,
+  }) async {
+    _availableFilter = filter ?? _availableFilter;
+    _availableFew = fewResponses ?? _availableFew;
+    final generation = ++_availableGeneration;
     _loadingAvailable = true;
+    _loadingMoreAvailable = false;
     _availableError = null;
+    _availableMoreError = null;
     notifyListeners();
     try {
-      _availableOrders = await _repository.fetchAvailableOrders();
+      final page = await _repository.fetchAvailableOrders(
+        filter: _availableFilter,
+        fewResponses: _availableFew,
+      );
+      if (generation != _availableGeneration) return;
+      _availableOrders = page.items;
+      _applyAvailablePage(page);
     } catch (e) {
+      if (generation != _availableGeneration) return;
       _availableError = apiErrorText(e);
     } finally {
-      _loadingAvailable = false;
-      notifyListeners();
+      if (generation == _availableGeneration) {
+        _loadingAvailable = false;
+        notifyListeners();
+      }
     }
   }
+
+  /// Следующая страница — когда подвал списка показался на экране.
+  Future<void> loadMoreAvailable() async {
+    if (!_availableHasMore || _loadingAvailable || _loadingMoreAvailable) {
+      return;
+    }
+    final generation = _availableGeneration;
+    _loadingMoreAvailable = true;
+    _availableMoreError = null;
+    notifyListeners();
+    try {
+      final page = await _repository.fetchAvailableOrders(
+        filter: _availableFilter,
+        fewResponses: _availableFew,
+        page: _availablePage + 1,
+      );
+      if (generation != _availableGeneration) return;
+      // новые заказы сдвигают страницы — повтор с прошлой отбрасываем
+      final seen = {for (final o in _availableOrders) o.id};
+      _availableOrders = [
+        ..._availableOrders,
+        ...page.items.where((o) => seen.add(o.id)),
+      ];
+      _applyAvailablePage(page);
+    } catch (e) {
+      if (generation != _availableGeneration) return;
+      _availableMoreError = apiErrorText(e);
+    } finally {
+      if (generation == _availableGeneration) {
+        _loadingMoreAvailable = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  void _applyAvailablePage(AvailablePage page) {
+    _availableVersion++;
+    _availablePage = page.page;
+    _availableHasMore = page.hasMore;
+    _availableTotal = page.total;
+    _availableAll = page.all;
+    _cityFacets = page.cityFacets ?? _cityFacets;
+    _brandFacets = page.brandFacets ?? _brandFacets;
+  }
+
+  /// Счётчик шторки: сколько заказов покажет [filter] — без загрузки.
+  Future<int> countAvailableOrders(NearbyFilter filter, {bool? fewResponses}) =>
+      _repository.countAvailableOrders(
+        filter: filter,
+        fewResponses: fewResponses ?? _availableFew,
+      );
 
   Future<void> loadAssignedOrders() async {
     _loadingAssigned = true;

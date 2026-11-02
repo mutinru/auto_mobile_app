@@ -8,11 +8,13 @@ import '../models/order_kind.dart';
 import '../state/nearby_filter_store.dart';
 import '../state/notification_scope.dart';
 import '../state/order_store.dart';
+import '../state/verification_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/geo.dart';
 import '../util/ru_date.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/load_more.dart';
 import '../widgets/nearby_filter_sheet.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/respond_sheet.dart';
@@ -39,7 +41,9 @@ class NearbyOrdersScreen extends StatefulWidget {
   });
 
   final OrderStore store;
-  final VerificationRepository verification;
+
+  /// Статус верификации на всю сессию: повторный вход рисует его сразу.
+  final VerificationStatus verification;
 
   /// Нужен только экрану верификации, на который ведёт гейт.
   final AuthService? auth;
@@ -55,8 +59,6 @@ class NearbyOrdersScreen extends StatefulWidget {
 }
 
 class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
-  VerificationSummary? _verification;
-
   /// true — показываем только заказы с малым числом откликов.
   bool _fewResponsesOnly = false;
 
@@ -65,12 +67,42 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   /// Точка устройства для «· 8 км»; null — без геопозиции, только город.
   (double, double)? _here;
 
+  /// Параметры последнего запроса ленты: стор фильтров уведомляет и без
+  /// смены фильтра (загрузка из хранилища, город по GPS) — лишний запрос
+  /// не шлём.
+  String? _lastQuery;
+
   @override
   void initState() {
     super.initState();
-    widget.store.loadAvailableOrders();
-    _loadVerification();
+    _filters.addListener(_reload);
+    _reload();
+    // кеш рисуется сразу, запрос его освежает
+    widget.verification.refresh();
     _locate();
+  }
+
+  @override
+  void dispose() {
+    _filters.removeListener(_reload);
+    super.dispose();
+  }
+
+  /// Фильтрует и листает сервер: сменился фильтр — первая страница заново.
+  void _reload() {
+    final filter = _filters.filter;
+    final query = filter.toQuery(fewResponses: _fewResponsesOnly);
+    if (query == _lastQuery) return;
+    _lastQuery = query;
+    widget.store.loadAvailableOrders(
+      filter: filter,
+      fewResponses: _fewResponsesOnly,
+    );
+  }
+
+  void _setFewResponses(bool value) {
+    setState(() => _fewResponsesOnly = value);
+    _reload();
   }
 
   Future<void> _locate() async {
@@ -78,34 +110,20 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     if (here != null && mounted) setState(() => _here = here);
   }
 
-  /// Ошибку гейта глотаем: без неё список всё равно нужен, а кнопки
-  /// отклика без данных верификации остаются закрытыми.
-  Future<void> _loadVerification() async {
-    try {
-      final summary = await widget.verification.fetchSummary();
-      if (mounted) setState(() => _verification = summary);
-    } catch (_) {
-      // молча — гейт просто останется в закрытом состоянии
-    }
-  }
-
-  bool get _canRespond => _verification?.canTakeOrders ?? false;
-
-  List<Order> _visible(List<Order> orders, NearbyFilter filter) {
-    final filtered = applyNearbyFilter(orders, filter);
-    return _fewResponsesOnly
-        ? filtered.where((o) => o.responsesCount <= 2).toList()
-        : filtered;
-  }
+  /// Пока статус неизвестен, откликаться нельзя: кнопки закрыты, но
+  /// плашку «нужна верификация» не рисуем — это была бы неправда.
+  bool get _canRespond => widget.verification.summary?.canTakeOrders ?? false;
 
   Future<void> _openFilters() async {
-    final all = widget.store.availableOrders;
+    final store = widget.store;
     final next = await showNearbyFilterSheet(
       context,
       current: _filters.filter,
-      orders: all,
-      countFor: (f) => _visible(all, f).length,
-      cities: widget.store.cities,
+      cityOptions: [for (final f in store.cityFacets) f.name],
+      brandOptions: [for (final f in store.brandFacets) f.name],
+      countFor: (f) =>
+          store.countAvailableOrders(f, fewResponses: _fewResponsesOnly),
+      cities: store.cities,
     );
     if (next != null) _filters.set(next);
   }
@@ -122,6 +140,8 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   void _resetFilters() {
     setState(() => _fewResponsesOnly = false);
     _filters.set(NearbyFilter(sort: _filters.filter.sort));
+    // фильтр шторки мог и не измениться — «Мало откликов» тоже сброшено
+    _reload();
   }
 
   /// Включённые фильтры шторки — чипами с крестиком под шапкой, чтобы было
@@ -169,12 +189,14 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     }
   }
 
-  void _openVerification() {
+  /// С экрана верификации могли вернуться пройдя шаги — перечитываем.
+  Future<void> _openVerification() async {
     final auth = widget.auth;
     if (auth == null) return;
-    Navigator.of(
+    await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => VerificationScreen(auth: auth)));
+    widget.verification.refresh();
   }
 
   /// Уведомление могло увести в заказ — ленту свободных перечитываем.
@@ -188,17 +210,21 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: Listenable.merge([widget.store, _filters]),
+          listenable: Listenable.merge([
+            widget.store,
+            _filters,
+            widget.verification,
+          ]),
           builder: (context, _) {
-            final all = widget.store.availableOrders;
+            final all = widget.store.availableAll;
             final filter = _filters.filter;
-            final orders = _visible(all, filter);
+            final orders = widget.store.availableOrders;
 
             return Column(
               children: [
                 DetailHead(
                   title: 'Заказы рядом',
-                  eyebrow: 'свободные · ${all.length}',
+                  eyebrow: 'свободные · $all',
                   onBack: Navigator.of(context).canPop()
                       ? () => Navigator.of(context).pop()
                       : null,
@@ -239,18 +265,17 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                     child: Row(
                       children: [
                         AppChip(
-                          label: 'Все · ${all.length}',
+                          label: 'Все · $all',
                           on: !_fewResponsesOnly,
                           activeColor: context.colors.modeWork,
-                          onTap: () =>
-                              setState(() => _fewResponsesOnly = false),
+                          onTap: () => _setFewResponses(false),
                         ),
                         const SizedBox(width: 6),
                         AppChip(
                           label: 'Мало откликов',
                           on: _fewResponsesOnly,
                           activeColor: context.colors.modeWork,
-                          onTap: () => setState(() => _fewResponsesOnly = true),
+                          onTap: () => _setFewResponses(true),
                         ),
                         for (final (label, without) in _activeChips(
                           filter,
@@ -268,7 +293,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                   ),
                 ),
 
-                Expanded(child: _body(orders, hiddenByFilter: all.isNotEmpty)),
+                Expanded(child: _body(orders, hiddenByFilter: all > 0)),
               ],
             );
           },
@@ -277,8 +302,8 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     );
   }
 
-  /// [hiddenByFilter] — заказы есть, и если список пуст, его опустошили
-  /// фильтры, а не сервер.
+  /// [hiddenByFilter] — свободные заказы есть, и если список пуст, его
+  /// опустошили фильтры.
   Widget _body(List<Order> orders, {required bool hiddenByFilter}) {
     final error = widget.store.availableError;
     if (error != null) {
@@ -307,23 +332,30 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
       );
     }
 
-    if (widget.store.isLoadingAvailable) {
+    final store = widget.store;
+    // спиннер на весь экран — только пока показывать нечего; при смене
+    // фильтра прежний список стоит до ответа, сверху — полоска загрузки
+    if (store.isLoadingAvailable && orders.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final gate = _verification;
-    final showGate = gate == null || !gate.canTakeOrders;
+    final verification = widget.verification;
+    final gate = verification.summary;
 
-    return RefreshIndicator(
-      onRefresh: () => widget.store.loadAvailableOrders(),
+    final list = RefreshIndicator(
+      onRefresh: () => store.loadAvailableOrders(),
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(22, 2, 22, 16),
         children: [
-          if (showGate)
+          // плашка — только по ответу сервера; пока грузится — ничего
+          if (gate != null && !gate.canTakeOrders)
             _VerificationGate(
               summary: gate,
               onTap: widget.auth == null ? null : _openVerification,
-            ),
+            )
+          else if (gate == null && verification.error != null)
+            _VerificationRetry(onRetry: verification.refresh),
           if (orders.isEmpty && hiddenByFilter && _onlyAutoCity != null)
             Padding(
               padding: const EdgeInsets.only(top: 24),
@@ -375,8 +407,38 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
               canRespond: _canRespond,
               onRespond: () => _respond(order),
             ),
+          if (store.hasMoreAvailable)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: store.availableMoreError != null
+                    ? CtaGhost(
+                        label: 'Повторить',
+                        onPressed: store.loadMoreAvailable,
+                      )
+                    : LoadMore(
+                        // новый ключ на каждую страницу — иначе State
+                        // переиспользуется и initState больше не позовётся
+                        key: ValueKey(store.availableVersion),
+                        onShown: store.loadMoreAvailable,
+                      ),
+              ),
+            ),
         ],
       ),
+    );
+
+    if (!store.isLoadingAvailable) return list;
+    return Stack(
+      children: [
+        list,
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: LinearProgressIndicator(minHeight: 2),
+        ),
+      ],
     );
   }
 }
@@ -387,12 +449,12 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
 class _VerificationGate extends StatelessWidget {
   const _VerificationGate({required this.summary, required this.onTap});
 
-  final VerificationSummary? summary;
+  final VerificationSummary summary;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final progress = summary?.progress ?? 0;
+    final progress = summary.progress;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 11),
@@ -438,10 +500,8 @@ class _VerificationGate extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      summary == null
-                          ? 'Нужна верификация: вход, опыт, тест на дефекты · ~20 минут'
-                          : 'Нужна верификация: пройдено ${summary!.passed} из '
-                                '${summary!.total} шагов · ~20 минут',
+                      'Нужна верификация: пройдено ${summary.passed} из '
+                      '${summary.total} шагов · ~20 минут',
                       style: TextStyle(
                         fontSize: 11.5,
                         color: context.colors.text2,
@@ -486,6 +546,34 @@ class _VerificationGate extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Статус верификации не загрузился: без него откликаться нельзя, но и
+/// говорить «нужна верификация» верифицированному — неправда.
+class _VerificationRetry extends StatelessWidget {
+  const _VerificationRetry({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 16, color: context.colors.text3),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Не удалось проверить верификацию',
+              style: TextStyle(fontSize: 12.5, color: context.colors.text2),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Повторить')),
         ],
       ),
     );

@@ -36,6 +36,7 @@ import 'state/notification_unread.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
 import 'state/support_unread.dart';
+import 'state/verification_status.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_controller.dart';
 import 'widgets/order_kind_sheet.dart';
@@ -173,6 +174,12 @@ class _RootGateState extends State<_RootGate> {
   );
   late final _addresses = ApiAddressRepository(ApiClient(_auth));
 
+  /// Верификация — одна на сессию входа: экраны разделов пересоздаются, а
+  /// статус должен рисоваться сразу, без мигания гейта.
+  late final _verification = VerificationStatus(
+    ApiVerificationRepository(ApiClient(_auth)),
+  );
+
   @override
   void initState() {
     super.initState();
@@ -204,6 +211,8 @@ class _RootGateState extends State<_RootGate> {
   void _warmUpCity() {
     if (!_auth.isAuthenticated || _auth.isRestoring) {
       _cityWarmedUp = false;
+      // вышел или сессия истекла — статус верификации был чужим
+      if (!_auth.isRestoring) _verification.clear();
       return;
     }
     if (_cityWarmedUp) return;
@@ -432,7 +441,7 @@ class _RootGateState extends State<_RootGate> {
       ),
       _Section.nearby => NearbyOrdersScreen(
         store: orders,
-        verification: ApiVerificationRepository(ApiClient(_auth)),
+        verification: _verification,
         auth: _auth,
         onProfile: () => _switchTo(_Section.profile),
         filters: NearbyFilterStore.persistent(
@@ -442,7 +451,7 @@ class _RootGateState extends State<_RootGate> {
       _Section.profile => ProfileScreen(
         auth: _auth,
         store: orders,
-        verification: ApiVerificationRepository(ApiClient(_auth)),
+        verification: _verification,
         onMyOrders: () => _switchTo(_Section.myOrders),
         onNearbyOrders: () => _switchTo(_Section.nearby),
         onLogout: _logout,

@@ -169,4 +169,23 @@ void main() {
     expect(broken.brands, {'Kia'});
     expect(broken.sort, NearbySort.newest);
   });
+
+  test('параметры запроса: пустой фильтр — без параметров', () {
+    expect(const NearbyFilter().toQuery(), '');
+    expect(
+      const NearbyFilter(
+        kind: OrderKind.inspection,
+        cities: {'Химки', 'Москва'},
+        when: NearbyWhen.today,
+        minPrice: 5000,
+        brands: {'Kia'},
+        sort: NearbySort.priceDesc,
+      ).toQuery(fewResponses: true),
+      'kind=inspection'
+      '&cities[]=%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0'
+      '&cities[]=%D0%A5%D0%B8%D0%BC%D0%BA%D0%B8'
+      '&brands[]=Kia&when=today&min_price=5000&few_responses=1'
+      '&sort=price_desc',
+    );
+  });
 }

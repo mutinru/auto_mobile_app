@@ -1,5 +1,7 @@
+import '../models/available_page.dart';
 import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/payout.dart';
@@ -20,9 +22,45 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<List<Order>> fetchAvailableOrders() async {
-    final json = await _client.get('/orders/available');
-    return _parseList(json);
+  Future<AvailablePage> fetchAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+    int page = 1,
+  }) async {
+    final query = [
+      filter.toQuery(fewResponses: fewResponses),
+      'page=$page',
+    ].where((p) => p.isNotEmpty).join('&');
+    final json = await _client.get('/orders/available?$query');
+    final meta = json['meta'] as Map<String, dynamic>? ?? const {};
+    final facets = meta['facets'] as Map<String, dynamic>?;
+    List<Facet>? parse(Object? list) => list is List
+        ? [for (final f in list) Facet.fromJson(f as Map<String, dynamic>)]
+        : null;
+    final items = _parseList(json);
+    final current = (meta['current_page'] as num?)?.toInt() ?? page;
+    final last = (meta['last_page'] as num?)?.toInt() ?? current;
+    return AvailablePage(
+      items: items,
+      page: current,
+      hasMore: current < last,
+      total: (meta['total'] as num?)?.toInt() ?? items.length,
+      all: (meta['all'] as num?)?.toInt() ?? items.length,
+      cityFacets: parse(facets?['cities']),
+      brandFacets: parse(facets?['brands']),
+    );
+  }
+
+  @override
+  Future<int> countAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+  }) async {
+    final query = filter.toQuery(fewResponses: fewResponses);
+    final json = await _client.get(
+      '/orders/available/count${query.isEmpty ? '' : '?$query'}',
+    );
+    return (json['total'] as num).toInt();
   }
 
   @override

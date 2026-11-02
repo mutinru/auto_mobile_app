@@ -15,6 +15,7 @@ import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/load_more.dart';
 import 'order_routes.dart';
 
 /// Открыть ленту колокольчиком из шапки раздела. Репозиторий берём из
@@ -208,7 +209,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Center(
                 child: error != null
                     ? CtaGhost(label: 'Повторить', onPressed: _feed.loadMore)
-                    : _LoadMore(
+                    : LoadMore(
                         // новый ключ на каждую страницу — иначе State
                         // переиспользуется и initState больше не позовётся
                         key: ValueKey(items.length),
@@ -220,32 +221,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-}
-
-/// Спиннер в конце ленты; список строит его, только когда до конца
-/// докрутили, — тогда и просим следующую страницу. По прокрутке нельзя:
-/// короткая первая страница не прокручивается, и спиннер висел бы вечно.
-class _LoadMore extends StatefulWidget {
-  const _LoadMore({super.key, required this.onShown});
-
-  final VoidCallback onShown;
-
-  @override
-  State<_LoadMore> createState() => _LoadMoreState();
-}
-
-class _LoadMoreState extends State<_LoadMore> {
-  @override
-  void initState() {
-    super.initState();
-    // не во время build: стор уведомит слушателей
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onShown();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => const CircularProgressIndicator();
 }
 
 class _NotificationCard extends StatelessWidget {

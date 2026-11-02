@@ -1,6 +1,8 @@
+import '../models/available_page.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/order_kind.dart';
@@ -21,7 +23,12 @@ class MockOrderRepository implements OrderRepository {
   /// [orders] — свой набор вместо общей фикстуры: тестам оплаты нужны
   /// заказы в reportReady/paymentSent, а правка [_seed] двигает вёрстку
   /// соседних suites.
-  MockOrderRepository({List<Order>? orders}) : _orders = orders ?? _seed();
+  /// [availablePageSize] — страница ленты «Заказы рядом»; маленькая —
+  /// чтобы проверить подгрузку на двух заказах фикстуры.
+  MockOrderRepository({List<Order>? orders, this.availablePageSize = 20})
+    : _orders = orders ?? _seed();
+
+  final int availablePageSize;
 
   /// Реквизиты, которые мок отдаёт заказчику в момент оплаты.
   static const mockPayout = Payout(
@@ -199,11 +206,61 @@ class MockOrderRepository implements OrderRepository {
   @override
   Future<List<Order>> fetchMyOrders() async => _orders;
 
+  /// Как сервер: фильтр той же логикой ([applyNearbyFilter]), страницы и
+  /// варианты шторки — по всем свободным.
   @override
-  Future<List<Order>> fetchAvailableOrders() async => _orders
+  Future<AvailablePage> fetchAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+    int page = 1,
+  }) async {
+    final open = _open();
+    final filtered = _filtered(open, filter, fewResponses);
+    final from = (page - 1) * availablePageSize;
+    final items = filtered.skip(from).take(availablePageSize).toList();
+    List<Facet> facets(Iterable<String> values) {
+      final counts = <String, int>{};
+      for (final v in values) {
+        counts[v] = (counts[v] ?? 0) + 1;
+      }
+      return [
+        for (final name in counts.keys.toList()..sort())
+          Facet(name, counts[name]!),
+      ];
+    }
+
+    return AvailablePage(
+      items: items,
+      page: page,
+      hasMore: from + items.length < filtered.length,
+      total: filtered.length,
+      all: open.length,
+      cityFacets: page == 1
+          ? facets(open.expand((o) => o.cities.toSet()))
+          : null,
+      brandFacets: page == 1 ? facets(open.map((o) => o.brand)) : null,
+    );
+  }
+
+  @override
+  Future<int> countAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+  }) async => _filtered(_open(), filter, fewResponses).length;
+
+  List<Order> _open() => _orders
       .where((o) => o.status == OrderStatus.awaitingExecutor)
       .map(_asExecutor)
       .toList();
+
+  static List<Order> _filtered(
+    List<Order> open,
+    NearbyFilter filter,
+    bool fewResponses,
+  ) => applyNearbyFilter(
+    open,
+    filter,
+  ).where((o) => !fewResponses || o.responsesCount <= 2).toList();
 
   /// Как бекенд (OrderResource): не заказчику — только свой отклик,
   /// общее число — в responsesCount.

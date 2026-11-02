@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/city.dart';
+import '../models/nearby_filter.dart';
 import '../models/order.dart';
+import '../models/order_kind.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -39,7 +41,10 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
   @override
   void initState() {
     super.initState();
-    widget.store.loadAvailableOrders();
+    // на карте только подбор: у осмотра нет бюджета, из которого собран пин
+    widget.store.loadAvailableOrders(
+      filter: const NearbyFilter(kind: OrderKind.selection),
+    );
     _detectCity();
   }
 

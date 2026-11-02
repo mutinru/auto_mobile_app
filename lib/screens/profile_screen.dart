@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
-import '../data/verification_repository.dart';
 import '../models/current_user.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
+import '../state/verification_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_plural.dart';
@@ -38,7 +38,9 @@ class ProfileScreen extends StatefulWidget {
 
   final AuthService auth;
   final OrderStore store;
-  final VerificationRepository verification;
+
+  /// Статус верификации на всю сессию — общий с «Заказами рядом».
+  final VerificationStatus verification;
 
   /// Переход в разделы. Они подменяют профиль, а не ложатся поверх —
   /// навигацией разделов управляет main.dart.
@@ -53,8 +55,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  VerificationSummary? _verification;
-
   @override
   void initState() {
     super.initState();
@@ -62,7 +62,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     widget.store.loadAssignedOrders();
     // рейтинг мог измениться с прошлого входа
     widget.auth.refreshUser();
-    _loadVerification();
+    // без сводки считаем верификацию необязательной и пункт про неё не
+    // показываем — сервер всё равно проверит отклик сам
+    widget.verification.ensureLoaded();
   }
 
   /// Плашки блока «Выполнять заказы»: рейтинг, отзывы, выполненные,
@@ -136,26 +138,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (ok == true) await widget.onLogout();
   }
 
-  /// Ошибку глотаем: без сводки считаем верификацию необязательной и пункт
-  /// про неё не показываем — сервер всё равно проверит отклик сам.
-  Future<void> _loadVerification() async {
-    try {
-      final summary = await widget.verification.fetchSummary();
-      if (mounted) setState(() => _verification = summary);
-    } catch (_) {
-      // молча
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.auth, widget.store]),
+      listenable: Listenable.merge([
+        widget.auth,
+        widget.store,
+        widget.verification,
+      ]),
       builder: (context, _) {
         final user = widget.auth.user;
         final orders = widget.store.myOrders;
         final assigned = widget.store.assignedOrders;
-        final verificationRequired = _verification?.required ?? false;
+        final verificationRequired =
+            widget.verification.summary?.required ?? false;
         final active = orders.where((o) => !o.status.isFinished).length;
 
         return Scaffold(
@@ -288,17 +284,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           secondaryLabel: assigned.isEmpty
                               ? 'Пройти верификацию'
                               : 'Взятые заказы',
-                          onSecondary: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => assigned.isEmpty
-                                  ? VerificationScreen(auth: widget.auth)
-                                  : MyOrdersScreen(
-                                      store: widget.store,
-                                      auth: widget.auth,
-                                      asExecutor: true,
-                                    ),
-                            ),
-                          ),
+                          onSecondary: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => assigned.isEmpty
+                                    ? VerificationScreen(auth: widget.auth)
+                                    : MyOrdersScreen(
+                                        store: widget.store,
+                                        auth: widget.auth,
+                                        asExecutor: true,
+                                      ),
+                              ),
+                            );
+                            // могли пройти шаги верификации — перечитываем
+                            if (assigned.isEmpty) {
+                              widget.verification.refresh();
+                            }
+                          },
                         )
                       else
                         // верификация выключена на сервере — откликаться

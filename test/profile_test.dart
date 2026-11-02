@@ -9,6 +9,7 @@ import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'package:auto_podbor_mobile/models/current_user.dart';
 import 'package:auto_podbor_mobile/screens/profile_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
+import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/executor_stats.dart';
 
@@ -34,7 +35,9 @@ void main() {
         catalog: MockCarCatalogRepository(),
         cities: MockCityRepository(),
       ),
-      verification: MockVerificationRepository(required: required),
+      verification: VerificationStatus(
+        MockVerificationRepository(required: required),
+      ),
       onMyOrders: () {},
       onNearbyOrders: () {},
       onLogout: onLogout ?? () async {},

@@ -1,24 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/city_repository.dart';
 import '../models/nearby_filter.dart';
-import '../models/order.dart';
 import '../models/order_kind.dart';
 import '../theme/app_colors.dart';
 import 'app_ui.dart';
 import 'city_picker_sheet.dart';
 
 /// Шторка фильтров «Заказов рядом» — открывается кнопкой с ползунками в
-/// шапке. Варианты городов и марок берёт из загруженных [orders].
-/// [countFor] считает, сколько заказов останется при фильтре, — для кнопки
-/// «Показать N заказов». [cities] добавляет чип «Другой город…» с поиском
-/// по справочнику. Возвращает новый фильтр или null, если закрыли.
+/// шапке. Варианты городов и марок — [cityOptions] и [brandOptions]
+/// (фасеты сервера по всем свободным). [countFor] спрашивает у сервера,
+/// сколько заказов покажет фильтр, — для кнопки «Показать N заказов».
+/// [cities] добавляет чип «Другой город…» с поиском по справочнику.
+/// Возвращает новый фильтр или null, если закрыли.
 Future<NearbyFilter?> showNearbyFilterSheet(
   BuildContext context, {
   required NearbyFilter current,
-  required List<Order> orders,
-  required int Function(NearbyFilter) countFor,
+  required List<String> cityOptions,
+  required List<String> brandOptions,
+  required Future<int> Function(NearbyFilter) countFor,
   CityRepository? cities,
 }) {
   return showModalBottomSheet<NearbyFilter>(
@@ -30,7 +33,8 @@ Future<NearbyFilter?> showNearbyFilterSheet(
     ),
     builder: (context) => _NearbyFilterSheet(
       initial: current,
-      orders: orders,
+      cityOptions: cityOptions,
+      brandOptions: brandOptions,
       countFor: countFor,
       cities: cities,
     ),
@@ -40,14 +44,16 @@ Future<NearbyFilter?> showNearbyFilterSheet(
 class _NearbyFilterSheet extends StatefulWidget {
   const _NearbyFilterSheet({
     required this.initial,
-    required this.orders,
+    required this.cityOptions,
+    required this.brandOptions,
     required this.countFor,
     required this.cities,
   });
 
   final NearbyFilter initial;
-  final List<Order> orders;
-  final int Function(NearbyFilter) countFor;
+  final List<String> cityOptions;
+  final List<String> brandOptions;
+  final Future<int> Function(NearbyFilter) countFor;
   final CityRepository? cities;
 
   @override
@@ -60,6 +66,19 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     text: widget.initial.minPrice?.toString() ?? '',
   );
 
+  /// Сколько заказов покажет фильтр; null — ещё не знаем или сервер не
+  /// ответил (тогда кнопка без числа, но не заблокирована).
+  int? _count;
+  bool _counting = true;
+  Timer? _countDelay;
+
+  /// Номер запроса счётчика: поздний ответ на старый фильтр не нужен.
+  int _countRequest = 0;
+
+  /// Сортировка на число не влияет — по ней счётчик не переспрашиваем.
+  String get _countKey => _filter.copyWith(sort: NearbySort.newest).toQuery();
+  late String _countedKey;
+
   @override
   void initState() {
     super.initState();
@@ -69,15 +88,41 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
         _update(_filter.copyWith(minPrice: () => price));
       }
     });
+    _countedKey = _countKey;
+    _recount();
   }
 
   @override
   void dispose() {
+    _countDelay?.cancel();
     _priceController.dispose();
     super.dispose();
   }
 
-  void _update(NearbyFilter next) => setState(() => _filter = next);
+  void _update(NearbyFilter next) {
+    setState(() => _filter = next);
+    if (_countKey == _countedKey) return;
+    _countedKey = _countKey;
+    // цена меняется на каждый символ — спрашиваем, когда ввод затих
+    setState(() => _counting = true);
+    _countDelay?.cancel();
+    _countDelay = Timer(const Duration(milliseconds: 300), _recount);
+  }
+
+  Future<void> _recount() async {
+    final request = ++_countRequest;
+    int? count;
+    try {
+      count = await widget.countFor(_filter);
+    } catch (_) {
+      // счётчик — подсказка: без него кнопка просто без числа
+    }
+    if (!mounted || request != _countRequest) return;
+    setState(() {
+      _count = count;
+      _counting = false;
+    });
+  }
 
   void _reset() {
     _priceController.clear();
@@ -101,11 +146,11 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
   Widget build(BuildContext context) {
     // сохранённый город может отсутствовать в текущей выдаче — всё равно
     // показываем его, иначе снять такой фильтр было бы нечем
-    final cities = {...cityOptions(widget.orders), ..._filter.cities}.toList()
-      ..sort();
-    final brands = {...brandOptions(widget.orders), ..._filter.brands}.toList()
-      ..sort();
-    final count = widget.countFor(_filter);
+    final cities = {...widget.cityOptions, ..._filter.cities}.toList()..sort();
+    final brands = {...widget.brandOptions, ..._filter.brands}.toList()..sort();
+    final count = _count;
+    // ноль блокирует кнопку, только когда он про текущий фильтр
+    final nothing = count == 0 && !_counting;
     final work = context.colors.modeWork;
 
     Widget chips(List<Widget> children) => Padding(
@@ -255,10 +300,12 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
             BottomCta(
               children: [
                 CtaPrimary(
-                  label: count == 0
+                  label: nothing
                       ? 'Ничего не найдено'
+                      : count == null || count == 0
+                      ? 'Показать заказы'
                       : 'Показать ${ordersCount(count)}',
-                  onPressed: count == 0
+                  onPressed: nothing
                       ? null
                       : () => Navigator.of(context).pop(_filter),
                 ),

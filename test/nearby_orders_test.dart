@@ -5,23 +5,71 @@ import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
+import 'dart:async';
+
+import 'package:auto_podbor_mobile/data/api_exception.dart';
+import 'package:auto_podbor_mobile/data/verification_repository.dart';
+import 'package:auto_podbor_mobile/models/available_page.dart';
+import 'package:auto_podbor_mobile/models/nearby_filter.dart';
 import 'package:auto_podbor_mobile/screens/nearby_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
+import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
+/// Мок, у которого вторая и дальше страницы ленты не грузятся.
+class _FailingMorePages extends MockOrderRepository {
+  _FailingMorePages() : super(availablePageSize: 1);
+
+  @override
+  Future<AvailablePage> fetchAvailableOrders({
+    NearbyFilter filter = const NearbyFilter(),
+    bool fewResponses = false,
+    int page = 1,
+  }) async {
+    if (page > 1) throw ApiException(500, '{"message":"Сбой"}');
+    return super.fetchAvailableOrders(
+      filter: filter,
+      fewResponses: fewResponses,
+      page: page,
+    );
+  }
+}
+
+/// Сводка верификации по команде теста: [next] — ответ или ошибка
+/// следующего запроса, [calls] — сколько раз спросили.
+class _ScriptedVerification implements VerificationRepository {
+  Completer<VerificationSummary> next = Completer();
+  int calls = 0;
+
+  @override
+  Future<VerificationSummary> fetchSummary() {
+    calls++;
+    return next.future;
+  }
+}
+
+const _verified = VerificationSummary(passed: 4, total: 4, complete: true);
+const _unverified = VerificationSummary(passed: 1, total: 4, complete: false);
+
 void main() {
-  Widget app({int passed = 0, bool required = true}) => MaterialApp(
+  Widget app({
+    int passed = 0,
+    bool required = true,
+    MockOrderRepository? repository,
+    VerificationStatus? verification,
+  }) => MaterialApp(
     theme: AppTheme.dark,
     home: NearbyOrdersScreen(
       store: OrderStore(
-        MockOrderRepository(),
+        repository ?? MockOrderRepository(),
         catalog: MockCarCatalogRepository(),
         cities: MockCityRepository(),
       ),
-      verification: MockVerificationRepository(
-        passed: passed,
-        required: required,
-      ),
+      verification:
+          verification ??
+          VerificationStatus(
+            MockVerificationRepository(passed: passed, required: required),
+          ),
     ),
   );
 
@@ -84,7 +132,7 @@ void main() {
     'мок отдаёт исполнителю только свой отклик, остальные — числом',
     () async {
       final repo = MockOrderRepository();
-      final tiguan = (await repo.fetchAvailableOrders()).firstWhere(
+      final tiguan = (await repo.fetchAvailableOrders()).items.firstWhere(
         (o) => o.brand == 'Volkswagen',
       );
       expect(tiguan.responses, isEmpty);
@@ -109,7 +157,9 @@ void main() {
         theme: AppTheme.dark,
         home: NearbyOrdersScreen(
           store: store,
-          verification: MockVerificationRepository(passed: 0, required: false),
+          verification: VerificationStatus(
+            MockVerificationRepository(passed: 0, required: false),
+          ),
         ),
       ),
     );
@@ -142,9 +192,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Мало откликов'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
+    // у BMW три отклика — «Мало откликов» фильтрует сервер (здесь мок)
+    expect(find.text('BMW X3 2017'), findsNothing);
     expect(find.text('Все · 2'), findsOneWidget);
   });
 
@@ -161,7 +213,9 @@ void main() {
     expect(find.text('Фильтры'), findsOneWidget);
 
     await tester.tap(find.text('Осмотр'));
-    await tester.pump();
+    // счётчик спрашивается у сервера, когда правки затихли
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Показать 1 заказ'));
     await tester.pumpAndSettle();
 
@@ -172,9 +226,84 @@ void main() {
     expect(find.text('Осмотр  ✕'), findsOneWidget);
 
     await tester.tap(find.text('Осмотр  ✕'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
     expect(find.text('Осмотр  ✕'), findsNothing);
+  });
+
+  testWidgets('лента подгружает следующую страницу, когда дошли до конца', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      app(repository: MockOrderRepository(availablePageSize: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    // первая страница короткая — подвал виден сразу и просит вторую
+    expect(find.text('BMW X3 2017'), findsOneWidget);
+    expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('сбой следующей страницы — «Повторить», загруженное на месте', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app(repository: _FailingMorePages()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('BMW X3 2017'), findsOneWidget);
+    expect(find.text('Volkswagen Tiguan 2019+'), findsNothing);
+    expect(find.text('Повторить'), findsOneWidget);
+  });
+
+  testWidgets('пока статус верификации грузится — плашки нет, отклик закрыт', (
+    tester,
+  ) async {
+    final repo = _ScriptedVerification();
+    await tester.pumpWidget(app(verification: VerificationStatus(repo)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Смотреть можно, откликаться — нет'), findsNothing);
+    expect(respondButton(tester).onPressed, isNull);
+
+    repo.next.complete(_verified);
+    await tester.pumpAndSettle();
+    expect(find.text('Смотреть можно, откликаться — нет'), findsNothing);
+    expect(respondButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('сбой статуса — «Повторить», а не плашка про верификацию', (
+    tester,
+  ) async {
+    final repo = _ScriptedVerification();
+    await tester.pumpWidget(app(verification: VerificationStatus(repo)));
+    repo.next.completeError(ApiException(500, '{"message":"Сбой"}'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Не удалось проверить верификацию'), findsOneWidget);
+    expect(find.text('Смотреть можно, откликаться — нет'), findsNothing);
+
+    repo.next = Completer()..complete(_verified);
+    await tester.tap(find.widgetWithText(TextButton, 'Повторить'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Не удалось проверить верификацию'), findsNothing);
+    expect(respondButton(tester).onPressed, isNotNull);
+    expect(repo.calls, 2);
+  });
+
+  testWidgets('известный статус рисуется с первого кадра', (tester) async {
+    final repo = _ScriptedVerification()..next.complete(_unverified);
+    final status = VerificationStatus(repo);
+    await status.refresh();
+    // следующий запрос повиснет — экран не должен его ждать
+    repo.next = Completer();
+
+    await tester.pumpWidget(app(verification: status));
+    await tester.pump();
+
+    expect(find.text('Смотреть можно, откликаться — нет'), findsOneWidget);
+    expect(find.textContaining('пройдено 1 из 4'), findsOneWidget);
   });
 }
