@@ -8,8 +8,10 @@ import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
+import 'package:auto_podbor_mobile/models/vin_kind.dart';
 import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 
 /// Мок, который считает добавленные машины: форма с ошибками не должна
 /// ничего отправлять.
@@ -22,7 +24,7 @@ class _CountingRepository extends MockOrderRepository {
     required String brand,
     required String model,
     required int year,
-    required String vin,
+    required CapturedVin vin,
     required int mileageKm,
     String? licensePlate,
   }) {
@@ -51,7 +53,14 @@ void main() {
     customer: UserSummary(id: 6, name: 'Сергей П.'),
   );
 
-  Future<_CountingRepository> open(WidgetTester tester) async {
+  Future<_CountingRepository> open(
+    WidgetTester tester, [
+    VinCaptureController? vin,
+  ]) async {
+    // экран телефона: блок VIN высокий, в 800×600 год уезжает за край
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
     final repo = _CountingRepository();
     await tester.pumpWidget(
       MaterialApp(
@@ -60,6 +69,7 @@ void main() {
           repository: repo,
           catalog: MockCarCatalogRepository(),
           order: order,
+          vin: vin,
         ),
       ),
     );
@@ -78,7 +88,7 @@ void main() {
     final repo = await open(tester);
     await start(tester);
 
-    expect(find.text('VIN — 17 символов'), findsOneWidget);
+    expect(find.text('Укажите VIN'), findsOneWidget);
     expect(find.text('Укажите пробег'), findsOneWidget);
     expect(find.text('Укажите год выпуска'), findsOneWidget);
     // марка и модель подставлены из заказа — к ним претензий нет
@@ -96,7 +106,7 @@ void main() {
 
     expect(find.text('Укажите пробег'), findsNothing);
     expect(find.text('Укажите год выпуска'), findsOneWidget);
-    expect(find.text('VIN — 17 символов'), findsOneWidget);
+    expect(find.text('Укажите VIN'), findsOneWidget);
   });
 
   testWidgets('год вне границ — своя ошибка у поля', (tester) async {
@@ -126,5 +136,36 @@ void main() {
     final full = tester.widget<Text>(find.text('Полный · 17 пунктов'));
     final express = tester.widget<Text>(find.text('Экспресс'));
     expect(full.style!.color, isNot(express.style!.color));
+  });
+
+  testWidgets('VIN без снимка таблички — ошибка, кандидат не заводится', (
+    tester,
+  ) async {
+    final vin = VinCaptureController();
+    final repo = await open(tester, vin);
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    await tester.enterText(find.byType(TextField).at(1), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await start(tester);
+
+    expect(find.text('Сфотографируйте табличку'), findsOneWidget);
+    expect(repo.added, 0);
+  });
+
+  testWidgets('со снимком VIN уходит на сервер вместе с фото', (tester) async {
+    final vin = VinCaptureController()
+      ..setKind(VinKind.bodyNumber)
+      ..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'gx110-6012345';
+    final repo = await open(tester, vin);
+    await tester.enterText(find.byType(TextField).at(1), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await start(tester);
+    await tester.pumpAndSettle();
+
+    expect(repo.added, 1);
+    expect(repo.lastVin?.value, 'GX110-6012345');
+    expect(repo.lastVin?.kind, VinKind.bodyNumber);
+    expect(repo.lastVin?.photoPath, '/tmp/plate.jpg');
   });
 }

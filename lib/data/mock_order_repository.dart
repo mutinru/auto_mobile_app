@@ -12,6 +12,7 @@ import '../models/order_status.dart';
 import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../models/review.dart';
+import '../models/vin_kind.dart';
 import '../models/time_slot.dart';
 import '../models/user_summary.dart';
 import '../util/listing_url.dart';
@@ -602,26 +603,36 @@ class MockOrderRepository implements OrderRepository {
     required String brand,
     required String model,
     required int year,
-    required String vin,
+    required CapturedVin vin,
     required int mileageKm,
     String? licensePlate,
   }) async {
+    lastVin = vin;
+    final v = vin.value;
     return OrderCar(
       id: DateTime.now().millisecondsSinceEpoch,
       brand: brand,
       model: model,
       year: year,
-      vinMasked: '\u00b7\u00b7\u00b7 ${vin.substring(vin.length - 6)}',
+      vinMasked: '\u00b7\u00b7\u00b7 ${v.substring(v.length - 6)}',
+      vinKind: vin.kind,
       mileageKm: mileageKm,
     );
   }
+
+  /// Последний VIN, снятый исполнителем, — для тестов экранов начала осмотра.
+  CapturedVin? lastVin;
 
   @override
   Future<int> startInspection(
     int orderId,
     int carId, {
     InspectionType type = InspectionType.full,
-  }) async => carId;
+    CapturedVin? vin,
+  }) async {
+    if (vin != null) lastVin = vin;
+    return carId;
+  }
 
   @override
   Future<Order> leaveReview(

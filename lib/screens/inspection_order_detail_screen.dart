@@ -299,6 +299,9 @@ class _InspectionOrderDetailScreenState
           price: order.askingPrice,
         ),
         if (widget.viewerIsCustomer &&
+            (order.cars.firstOrNull?.vinMismatch ?? false))
+          const VinMismatchNote(),
+        if (widget.viewerIsCustomer &&
             order.status == OrderStatus.awaitingDecision)
           ..._decision(order),
         if (widget.viewerIsCustomer && order.status.isAwaitingPayment)

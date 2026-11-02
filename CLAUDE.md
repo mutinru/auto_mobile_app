@@ -67,7 +67,8 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    == null значит «этому зрителю не положено» (не заказчик) — не подставляй 0.
 4. **Энамы Dart и PHP — ручные зеркала.** Пара живёт в репозитории бекенда
    (`CodeChannel` ↔ `App\Sms\CodeChannel`, остальные ↔ `App\Enums\*`, в том
-   числе `ConversationType` и `ChatRole` чата и `NotificationType` ленты).
+   числе `ConversationType` и `ChatRole` чата, `NotificationType` ленты и
+   `VinKind`).
    Меняя энам здесь, скажи пользователю: парная правка сама себя не сделает.
 
 ## Ловушки
@@ -154,6 +155,13 @@ README перечисляет ограничения приложения; зд�
   одна страница. `applyNearbyFilter` живёт только для `MockOrderRepository`.
   `NearbyWhen.apiValue`/`NearbySort.apiValue` — зеркала `AvailableOrders` на
   бекенде.
+- **VIN снимает исполнитель — только через `VinCapture`** (`widgets/vin_capture.dart`):
+  снимок таблички обязателен, текст распознаёт ML Kit, правится руками. Он
+  нужен и кандидату подбора (`StartInspectionScreen` → `addCar`), и старту
+  разового осмотра (`CarVinScreen` → `startInspection(vin:)`), multipart мимо
+  `ApiClient`. VIN заказчика исполнителю не подставляй — иначе его не сверят
+  с машиной. `VinKind` — зеркало `App\Enums\VinKind`. Фото таблички —
+  подписанная ссылка `vinPhotoUrl`, Bearer не нужен.
 - **«Уже откликался» — `Order.hasViewerResponse`**, и только в ленте
   исполнителя: сервер отдаёт исполнителю лишь его отклик, второй отклонит с 422.
   После отклика `OrderStore` подменяет заказ в ленте ответом сервера, а не

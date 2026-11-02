@@ -782,6 +782,31 @@ class VinFormatter extends TextInputFormatter {
   }
 }
 
+/// Номер кузова: латиница, цифры и дефис, верхний регистр, до 17 знаков.
+class BodyNumberFormatter extends TextInputFormatter {
+  const BodyNumberFormatter();
+
+  static final _allowed = RegExp(r'[A-Z0-9-]');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final cleaned = newValue.text
+        .toUpperCase()
+        .split('')
+        .where(_allowed.hasMatch)
+        .join();
+    final capped = cleaned.length > 17 ? cleaned.substring(0, 17) : cleaned;
+
+    return TextEditingValue(
+      text: capped,
+      selection: TextSelection.collapsed(offset: capped.length),
+    );
+  }
+}
+
 /// .next-btn — зелёная кнопка «следующий шаг»: подпись капсом, название
 /// пункта и круг со стрелкой. «Дальше» на экране детали и «Начать осмотр» /
 /// «Продолжить» на схеме.

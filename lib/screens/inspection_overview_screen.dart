@@ -5,6 +5,7 @@ import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/inspection_schematic.dart';
 import '../widgets/progress_summary.dart';
 import 'inspection_summary_screen.dart';
@@ -168,15 +169,38 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                               ),
                             ),
                             const SizedBox(height: 3),
-                            Text(
-                              [
-                                'VIN ${car.vinMasked}',
-                                ?car.mileageLabel,
-                              ].join(' · '),
-                              style: TextStyle(
-                                fontFamily: AppTheme.monoFamily,
-                                fontSize: 11,
-                                color: context.colors.text3,
+                            // VIN снят с таблички — по тапу её фото
+                            GestureDetector(
+                              onTap: car.vinPhotoUrl == null
+                                  ? null
+                                  : () => openPhotoViewer(
+                                      context,
+                                      car.vinPhotoUrl!,
+                                    ),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      [
+                                        'VIN ${car.vinMasked}',
+                                        ?car.mileageLabel,
+                                      ].join(' · '),
+                                      style: TextStyle(
+                                        fontFamily: AppTheme.monoFamily,
+                                        fontSize: 11,
+                                        color: context.colors.text3,
+                                      ),
+                                    ),
+                                  ),
+                                  if (car.vinPhotoUrl != null) ...[
+                                    const SizedBox(width: 5),
+                                    Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 13,
+                                      color: context.colors.text3,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],

@@ -18,6 +18,7 @@ import '../widgets/dispute_sheet.dart';
 import '../widgets/inspection_order_parts.dart';
 import '../widgets/payment_parts.dart';
 import '../widgets/verdict_sheet.dart';
+import 'car_vin_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
 
@@ -144,19 +145,21 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     );
   }
 
-  /// Бекенд создаёт осмотр со всеми пунктами и переводит заказ в «на осмотре»;
-  /// сразу открываем осмотр, чтобы не искать его вторым нажатием.
+  /// Осмотр начинается с таблички VIN (`CarVinScreen`): бекенд записывает
+  /// снятый VIN, создаёт осмотр со всеми пунктами и переводит заказ в «на
+  /// осмотре»; сразу открываем осмотр, чтобы не искать его вторым нажатием.
   Future<void> _start(Order order) async {
-    int? inspectionId;
-    await _run(() async {
-      inspectionId = await widget.store.repository.startInspection(
-        order.id,
-        order.cars.first.id,
-      );
-      await _load();
-    });
+    final inspectionId = await Navigator.of(context).push<int>(
+      MaterialPageRoute(
+        builder: (_) =>
+            CarVinScreen(repository: widget.store.repository, order: order),
+      ),
+    );
+    if (!mounted) return;
+    // и при отказе («Срок осмотра истёк») статус мог уйти — перечитываем
+    await _load();
     if (mounted && inspectionId != null && widget.auth != null) {
-      await _openInspection(inspectionId!);
+      await _openInspection(inspectionId);
     }
   }
 

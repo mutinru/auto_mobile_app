@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// .vin-scan — имитация видоискателя камеры из макета.
-///
-/// Настоящего распознавания VIN нет: это заглушка под будущий
-/// сканер (камера + OCR), но выглядит как в дизайне.
+/// .vin-scan — видоискатель из макета. Сама камера и распознавание —
+/// в `VinCapture` (снимок + ML Kit), здесь только вид и снятое значение.
 class VinScanner extends StatelessWidget {
   const VinScanner({
     super.key,

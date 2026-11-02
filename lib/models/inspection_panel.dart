@@ -85,6 +85,9 @@ class InspectionPanel {
   }
 }
 
-/// Бекенд отдаёт /storage/... — дописываем хост.
+/// Бекенд отдаёт относительную подписанную ссылку — дописываем хост.
 String _absolute(String url) =>
     url.startsWith('http') ? url : '${ApiConfig.origin}$url';
+
+/// [_absolute] для необязательной ссылки (фото таблички VIN и т. п.).
+String? mediaUrl(String? url) => url == null ? null : _absolute(url);

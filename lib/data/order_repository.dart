@@ -6,6 +6,7 @@ import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
+import '../models/vin_kind.dart';
 import '../models/time_slot.dart';
 
 /// Источник данных маркетплейса заказов. Как и InspectionRepository —
@@ -135,21 +136,25 @@ abstract class OrderRepository {
   Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1});
 
   /// Завести кандидата в рамках заказа (исполнитель нашёл вариант).
+  /// [vin] — снят с таблички вместе с фото; в одном подборе не повторяется.
   Future<OrderCar> addCar(
     int orderId, {
     required String brand,
     required String model,
     required int year,
-    required String vin,
+    required CapturedVin vin,
     required int mileageKm,
     String? licensePlate,
   });
 
   /// Начать осмотр кандидата — бекенд сам создаёт все пункты (кузов и extra).
+  /// Разовому осмотру нужен [vin] с фото таблички: он заменяет то, что
+  /// указал заказчик. У подбора VIN уже записан в [addCar].
   /// Возвращает id созданного осмотра.
   Future<int> startInspection(
     int orderId,
     int carId, {
     InspectionType type = InspectionType.full,
+    CapturedVin? vin,
   });
 }

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../data/api_exception.dart';
 import '../data/car_catalog_repository.dart';
@@ -11,7 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';
-import '../widgets/vin_scanner.dart';
+import '../widgets/vin_capture.dart';
 
 /// Экран 05 макета — «новый осмотр · автомобиль».
 /// Заводит кандидата в рамках заказа и стартует по нему осмотр.
@@ -21,11 +19,16 @@ class StartInspectionScreen extends StatefulWidget {
     required this.repository,
     required this.catalog,
     required this.order,
+    this.vin,
   });
 
   final OrderRepository repository;
   final CarCatalogRepository catalog;
   final Order order;
+
+  /// Блок VIN снаружи — тестам, чтобы подложить снимок без камеры.
+  @visibleForTesting
+  final VinCaptureController? vin;
 
   @override
   State<StartInspectionScreen> createState() => _StartInspectionScreenState();
@@ -38,8 +41,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   final _plateController = TextEditingController();
   final _mileageController = TextEditingController();
 
-  final _vinController = TextEditingController();
-  bool _scanning = false;
+  late final _vin = widget.vin ?? VinCaptureController();
   bool _submitting = false;
 
   /// Ошибки по полям — ключи как у бекенда (`OrderCarController::store`),
@@ -47,8 +49,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   Map<String, String> _errors = {};
 
   /// Поля, у которых экран умеет показать ошибку; прочие — строкой.
+  /// Ошибки VIN (`vin`, `vin_kind`, `vin_photo`) уходят в блок VIN.
   static const _fieldKeys = {
-    'vin',
     'brand',
     'model',
     'mileage_km',
@@ -70,7 +72,6 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
             );
           }
         });
-    clearOnEdit(_vinController, ['vin']);
     clearOnEdit(_brandController, ['brand', 'model']);
     clearOnEdit(_modelController, ['brand', 'model']);
     clearOnEdit(_mileageController, ['mileage_km']);
@@ -85,7 +86,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     _yearController.dispose();
     _plateController.dispose();
     _mileageController.dispose();
-    _vinController.dispose();
+    if (widget.vin == null) _vin.dispose();
     super.dispose();
   }
 
@@ -105,152 +106,14 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     });
   }
 
-  /// Тап по видоискателю: снять VIN камерой или ввести руками.
-  Future<void> _vinTapped() async {
-    final scan = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(
-                Icons.photo_camera_outlined,
-                color: context.colors.text2,
-              ),
-              title: Text(
-                'Сфотографировать VIN',
-                style: TextStyle(color: context.colors.text1),
-              ),
-              subtitle: Text(
-                'Наведите на табличку или стекло',
-                style: TextStyle(color: context.colors.text3, fontSize: 11.5),
-              ),
-              onTap: () => Navigator.of(context).pop(true),
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.keyboard_alt_outlined,
-                color: context.colors.text2,
-              ),
-              title: Text(
-                'Ввести вручную',
-                style: TextStyle(color: context.colors.text1),
-              ),
-              onTap: () => Navigator.of(context).pop(false),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (scan == null) return;
-    if (scan) {
-      await _scanVin();
-    } else {
-      await _editVin();
-    }
-  }
-
-  /// Снимок + распознавание текста на устройстве (офлайн, ML Kit).
-  Future<void> _scanVin() async {
-    final shot = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 2000,
-    );
-    if (shot == null || !mounted) return;
-
-    setState(() => _scanning = true);
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-    try {
-      final result = await recognizer.processImage(
-        InputImage.fromFilePath(shot.path),
-      );
-      final vin = _extractVin(result.text);
-      if (!mounted) return;
-      if (vin == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('VIN не распознан — введите вручную')),
-        );
-        await _editVin();
-      } else {
-        setState(() => _vinController.text = vin);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Не удалось распознать VIN — введите вручную'),
-          ),
-        );
-      }
-    } finally {
-      await recognizer.close();
-      if (mounted) setState(() => _scanning = false);
-    }
-  }
-
-  /// Ищем в распознанном тексте цепочку из 17 допустимых для VIN знаков.
-  /// I, O и Q в VIN не встречаются — это отсеивает ложные срабатывания
-  /// на обычных словах.
-  static String? _extractVin(String text) {
-    final cleaned = text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    final match = RegExp(r'[A-HJ-NPR-Z0-9]{17}').firstMatch(cleaned);
-    return match?.group(0);
-  }
-
-  Future<void> _editVin() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: context.colors.bg0,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 22,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SectionHead('VIN', extra: '17 символов'),
-            FieldBoxInput(
-              label: '',
-              controller: _vinController,
-              hint: 'XW8ZZZ61ZKG0KX24P',
-              mono: true,
-              inputFormatters: const [VinFormatter()],
-            ),
-            const SizedBox(height: 6),
-            CtaPrimary(
-              label: 'Готово',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      ),
-    );
-    setState(() {});
-  }
-
   Future<void> _start() async {
-    final vin = _vinController.text.trim().toUpperCase();
+    final vin = _vin.validate();
     final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
     // год не подставляем молча: машина в отчёте должна быть с настоящим годом
     final year = int.tryParse(_yearController.text);
 
     // все ошибки разом — исполнитель видит сразу всё, что не заполнено
     final errors = <String, String>{
-      if (vin.length != 17) 'vin': 'VIN — 17 символов',
       if (_brandController.text.trim().isEmpty ||
           _modelController.text.trim().isEmpty)
         'brand': 'Выберите марку и модель',
@@ -261,7 +124,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         'year': yearProblem(year)!,
     };
     setState(() => _errors = errors);
-    if (errors.isNotEmpty) return;
+    if (errors.isNotEmpty || vin == null) return;
 
     setState(() => _submitting = true);
     try {
@@ -284,14 +147,19 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
       );
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
-      // 422 по полям (VIN уже занят и т. п.) — к своим полям, остальное строкой
+      // 422 по полям (машина уже в подборе и т. п.) — к своим полям,
+      // остальное строкой
+      final errors = e.fieldErrors;
+      final vinError =
+          errors['vin'] ?? errors['vin_photo'] ?? errors['vin_kind'];
       final fields = {
-        for (final f in e.fieldErrors.entries)
+        for (final f in errors.entries)
           if (_fieldKeys.contains(f.key)) f.key: f.value,
       };
+      if (vinError != null) _vin.setError(vinError);
       if (mounted && fields.isNotEmpty) {
         setState(() => _errors = fields);
-      } else if (mounted) {
+      } else if (mounted && vinError == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorText(e))),
         );
@@ -311,8 +179,6 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vin = _vinController.text.trim().toUpperCase();
-
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -326,20 +192,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 18),
                 children: [
-                  SectionHead(
-                    'VIN',
-                    extra: vin.length == 17 ? 'распознан' : 'нужен ввод',
-                  ),
-                  VinScanner(
-                    vin: _scanning
-                        ? 'распознаём…'
-                        : (vin.isEmpty
-                              ? 'нажмите, чтобы снять или ввести'
-                              : vin),
-                    onTap: _scanning ? null : _vinTapped,
-                    error: _errors.containsKey('vin'),
-                  ),
-                  FieldError(_errors['vin']),
+                  VinCapture(controller: _vin),
 
                   const SizedBox(height: 22),
                   const SectionHead('Данные', extra: 'из заказа'),

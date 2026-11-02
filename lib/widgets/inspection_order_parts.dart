@@ -97,6 +97,61 @@ class InspectionOrderSummary extends StatelessWidget {
   }
 }
 
+/// VIN, снятый исполнителем с таблички, не совпал с тем, что указал
+/// заказчик. Правда — за исполнителем; заказчику стоит сверить объявление:
+/// продавец мог показать не ту машину.
+class VinMismatchNote extends StatelessWidget {
+  const VinMismatchNote({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      decoration: BoxDecoration(
+        color: context.colors.statusProgress.withValues(alpha: 0.1),
+        border: Border.all(
+          color: context.colors.statusProgress.withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 17,
+            color: context.colors.progressText,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'VIN на машине отличается от указанного вами. ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.text1,
+                    ),
+                  ),
+                  TextSpan(
+                    text:
+                        'Исполнитель снял его с таблички — в отчёте именно '
+                        'он. Сверьте с объявлением.',
+                    style: TextStyle(color: context.colors.text2),
+                  ),
+                ],
+              ),
+              style: const TextStyle(fontSize: 12.5, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// .summary-row
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({

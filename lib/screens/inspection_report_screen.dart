@@ -11,6 +11,7 @@ import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/audio_note.dart';
 import '../widgets/inspection_schematic.dart';
 import '../widgets/inspection_order_parts.dart';
@@ -149,6 +150,11 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
         ReportScoreCard(panels: panels),
         const SizedBox(height: 12),
         ReportStats(panels: panels),
+        if (store.car!.vinPhotoUrl case final url?) ...[
+          const SizedBox(height: 22),
+          const SectionHead('Табличка VIN', extra: 'сняли на осмотре'),
+          VinPlateRow(vinMasked: store.car!.vinMasked, photoUrl: url),
+        ],
 
         const SizedBox(height: 22),
         const SectionHead('Схема', extra: 'нажмите на пункт'),
@@ -363,57 +369,6 @@ class _PanelReportSheet extends StatelessWidget {
     );
   }
 
-  void _openPhoto(BuildContext context, String url) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => _PhotoViewer(url: url)),
-    );
-  }
-}
-
-/// Фото детали на весь экран, с масштабированием.
-class _PhotoViewer extends StatelessWidget {
-  const _PhotoViewer({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.colors.bg0,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: InteractiveViewer(
-                maxScale: 5,
-                child: Center(
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => Icon(
-                      Icons.broken_image_outlined,
-                      size: 32,
-                      color: context.colors.text3,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              left: 14,
-              child: IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close, size: 18),
-                style: IconButton.styleFrom(
-                  backgroundColor: context.colors.bg1,
-                  foregroundColor: context.colors.text1,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  void _openPhoto(BuildContext context, String url) =>
+      openPhotoViewer(context, url);
 }

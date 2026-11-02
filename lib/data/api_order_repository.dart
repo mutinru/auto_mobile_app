@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../config/api_config.dart';
 import '../models/available_page.dart';
 import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
@@ -7,6 +12,7 @@ import '../models/order_car.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
 import '../models/time_slot.dart';
+import '../models/vin_kind.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
 
@@ -296,16 +302,15 @@ class ApiOrderRepository implements OrderRepository {
     required String brand,
     required String model,
     required int year,
-    required String vin,
+    required CapturedVin vin,
     required int mileageKm,
     String? licensePlate,
   }) async {
-    final json = await _client.post('/orders/$orderId/cars', {
+    final json = await _withVin('/orders/$orderId/cars', vin, {
       'brand': brand,
       'model': model,
-      'year': year,
-      'vin': vin,
-      'mileage_km': mileageKm,
+      'year': '$year',
+      'mileage_km': '$mileageKm',
       'license_plate': ?licensePlate,
     });
     return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
@@ -316,12 +321,43 @@ class ApiOrderRepository implements OrderRepository {
     int orderId,
     int carId, {
     InspectionType type = InspectionType.full,
+    CapturedVin? vin,
   }) async {
-    final json = await _client.post(
-      '/orders/$orderId/cars/$carId/inspections',
-      {'inspection_type': type.apiValue},
-    );
+    final path = '/orders/$orderId/cars/$carId/inspections';
+    final fields = {'inspection_type': type.apiValue};
+    final json = vin == null
+        ? await _client.post(path, fields)
+        : await _withVin(path, vin, fields);
     return (json['data'] as Map<String, dynamic>)['id'] as int;
+  }
+
+  /// VIN с фото таблички — multipart мимо ApiClient (тот умеет только
+  /// JSON); ошибки всё равно через [ApiClient.failure], чтобы 401 стёр
+  /// сессию, а 422 легли на поля.
+  Future<Map<String, dynamic>> _withVin(
+    String path,
+    CapturedVin vin,
+    Map<String, String> fields,
+  ) async {
+    final request =
+        http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
+          ..headers['Accept'] = 'application/json'
+          ..headers['Authorization'] = 'Bearer ${_client.token}'
+          ..fields.addAll({
+            ...fields,
+            'vin': vin.value,
+            'vin_kind': vin.kind.apiValue,
+          })
+          ..files.add(
+            await http.MultipartFile.fromPath('vin_photo', vin.photoPath),
+          );
+
+    final streamed = await request.send();
+    final body = await streamed.stream.bytesToString();
+    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
+      throw _client.failure(streamed.statusCode, body);
+    }
+    return jsonDecode(body) as Map<String, dynamic>;
   }
 
   /// Бекенд ждёт дату без времени — иначе валидация after_or_equal

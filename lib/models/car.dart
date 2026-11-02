@@ -1,9 +1,12 @@
+import 'inspection_panel.dart' show mediaUrl;
+
 class Car {
   const Car({
     required this.brand,
     required this.model,
     required this.year,
     required this.vinMasked,
+    this.vinPhotoUrl,
     this.mileageKm,
   });
 
@@ -13,6 +16,9 @@ class Car {
 
   /// Замаскированный VIN для отображения в шапке ("··· KX24P").
   final String vinMasked;
+
+  /// Фото таблички VIN — подписанная ссылка, Bearer не нужен.
+  final String? vinPhotoUrl;
 
   /// null — заказчик разового осмотра пробег не указал.
   final int? mileageKm;
@@ -37,6 +43,7 @@ class Car {
     model: json['model'] as String,
     year: json['year'] as int,
     vinMasked: json['vin_masked'] as String,
+    vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
     mileageKm: json['mileage_km'] as int?,
   );
 }

@@ -1,5 +1,7 @@
 import 'inspection_outcome.dart';
+import 'inspection_panel.dart' show mediaUrl;
 import 'inspection_verdict.dart';
+import 'vin_kind.dart';
 
 /// Кандидат в рамках заказа (CarResource на бекенде, с id и статусом
 /// осмотра) — не путать с models/car.dart, тем описывается автомобиль
@@ -11,6 +13,9 @@ class OrderCar {
     required this.model,
     required this.year,
     required this.vinMasked,
+    this.vinKind,
+    this.vinPhotoUrl,
+    this.vinMismatch = false,
     this.mileageKm,
     this.inspectionId,
     this.inspectionStatus,
@@ -24,6 +29,15 @@ class OrderCar {
   final String model;
   final int year;
   final String vinMasked;
+
+  /// Что исполнитель снял с таблички; null — ещё не снимал.
+  final VinKind? vinKind;
+
+  /// Фото таблички — подписанная ссылка (Bearer не нужен), живёт около часа.
+  final String? vinPhotoUrl;
+
+  /// Заказчик указал один VIN, а исполнитель снял с машины другой.
+  final bool vinMismatch;
 
   /// У разового осмотра может быть null: заказчик не обязан знать пробег.
   final int? mileageKm;
@@ -60,6 +74,9 @@ class OrderCar {
       model: json['model'] as String,
       year: json['year'] as int,
       vinMasked: json['vin_masked'] as String,
+      vinKind: vinKindFromApi(json['vin_kind'] as String?),
+      vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
+      vinMismatch: json['vin_mismatch'] as bool? ?? false,
       mileageKm: json['mileage_km'] as int?,
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
