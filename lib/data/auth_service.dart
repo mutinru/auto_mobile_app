@@ -139,7 +139,10 @@ class AuthService extends ChangeNotifier {
   Future<void> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/login'),
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: jsonEncode({'email': email, 'password': password}),
     );
 
@@ -157,20 +160,28 @@ class AuthService extends ChangeNotifier {
   Future<PhoneCodeSent> requestPhoneCode(String phone) async {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/auth/phone/request'),
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: jsonEncode({'phone': phone}),
     );
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, response.body);
     }
-    return PhoneCodeSent.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    return PhoneCodeSent.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   /// Ошибка — [ApiException] с сырым телом, как у [requestPhoneCode].
   Future<void> verifyPhoneCode(String phone, String code) async {
     final response = await http.post(
       Uri.parse('${ApiConfig.baseUrl}/auth/phone/verify'),
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: jsonEncode({'phone': phone, 'code': code}),
     );
     if (response.statusCode != 200) {
@@ -192,7 +203,10 @@ class AuthService extends ChangeNotifier {
   Future<int> _loadUser() async {
     final response = await http.get(
       Uri.parse('${ApiConfig.baseUrl}/me'),
-      headers: {'Accept': 'application/json', 'Authorization': 'Bearer $_token'},
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
     );
     if (response.statusCode != 200) return response.statusCode;
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -241,7 +255,9 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 401) expireSession();
       throw ApiException(response.statusCode, response.body);
     }
-    return PhoneCodeSent.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+    return PhoneCodeSent.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
   /// Подтвердить новый номер кодом (POST /me/phone/verify). Сервер отдаёт
@@ -296,13 +312,18 @@ class AuthService extends ChangeNotifier {
         'Accept': 'application/json',
         'Authorization': 'Bearer $_token',
       },
-      body: jsonEncode({'push_muted': [for (final c in muted) c.apiValue]}),
+      body: jsonEncode({
+        'push_muted': [for (final c in muted) c.apiValue],
+      }),
     );
     if (response.statusCode != 200) {
       if (response.statusCode == 401) expireSession();
       throw ApiException(
         response.statusCode,
-        _extractMessage(response.body, fallback: 'Не удалось сохранить настройки'),
+        _extractMessage(
+          response.body,
+          fallback: 'Не удалось сохранить настройки',
+        ),
       );
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -323,7 +344,10 @@ class AuthService extends ChangeNotifier {
     try {
       await http.post(
         Uri.parse('${ApiConfig.baseUrl}/logout'),
-        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
       );
     } catch (_) {}
   }
@@ -350,10 +374,10 @@ class PhoneCodeSent {
   const PhoneCodeSent({this.devCode, this.resendIn = 0, this.channel});
 
   factory PhoneCodeSent.fromJson(Map<String, dynamic> json) => PhoneCodeSent(
-        devCode: json['dev_code'] as String?,
-        resendIn: (json['resend_in'] as num?)?.toInt() ?? 0,
-        channel: codeChannelFromApi(json['channel'] as String?),
-      );
+    devCode: json['dev_code'] as String?,
+    resendIn: (json['resend_in'] as num?)?.toInt() ?? 0,
+    channel: codeChannelFromApi(json['channel'] as String?),
+  );
 
   /// Код прямо в ответе — только local-бекенд с драйвером log.
   final String? devCode;

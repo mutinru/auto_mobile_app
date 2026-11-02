@@ -18,8 +18,14 @@ Future<bool> showConfirmSheet(
       title: title,
       subtitle: text,
       children: [
-        CtaPrimary(label: confirmLabel, onPressed: () => Navigator.of(context).pop(true)),
-        CtaGhost(label: cancelLabel, onPressed: () => Navigator.of(context).pop(false)),
+        CtaPrimary(
+          label: confirmLabel,
+          onPressed: () => Navigator.of(context).pop(true),
+        ),
+        CtaGhost(
+          label: cancelLabel,
+          onPressed: () => Navigator.of(context).pop(false),
+        ),
       ],
     ),
   );

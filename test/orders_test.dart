@@ -10,12 +10,18 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
 void main() {
   testWidgets('My orders screen lists orders and opens detail', (tester) async {
-    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+    final store = OrderStore(
+      MockOrderRepository(),
+      catalog: MockCarCatalogRepository(),
+      cities: MockCityRepository(),
+    );
 
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: MyOrdersScreen(store: store),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: MyOrdersScreen(store: store),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // активный таб начинается с секции «Осмотры», подборы ниже — до них

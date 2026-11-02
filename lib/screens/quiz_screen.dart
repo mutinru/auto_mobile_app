@@ -63,8 +63,7 @@ class _QuizScreenState extends State<QuizScreen> {
         return;
       }
       setState(() {
-        _questions =
-            (body['data'] as List).cast<Map<String, dynamic>>();
+        _questions = (body['data'] as List).cast<Map<String, dynamic>>();
         _threshold = body['threshold'] as int? ?? 12;
         _expected = body['expected_count'] as int? ?? 15;
         _bankReady = body['bank_ready'] as bool? ?? false;
@@ -112,7 +111,8 @@ class _QuizScreenState extends State<QuizScreen> {
     if (response.statusCode != 200) throw _failure(response);
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     setState(() {
-      _result = 'Верных ${body['score']} из $_threshold необходимых — '
+      _result =
+          'Верных ${body['score']} из $_threshold необходимых — '
           '${(body['passed'] as bool) ? 'тест пройден' : 'не пройден'}';
     });
   }
@@ -137,20 +137,20 @@ class _QuizScreenState extends State<QuizScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(22),
-                            child: Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: context.colors.text3,
-                                fontSize: 12,
-                              ),
-                            ),
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: context.colors.text3,
+                            fontSize: 12,
                           ),
-                        )
-                      : _body(correctSoFar),
+                        ),
+                      ),
+                    )
+                  : _body(correctSoFar),
             ),
             if (_error == null && !_loading)
               BottomCta(
@@ -162,8 +162,8 @@ class _QuizScreenState extends State<QuizScreen> {
                     trailingIcon: _index < _questions.length - 1
                         ? Icons.arrow_forward
                         : null,
-                    onPressed: _answers.containsKey(
-                            _questions[_index]['id'] as int)
+                    onPressed:
+                        _answers.containsKey(_questions[_index]['id'] as int)
                         ? () {
                             if (_index < _questions.length - 1) {
                               setState(() => _index++);
@@ -225,7 +225,10 @@ class _QuizScreenState extends State<QuizScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [context.colors.avatarFrom, context.colors.avatarTo],
+                      colors: [
+                        context.colors.avatarFrom,
+                        context.colors.avatarTo,
+                      ],
                     ),
                   ),
                 ),
@@ -252,7 +255,10 @@ class _QuizScreenState extends State<QuizScreen> {
               'отвечено: $answered из ${_questions.length}',
               style: context.text.sectionExtra,
             ),
-            Text('порог $_threshold / $_expected', style: context.text.sectionExtra),
+            Text(
+              'порог $_threshold / $_expected',
+              style: context.text.sectionExtra,
+            ),
           ],
         ),
         const SizedBox(height: 7),
@@ -354,7 +360,9 @@ class _Answer extends StatelessWidget {
               height: 22,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: selected ? context.colors.statusInfo : context.colors.bg3,
+                color: selected
+                    ? context.colors.statusInfo
+                    : context.colors.bg3,
                 borderRadius: BorderRadius.circular(7),
               ),
               child: Text(
@@ -363,7 +371,9 @@ class _Answer extends StatelessWidget {
                   fontFamily: AppTheme.monoFamily,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: selected ? context.colors.infoInk : context.colors.text3,
+                  color: selected
+                      ? context.colors.infoInk
+                      : context.colors.text3,
                 ),
               ),
             ),

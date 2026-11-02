@@ -36,17 +36,17 @@ extension OrderStatusX on OrderStatus {
   /// У подбора завершённый заказ — «выполнен», у осмотра — «отчёт
   /// получен»: «отчёт готов» теперь значит «готов, но ждёт оплаты».
   String labelFor(OrderKind kind) => switch (this) {
-        OrderStatus.awaitingExecutor => 'ждёт исполнителя',
-        OrderStatus.awaitingDecision => 'ждёт решения',
-        OrderStatus.sourcing => 'идёт подбор',
-        OrderStatus.scheduled => 'назначен',
-        OrderStatus.inspecting => 'на осмотре',
-        OrderStatus.reportReady => 'отчёт готов',
-        OrderStatus.paymentSent => 'ждём подтверждения',
-        OrderStatus.disputed => 'спор',
-        OrderStatus.completed => kind.isInspection ? 'отчёт получен' : 'выполнен',
-        OrderStatus.cancelled => 'отменён',
-      };
+    OrderStatus.awaitingExecutor => 'ждёт исполнителя',
+    OrderStatus.awaitingDecision => 'ждёт решения',
+    OrderStatus.sourcing => 'идёт подбор',
+    OrderStatus.scheduled => 'назначен',
+    OrderStatus.inspecting => 'на осмотре',
+    OrderStatus.reportReady => 'отчёт готов',
+    OrderStatus.paymentSent => 'ждём подтверждения',
+    OrderStatus.disputed => 'спор',
+    OrderStatus.completed => kind.isInspection ? 'отчёт получен' : 'выполнен',
+    OrderStatus.cancelled => 'отменён',
+  };
 
   /// Завершён или отменён — во вкладку «Завершённые».
   bool get isFinished =>
@@ -59,37 +59,37 @@ extension OrderStatusX on OrderStatus {
       this == OrderStatus.disputed;
 
   Color color(AppColors c) => switch (this) {
-        OrderStatus.awaitingExecutor => c.text2,
-        OrderStatus.awaitingDecision => c.statusProgress,
-        OrderStatus.sourcing => c.statusProgress,
-        OrderStatus.scheduled => c.text1,
-        OrderStatus.inspecting => c.statusInfo,
-        OrderStatus.reportReady => c.statusProgress,
-        OrderStatus.paymentSent => c.statusProgress,
-        OrderStatus.disputed => c.statusDefect,
-        OrderStatus.completed => c.statusDone,
-        OrderStatus.cancelled => c.text3,
-      };
+    OrderStatus.awaitingExecutor => c.text2,
+    OrderStatus.awaitingDecision => c.statusProgress,
+    OrderStatus.sourcing => c.statusProgress,
+    OrderStatus.scheduled => c.text1,
+    OrderStatus.inspecting => c.statusInfo,
+    OrderStatus.reportReady => c.statusProgress,
+    OrderStatus.paymentSent => c.statusProgress,
+    OrderStatus.disputed => c.statusDefect,
+    OrderStatus.completed => c.statusDone,
+    OrderStatus.cancelled => c.text3,
+  };
 
   /// Цвет для .pill. null → нейтральный вариант (.pill без модификатора,
   /// фон bg-3) — в макете так выглядит «ждёт исполнителя».
   Color? pillColor(AppColors c) => switch (this) {
-        // .pill.planned в макете — тот же нейтральный фон, что и у
-        // «ждёт исполнителя», но текст ярче
-        OrderStatus.awaitingExecutor || OrderStatus.cancelled => null,
-        _ => color(c),
-      };
+    // .pill.planned в макете — тот же нейтральный фон, что и у
+    // «ждёт исполнителя», но текст ярче
+    OrderStatus.awaitingExecutor || OrderStatus.cancelled => null,
+    _ => color(c),
+  };
 }
 
 OrderStatus orderStatusFromApi(String value) => switch (value) {
-      'awaiting_decision' => OrderStatus.awaitingDecision,
-      'sourcing' => OrderStatus.sourcing,
-      'scheduled' => OrderStatus.scheduled,
-      'inspecting' => OrderStatus.inspecting,
-      'report_ready' => OrderStatus.reportReady,
-      'payment_sent' => OrderStatus.paymentSent,
-      'disputed' => OrderStatus.disputed,
-      'completed' => OrderStatus.completed,
-      'cancelled' => OrderStatus.cancelled,
-      _ => OrderStatus.awaitingExecutor,
-    };
+  'awaiting_decision' => OrderStatus.awaitingDecision,
+  'sourcing' => OrderStatus.sourcing,
+  'scheduled' => OrderStatus.scheduled,
+  'inspecting' => OrderStatus.inspecting,
+  'report_ready' => OrderStatus.reportReady,
+  'payment_sent' => OrderStatus.paymentSent,
+  'disputed' => OrderStatus.disputed,
+  'completed' => OrderStatus.completed,
+  'cancelled' => OrderStatus.cancelled,
+  _ => OrderStatus.awaitingExecutor,
+};

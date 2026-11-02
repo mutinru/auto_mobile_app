@@ -19,13 +19,22 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 /// Разовый осмотр в интерфейсе заказчика (design/order-types.html).
 void main() {
   Widget myOrders(OrderStore store) => MaterialApp(
-        theme: AppTheme.dark,
-        home: MyOrdersScreen(store: store),
-      );
+    theme: AppTheme.dark,
+    home: MyOrdersScreen(store: store),
+  );
 
-  testWidgets('активный таб делится на секции, осмотр идёт первым',
-      (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
+  testWidgets('активный таб делится на секции, осмотр идёт первым', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      myOrders(
+        OrderStore(
+          MockOrderRepository(),
+          catalog: MockCarCatalogRepository(),
+          cities: MockCityRepository(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('ОСМОТРЫ'), findsOneWidget);
@@ -41,14 +50,25 @@ void main() {
     expect(find.text('ПОДБОРЫ'), findsOneWidget);
   });
 
-  testWidgets('карточка осмотра показывает дату и адрес вместо бюджета',
-      (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
+  testWidgets('карточка осмотра показывает дату и адрес вместо бюджета', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      myOrders(
+        OrderStore(
+          MockOrderRepository(),
+          catalog: MockCarCatalogRepository(),
+          cities: MockCityRepository(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // «Kia Rio 2019 · 64 000 км» набрано Text.rich
-    expect(find.text('Kia Rio 2019 · 64 000 км', findRichText: true),
-        findsOneWidget);
+    expect(
+      find.text('Kia Rio 2019 · 64 000 км', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.text('Завтра, 16:00'), findsOneWidget);
     expect(find.text('Химки, ул. Ленина, 5'), findsOneWidget);
     expect(find.text('НАЗНАЧЕН'), findsOneWidget);
@@ -57,9 +77,18 @@ void main() {
     expect(find.textContaining('до 2 000 000'), findsNothing);
   });
 
-  testWidgets('завершённый осмотр показывает вердикт и «другую машину»',
-      (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
+  testWidgets('завершённый осмотр показывает вердикт и «другую машину»', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      myOrders(
+        OrderStore(
+          MockOrderRepository(),
+          catalog: MockCarCatalogRepository(),
+          cities: MockCityRepository(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Завершённые'));
@@ -73,7 +102,15 @@ void main() {
   });
 
   testWidgets('«Новый заказ» открывает лист выбора вида', (tester) async {
-    await tester.pumpWidget(myOrders(OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository())));
+    await tester.pumpWidget(
+      myOrders(
+        OrderStore(
+          MockOrderRepository(),
+          catalog: MockCarCatalogRepository(),
+          cities: MockCityRepository(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Новый заказ'));
@@ -94,20 +131,30 @@ void main() {
     expect(find.text('Разместить осмотр'), findsOneWidget);
   });
 
-  testWidgets('деталь осмотра показывает цену заказчика и дельты откликов',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: InspectionOrderDetailScreen(
-        store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
-        orderId: 2053,
+  testWidgets('деталь осмотра показывает цену заказчика и дельты откликов', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: InspectionOrderDetailScreen(
+          store: OrderStore(
+            MockOrderRepository(),
+            catalog: MockCarCatalogRepository(),
+            cities: MockCityRepository(),
+          ),
+          orderId: 2053,
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('BMW X3 2017'), findsOneWidget);
     expect(find.text('Ваша цена'), findsOneWidget);
-    expect(find.text('3 500 ₽'), findsNWidgets(2)); // цена заказчика и отклик в неё
+    expect(
+      find.text('3 500 ₽'),
+      findsNWidgets(2),
+    ); // цена заказчика и отклик в неё
 
     // разница с ценой заказчика у каждого отклика
     expect(find.text('−500 ₽'), findsOneWidget);
@@ -116,14 +163,25 @@ void main() {
     expect(find.text('Выбрать'), findsNWidgets(3));
   });
 
-  testWidgets('ссылка подписана площадкой, чужой сайт — доменом с пометкой', (tester) async {
-    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: InspectionOrderDetailScreen(store: store, orderId: 2053),
-    ));
+  testWidgets('ссылка подписана площадкой, чужой сайт — доменом с пометкой', (
+    tester,
+  ) async {
+    final store = OrderStore(
+      MockOrderRepository(),
+      catalog: MockCarCatalogRepository(),
+      cities: MockCityRepository(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: InspectionOrderDetailScreen(store: store, orderId: 2053),
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Объявление на Авто.ру', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining('Объявление на Авто.ру', findRichText: true),
+      findsOneWidget,
+    );
 
     final order = await store.createInspectionOrder(
       brand: 'Kia',
@@ -137,21 +195,36 @@ void main() {
       askingPrice: 3500,
       listingUrl: 'www.example.com/car/1',
     );
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      // ключ — иначе виджет переиспользует состояние прошлого заказа
-      home: InspectionOrderDetailScreen(key: ValueKey(order.id), store: store, orderId: order.id),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        // ключ — иначе виджет переиспользует состояние прошлого заказа
+        home: InspectionOrderDetailScreen(
+          key: ValueKey(order.id),
+          store: store,
+          orderId: order.id,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(find.textContaining('example.com · незнакомый сайт', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining('example.com · незнакомый сайт', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('выбор отклика переводит осмотр в «назначен»', (tester) async {
-    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: InspectionOrderDetailScreen(store: store, orderId: 2053),
-    ));
+    final store = OrderStore(
+      MockOrderRepository(),
+      catalog: MockCarCatalogRepository(),
+      cities: MockCityRepository(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: InspectionOrderDetailScreen(store: store, orderId: 2053),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Выбрать').first);
@@ -163,14 +236,22 @@ void main() {
     expect(find.text('Выбрать'), findsNothing);
   });
 
-  testWidgets('до выбора исполнитель видит площадку, но не ссылку', (tester) async {
+  testWidgets('до выбора исполнитель видит площадку, но не ссылку', (
+    tester,
+  ) async {
     Future<void> show(Order order) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: Scaffold(
-          body: InspectionOrderSummary(order: order, priceLabel: 'Ваш гонорар', price: 3500),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: InspectionOrderSummary(
+              order: order,
+              priceLabel: 'Ваш гонорар',
+              price: 3500,
+            ),
+          ),
         ),
-      ));
+      );
     }
 
     const base = Order(
@@ -185,22 +266,33 @@ void main() {
       listingSite: 'Авито',
     );
     await show(base);
-    expect(find.textContaining('Объявление на Авито · откроется после выбора', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Объявление на Авито · откроется после выбора',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     expect(find.byIcon(Icons.open_in_new), findsNothing);
 
     // чужой сайт не называем вовсе
-    await show(const Order(
-      id: 2,
-      kind: OrderKind.inspection,
-      status: OrderStatus.awaitingExecutor,
-      brand: 'Kia',
-      model: 'Rio',
-      customer: UserSummary(id: 1, name: 'Андрей С.'),
-      timeSlot: TimeSlot.day,
-      hasListing: true,
-    ));
-    expect(find.textContaining('Объявление на другом сайте', findRichText: true), findsOneWidget);
+    await show(
+      const Order(
+        id: 2,
+        kind: OrderKind.inspection,
+        status: OrderStatus.awaitingExecutor,
+        brand: 'Kia',
+        model: 'Rio',
+        customer: UserSummary(id: 1, name: 'Андрей С.'),
+        timeSlot: TimeSlot.day,
+        hasListing: true,
+      ),
+    );
+    expect(
+      find.textContaining('Объявление на другом сайте', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   test('пробег осмотра необязателен: машина без пробега разбирается', () async {
@@ -214,7 +306,11 @@ void main() {
     });
     expect(car.mileageKm, isNull);
 
-    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+    final store = OrderStore(
+      MockOrderRepository(),
+      catalog: MockCarCatalogRepository(),
+      cities: MockCityRepository(),
+    );
     final order = await store.createInspectionOrder(
       brand: 'Kia',
       model: 'Rio',

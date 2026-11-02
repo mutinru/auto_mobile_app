@@ -133,7 +133,10 @@ class ResponseCard extends StatelessWidget {
                   ),
                   child: const Text(
                     'Выбрать',
-                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

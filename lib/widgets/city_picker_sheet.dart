@@ -241,17 +241,27 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
                   runSpacing: 6,
                   children: [
                     for (final name in _selected)
-                      AppChip(label: '$name  ×', on: true, onTap: () => _toggle(name)),
+                      AppChip(
+                        label: '$name  ×',
+                        on: true,
+                        onTap: () => _toggle(name),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
               ],
-              FieldBoxInput(label: '', controller: _search, hint: 'Поиск города'),
+              FieldBoxInput(
+                label: '',
+                controller: _search,
+                hint: 'Поиск города',
+              ),
               Expanded(child: _list()),
               if (!widget.single) ...[
                 const SizedBox(height: 10),
                 CtaPrimary(
-                  label: _selected.isEmpty ? 'Готово' : 'Готово · ${_selected.length}',
+                  label: _selected.isEmpty
+                      ? 'Готово'
+                      : 'Готово · ${_selected.length}',
                   onPressed: () => Navigator.of(context).pop(_selected),
                 ),
               ],
@@ -268,7 +278,11 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
       if (q.isEmpty && widget.locator != null)
         _Row(
           title: _locating ? 'Определяем…' : 'Определить по геопозиции',
-          leading: Icon(Icons.my_location, size: 16, color: context.colors.doneText),
+          leading: Icon(
+            Icons.my_location,
+            size: 16,
+            color: context.colors.doneText,
+          ),
           accent: true,
           onTap: _locating ? null : _locate,
         ),
@@ -282,45 +296,61 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
 
     // своё значение — когда в справочнике нет точного совпадения
     final results = _results ?? const <City>[];
-    final exact = results.any((c) => normalizeSearch(c.name) == normalizeSearch(q));
+    final exact = results.any(
+      (c) => normalizeSearch(c.name) == normalizeSearch(q),
+    );
     if (q.isNotEmpty && !exact) {
-      rows.add(_Row(
-        title: 'Указать «$q»',
-        leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.doneText),
-        accent: true,
-        checked: _selected.contains(q),
-        onTap: () => _pick(q),
-      ));
+      rows.add(
+        _Row(
+          title: 'Указать «$q»',
+          leading: Icon(
+            Icons.edit_outlined,
+            size: 16,
+            color: context.colors.doneText,
+          ),
+          accent: true,
+          checked: _selected.contains(q),
+          onTap: () => _pick(q),
+        ),
+      );
     }
 
     final stale = q != _resultsFor;
     if (_failed) {
       rows.add(_error());
     } else if (_loading && (_results == null || stale)) {
-      rows.add(const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ));
+      rows.add(
+        const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
     } else if (!stale) {
       if (q.isEmpty) {
         rows.add(const SizedBox(height: 18));
         rows.add(const SectionHead('Крупные города'));
       } else if (results.isEmpty) {
-        rows.add(Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          child: Text(
-            'В справочнике не нашлось',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: context.colors.text2),
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Text(
+              'В справочнике не нашлось',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: context.colors.text2),
+            ),
           ),
-        ));
+        );
       }
-      rows.addAll(results.map((c) => _Row(
+      rows.addAll(
+        results.map(
+          (c) => _Row(
             title: c.name,
             trailing: c.region == c.name ? null : c.region,
             checked: _selected.contains(c.name),
             onTap: () => _pick(c.name, c),
-          )));
+          ),
+        ),
+      );
     }
 
     return ListView(
@@ -382,7 +412,9 @@ class _Row extends StatelessWidget {
               child: Text(
                 title,
                 style: accent
-                    ? context.text.fieldValue.copyWith(color: context.colors.doneText)
+                    ? context.text.fieldValue.copyWith(
+                        color: context.colors.doneText,
+                      )
                     : context.text.fieldValue,
               ),
             ),

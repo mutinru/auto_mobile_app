@@ -27,12 +27,12 @@ class UserSummary {
   bool get isNewcomer => reviewsCount == 0;
 
   factory UserSummary.fromJson(Map<String, dynamic> json) => UserSummary(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        // PHP отдаёт и 5, и 4.8 — num, а не double
-        rating: (json['rating'] as num?)?.toDouble(),
-        reviewsCount: json['reviews_count'] as int? ?? 0,
-        completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
-        missedOrdersCount: json['missed_orders_count'] as int?,
-      );
+    id: json['id'] as int,
+    name: json['name'] as String,
+    // PHP отдаёт и 5, и 4.8 — num, а не double
+    rating: (json['rating'] as num?)?.toDouble(),
+    reviewsCount: json['reviews_count'] as int? ?? 0,
+    completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
+    missedOrdersCount: json['missed_orders_count'] as int?,
+  );
 }

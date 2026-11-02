@@ -8,7 +8,12 @@ import '../theme/app_theme.dart';
 /// Настоящего распознавания VIN нет: это заглушка под будущий
 /// сканер (камера + OCR), но выглядит как в дизайне.
 class VinScanner extends StatelessWidget {
-  const VinScanner({super.key, required this.vin, this.onTap, this.error = false});
+  const VinScanner({
+    super.key,
+    required this.vin,
+    this.onTap,
+    this.error = false,
+  });
 
   final String vin;
   final VoidCallback? onTap;
@@ -33,7 +38,9 @@ class VinScanner extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: error ? Border.all(color: context.colors.statusDefect, width: 1.5) : null,
+          border: error
+              ? Border.all(color: context.colors.statusDefect, width: 1.5)
+              : null,
           gradient: const LinearGradient(
             // linear-gradient(150deg, #313943, #171b21 60%, #101318)
             begin: Alignment.topLeft,
@@ -83,7 +90,11 @@ class VinScanner extends StatelessWidget {
                   letterSpacing: 2.08, // 0.16em
                   color: Colors.white.withValues(alpha: 0.82),
                   shadows: const [
-                    Shadow(color: Color(0x99000000), blurRadius: 3, offset: Offset(0, 1)),
+                    Shadow(
+                      color: Color(0x99000000),
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
                   ],
                 ),
               ),

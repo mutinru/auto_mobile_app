@@ -21,8 +21,8 @@ class InspectionPanel {
     List<String>? photoUrls,
     this.audioNoteSeconds,
     this.audioNoteUrl,
-  })  : defects = defects ?? <String>{},
-        photoUrls = photoUrls ?? <String>[];
+  }) : defects = defects ?? <String>{},
+       photoUrls = photoUrls ?? <String>[];
 
   final String id;
   final String name;
@@ -69,7 +69,8 @@ class InspectionPanel {
       status: panelStatusFromApi(json['status'] as String),
       condition: panelConditionFromApi(json['condition'] as String?),
       defects: {
-        for (final d in (json['defects'] as List)) (d as Map<String, dynamic>)['label'] as String,
+        for (final d in (json['defects'] as List))
+          (d as Map<String, dynamic>)['label'] as String,
       },
       photoCount: json['photo_count'] as int,
       photoUrls: [
@@ -77,11 +78,12 @@ class InspectionPanel {
           _absolute((p as Map<String, dynamic>)['url'] as String),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,
-      audioNoteUrl: audioNote == null ? null : _absolute(audioNote['url'] as String),
+      audioNoteUrl: audioNote == null
+          ? null
+          : _absolute(audioNote['url'] as String),
     );
   }
 }
-
 
 /// Бекенд отдаёт /storage/... — дописываем хост.
 String _absolute(String url) =>

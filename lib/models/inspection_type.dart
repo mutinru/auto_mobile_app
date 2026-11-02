@@ -4,16 +4,16 @@ enum InspectionType { full, express, bodyOnly, prePurchase }
 
 extension InspectionTypeX on InspectionType {
   String get label => switch (this) {
-        InspectionType.full => 'Полный · 17 пунктов',
-        InspectionType.express => 'Экспресс',
-        InspectionType.bodyOnly => 'Кузов',
-        InspectionType.prePurchase => 'Перед покупкой',
-      };
+    InspectionType.full => 'Полный · 17 пунктов',
+    InspectionType.express => 'Экспресс',
+    InspectionType.bodyOnly => 'Кузов',
+    InspectionType.prePurchase => 'Перед покупкой',
+  };
 
   String get apiValue => switch (this) {
-        InspectionType.full => 'full',
-        InspectionType.express => 'express',
-        InspectionType.bodyOnly => 'body_only',
-        InspectionType.prePurchase => 'pre_purchase',
-      };
+    InspectionType.full => 'full',
+    InspectionType.express => 'express',
+    InspectionType.bodyOnly => 'body_only',
+    InspectionType.prePurchase => 'pre_purchase',
+  };
 }

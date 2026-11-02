@@ -26,10 +26,12 @@ class _FakeAuth extends AuthService {
 
 void main() {
   Future<void> pump(WidgetTester tester, AuthService auth) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: PhoneLoginScreen(auth: auth, onLoggedIn: () {}),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: PhoneLoginScreen(auth: auth, onLoggedIn: () {}),
+      ),
+    );
     await tester.enterText(find.byType(TextField).first, '9001234567');
     await tester.pump();
   }
@@ -37,26 +39,43 @@ void main() {
   TextButton ghost(WidgetTester tester, String label) =>
       tester.widget<TextButton>(find.widgetWithText(TextButton, label));
 
-  ElevatedButton primary(WidgetTester tester) => tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+  ElevatedButton primary(WidgetTester tester) =>
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton));
 
   test('канал, retry_after и отсчёт', () {
     expect(codeChannelFromApi('telegram_call'), CodeChannel.telegramCall);
     expect(codeChannelFromApi('call_telegram'), CodeChannel.callTelegram);
     expect(codeChannelFromApi('pigeon'), isNull);
-    expect(codeChannelHint(CodeChannel.telegramCall), 'Код придёт в Telegram. Если Telegram нет — позвоним и продиктуем');
-    expect(codeChannelHint(CodeChannel.callTelegram), startsWith('Мы позвоним'));
+    expect(
+      codeChannelHint(CodeChannel.telegramCall),
+      'Код придёт в Telegram. Если Telegram нет — позвоним и продиктуем',
+    );
+    expect(
+      codeChannelHint(CodeChannel.callTelegram),
+      startsWith('Мы позвоним'),
+    );
     // до запроса — как на проде: сначала Telegram
     expect(codeChannelHint(null), codeChannelHint(CodeChannel.telegramCall));
 
-    expect(ApiException(429, '{"message":"x","retry_after":42}').retryAfter, 42);
+    expect(
+      ApiException(429, '{"message":"x","retry_after":42}').retryAfter,
+      42,
+    );
     expect(ApiException(429, 'Too Many Attempts.').retryAfter, isNull);
 
     expect(formatCountdown(const Duration(seconds: 107)), '1:47');
     expect(formatCountdown(const Duration(seconds: 5)), '0:05');
   });
 
-  testWidgets('код ушёл: подсказка по каналу и пауза до повторного запроса', (tester) async {
-    final auth = _FakeAuth(sent: const PhoneCodeSent(resendIn: 120, channel: CodeChannel.callTelegram));
+  testWidgets('код ушёл: подсказка по каналу и пауза до повторного запроса', (
+    tester,
+  ) async {
+    final auth = _FakeAuth(
+      sent: const PhoneCodeSent(
+        resendIn: 120,
+        channel: CodeChannel.callTelegram,
+      ),
+    );
     await pump(tester, auth);
 
     expect(find.text('Получить код'), findsOneWidget);
@@ -64,7 +83,9 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Отправили код на +7 900 123 45 67. Мы позвоним и продиктуем код. Если не дозвонимся — пришлём в Telegram'),
+      find.text(
+        'Отправили код на +7 900 123 45 67. Мы позвоним и продиктуем код. Если не дозвонимся — пришлём в Telegram',
+      ),
       findsOneWidget,
     );
     expect(ghost(tester, 'Запросить код снова через 2:00').onPressed, isNull);
@@ -83,9 +104,14 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('429 с retry_after: русская причина и отсчёт на кнопке', (tester) async {
+  testWidgets('429 с retry_after: русская причина и отсчёт на кнопке', (
+    tester,
+  ) async {
     final auth = _FakeAuth(
-      error: ApiException(429, '{"message":"Новый код можно запросить через 42 с.","retry_after":42}'),
+      error: ApiException(
+        429,
+        '{"message":"Новый код можно запросить через 42 с.","retry_after":42}',
+      ),
     );
     await pump(tester, auth);
 
@@ -105,13 +131,18 @@ void main() {
   });
 
   testWidgets('стандартный 429 без причины — по-русски', (tester) async {
-    final auth = _FakeAuth(error: ApiException(429, '{"message":"Too Many Attempts."}'));
+    final auth = _FakeAuth(
+      error: ApiException(429, '{"message":"Too Many Attempts."}'),
+    );
     await pump(tester, auth);
 
     await tester.tap(find.text('Получить код'));
     await tester.pump();
 
     expect(find.textContaining('Too Many'), findsNothing);
-    expect(find.text('Слишком много запросов. Подождите немного и повторите'), findsOneWidget);
+    expect(
+      find.text('Слишком много запросов. Подождите немного и повторите'),
+      findsOneWidget,
+    );
   });
 }

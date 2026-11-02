@@ -16,7 +16,8 @@ class NotificationScope extends InheritedWidget {
     NotificationRepository Function()? repository,
     this.unread,
     required super.child,
-  }) : repository = repository ?? (() => ApiNotificationRepository(ApiClient(auth)));
+  }) : repository =
+           repository ?? (() => ApiNotificationRepository(ApiClient(auth)));
 
   final AuthService auth;
 

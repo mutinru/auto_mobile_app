@@ -10,6 +10,7 @@ class ScoreRing extends StatelessWidget {
 
   /// 0..100
   final int percent;
+
   /// null — зелёный statusDone текущей темы.
   final Color? color;
 

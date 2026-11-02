@@ -26,46 +26,51 @@ void main() {
     OrderKind kind = OrderKind.selection,
     OrderStatus status = OrderStatus.awaitingExecutor,
     UserSummary? assigned,
-  }) =>
-      Order(
-        id: 4001,
-        kind: kind,
-        status: status,
-        brand: 'Toyota',
-        model: 'Camry',
-        yearFrom: 2018,
-        customer: customer,
-        executor: assigned,
-        responses: const [
-          OrderResponse(
-            id: 31,
-            status: OrderResponseStatus.pending,
-            proposedPrice: 10000,
-            executor: executor,
-          ),
-        ],
-      );
+  }) => Order(
+    id: 4001,
+    kind: kind,
+    status: status,
+    brand: 'Toyota',
+    model: 'Camry',
+    yearFrom: 2018,
+    customer: customer,
+    executor: assigned,
+    responses: const [
+      OrderResponse(
+        id: 31,
+        status: OrderResponseStatus.pending,
+        proposedPrice: 10000,
+        executor: executor,
+      ),
+    ],
+  );
 
-  Future<OrderStore> pump(WidgetTester tester, Order o, {bool viewerIsCustomer = true}) async {
+  Future<OrderStore> pump(
+    WidgetTester tester,
+    Order o, {
+    bool viewerIsCustomer = true,
+  }) async {
     final store = OrderStore(
       MockOrderRepository(orders: [o]),
       catalog: MockCarCatalogRepository(),
       cities: MockCityRepository(),
     );
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: o.isInspection
-          ? InspectionOrderDetailScreen(
-              store: store,
-              orderId: o.id,
-              viewerIsCustomer: viewerIsCustomer,
-            )
-          : OrderDetailScreen(
-              store: store,
-              orderId: o.id,
-              viewerIsCustomer: viewerIsCustomer,
-            ),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: o.isInspection
+            ? InspectionOrderDetailScreen(
+                store: store,
+                orderId: o.id,
+                viewerIsCustomer: viewerIsCustomer,
+              )
+            : OrderDetailScreen(
+                store: store,
+                orderId: o.id,
+                viewerIsCustomer: viewerIsCustomer,
+              ),
+      ),
+    );
     await tester.pumpAndSettle();
     return store;
   }
@@ -81,13 +86,13 @@ void main() {
 
   test('can_cancel: без ключа — нельзя', () {
     Map<String, dynamic> json(Object? flag) => {
-          'id': 1,
-          'status': 'awaiting_executor',
-          'brand': 'Kia',
-          'model': 'Rio',
-          'customer': {'id': 1, 'name': 'А'},
-          'can_cancel': ?flag,
-        };
+      'id': 1,
+      'status': 'awaiting_executor',
+      'brand': 'Kia',
+      'model': 'Rio',
+      'customer': {'id': 1, 'name': 'А'},
+      'can_cancel': ?flag,
+    };
     expect(Order.fromJson(json(null)).canCancel, isFalse);
     expect(Order.fromJson(json(true)).canCancel, isTrue);
   });
@@ -103,7 +108,9 @@ void main() {
     expect(updated.responses.single.status, OrderResponseStatus.rejected);
   });
 
-  testWidgets('разовый осмотр до выбора исполнителя отменяется', (tester) async {
+  testWidgets('разовый осмотр до выбора исполнителя отменяется', (
+    tester,
+  ) async {
     final store = await pump(tester, order(kind: OrderKind.inspection));
 
     await confirmCancel(tester);

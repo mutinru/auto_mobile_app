@@ -180,9 +180,7 @@ class _CarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CarPainter old) =>
-      old.statuses != statuses ||
-      old.colors != colors ||
-      old.scale != scale;
+      old.statuses != statuses || old.colors != colors || old.scale != scale;
 }
 
 Path _poly(List<double> xy) {

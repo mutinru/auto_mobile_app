@@ -16,10 +16,10 @@ class DefectDef {
   final Set<String> panelCodes;
 
   factory DefectDef.fromJson(Map<String, dynamic> json) => DefectDef(
-        id: json['id'] as int,
-        label: json['label'] as String,
-        panelCodes: {
-          for (final c in (json['panels'] as List? ?? const [])) c as String,
-        },
-      );
+    id: json['id'] as int,
+    label: json['label'] as String,
+    panelCodes: {
+      for (final c in (json['panels'] as List? ?? const [])) c as String,
+    },
+  );
 }

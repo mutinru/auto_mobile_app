@@ -17,10 +17,10 @@ class OrderResponse {
   final UserSummary executor;
 
   factory OrderResponse.fromJson(Map<String, dynamic> json) => OrderResponse(
-        id: json['id'] as int,
-        status: orderResponseStatusFromApi(json['status'] as String),
-        proposedPrice: json['proposed_price'] as int,
-        message: json['message'] as String?,
-        executor: UserSummary.fromJson(json['executor'] as Map<String, dynamic>),
-      );
+    id: json['id'] as int,
+    status: orderResponseStatusFromApi(json['status'] as String),
+    proposedPrice: json['proposed_price'] as int,
+    message: json['message'] as String?,
+    executor: UserSummary.fromJson(json['executor'] as Map<String, dynamic>),
+  );
 }

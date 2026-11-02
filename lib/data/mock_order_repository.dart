@@ -24,7 +24,11 @@ class MockOrderRepository implements OrderRepository {
   MockOrderRepository({List<Order>? orders}) : _orders = orders ?? _seed();
 
   /// Реквизиты, которые мок отдаёт заказчику в момент оплаты.
-  static const mockPayout = Payout(card: '2200700000000009', phone: '+79000000001', bank: 'Т-Банк');
+  static const mockPayout = Payout(
+    card: '2200700000000009',
+    phone: '+79000000001',
+    bank: 'Т-Банк',
+  );
 
   final List<Order> _orders;
 
@@ -48,149 +52,149 @@ class MockOrderRepository implements OrderRepository {
   static const _oleg = UserSummary(id: 15, name: 'Олег К.');
 
   static List<Order> _seed() => [
-        // разовые осмотры (order-types.html, кадры 01 и 05)
-        Order(
-          id: 2051,
-          kind: OrderKind.inspection,
-          status: OrderStatus.scheduled,
+    // разовые осмотры (order-types.html, кадры 01 и 05)
+    Order(
+      id: 2051,
+      kind: OrderKind.inspection,
+      status: OrderStatus.scheduled,
+      brand: 'Kia',
+      model: 'Rio',
+      yearFrom: 2019,
+      mileageTo: 64000,
+      customer: _me,
+      executor: _maxim,
+      cities: ['Химки'],
+      address: 'ул. Ленина, 5',
+      inspectOn: DateTime.now().add(const Duration(days: 1)),
+      timeSlot: TimeSlot.exact,
+      inspectTime: '16:00',
+      askingPrice: 4000,
+      price: 4000,
+      sellerPhone: '+79161234567',
+      cars: const [
+        OrderCar(
+          id: 511,
           brand: 'Kia',
           model: 'Rio',
-          yearFrom: 2019,
-          mileageTo: 64000,
-          customer: _me,
+          year: 2019,
+          vinMasked: '—',
+          mileageKm: 64000,
+        ),
+      ],
+    ),
+    Order(
+      id: 2053,
+      kind: OrderKind.inspection,
+      status: OrderStatus.awaitingExecutor,
+      brand: 'BMW',
+      model: 'X3',
+      yearFrom: 2017,
+      mileageTo: 112000,
+      customer: _me,
+      cities: ['Москва'],
+      address: 'Варшавское ш., 170',
+      inspectOn: DateTime.now().add(const Duration(days: 3)),
+      timeSlot: TimeSlot.day,
+      askingPrice: 3500,
+      listingUrl: 'https://auto.ru/cars/used/sale/bmw/x3/1120000123',
+      listingHost: 'auto.ru',
+      listingSite: 'Авто.ру',
+      hasListing: true,
+      responses: const [
+        OrderResponse(
+          id: 21,
+          status: OrderResponseStatus.pending,
+          proposedPrice: 3000,
+          executor: _sergey,
+        ),
+        OrderResponse(
+          id: 22,
+          status: OrderResponseStatus.pending,
+          proposedPrice: 3500,
           executor: _maxim,
-          cities: ['Химки'],
-          address: 'ул. Ленина, 5',
-          inspectOn: DateTime.now().add(const Duration(days: 1)),
-          timeSlot: TimeSlot.exact,
-          inspectTime: '16:00',
-          askingPrice: 4000,
-          price: 4000,
-          sellerPhone: '+79161234567',
-          cars: const [
-            OrderCar(
-              id: 511,
-              brand: 'Kia',
-              model: 'Rio',
-              year: 2019,
-              vinMasked: '—',
-              mileageKm: 64000,
-            ),
-          ],
         ),
-        Order(
-          id: 2053,
-          kind: OrderKind.inspection,
-          status: OrderStatus.awaitingExecutor,
-          brand: 'BMW',
-          model: 'X3',
-          yearFrom: 2017,
-          mileageTo: 112000,
-          customer: _me,
-          cities: ['Москва'],
-          address: 'Варшавское ш., 170',
-          inspectOn: DateTime.now().add(const Duration(days: 3)),
-          timeSlot: TimeSlot.day,
-          askingPrice: 3500,
-          listingUrl: 'https://auto.ru/cars/used/sale/bmw/x3/1120000123',
-          listingHost: 'auto.ru',
-          listingSite: 'Авто.ру',
-          hasListing: true,
-          responses: const [
-            OrderResponse(
-              id: 21,
-              status: OrderResponseStatus.pending,
-              proposedPrice: 3000,
-              executor: _sergey,
-            ),
-            OrderResponse(
-              id: 22,
-              status: OrderResponseStatus.pending,
-              proposedPrice: 3500,
-              executor: _maxim,
-            ),
-            OrderResponse(
-              id: 23,
-              status: OrderResponseStatus.pending,
-              proposedPrice: 4500,
-              executor: _oleg,
-            ),
-          ],
+        OrderResponse(
+          id: 23,
+          status: OrderResponseStatus.pending,
+          proposedPrice: 4500,
+          executor: _oleg,
         ),
-        Order(
-          id: 2047,
-          kind: OrderKind.inspection,
-          status: OrderStatus.completed,
-          completedAt: DateTime.now().subtract(const Duration(days: 2)),
-          canReview: true,
+      ],
+    ),
+    Order(
+      id: 2047,
+      kind: OrderKind.inspection,
+      status: OrderStatus.completed,
+      completedAt: DateTime.now().subtract(const Duration(days: 2)),
+      canReview: true,
+      brand: 'Hyundai',
+      model: 'Creta',
+      yearFrom: 2020,
+      mileageTo: 71000,
+      customer: _me,
+      executor: _maxim,
+      cities: ['Мытищи'],
+      address: 'ул. Мира, 12',
+      inspectOn: DateTime.now().subtract(const Duration(days: 2)),
+      timeSlot: TimeSlot.morning,
+      askingPrice: 4000,
+      price: 4000,
+      cars: const [
+        OrderCar(
+          id: 512,
           brand: 'Hyundai',
           model: 'Creta',
-          yearFrom: 2020,
-          mileageTo: 71000,
-          customer: _me,
-          executor: _maxim,
-          cities: ['Мытищи'],
-          address: 'ул. Мира, 12',
-          inspectOn: DateTime.now().subtract(const Duration(days: 2)),
-          timeSlot: TimeSlot.morning,
-          askingPrice: 4000,
-          price: 4000,
-          cars: const [
-            OrderCar(
-              id: 512,
-              brand: 'Hyundai',
-              model: 'Creta',
-              year: 2020,
-              vinMasked: '··· 100077',
-              mileageKm: 71000,
-              inspectionId: 90,
-              inspectionStatus: 'completed',
-              verdict: InspectionVerdict.notRecommended,
-              verdictComment: '3 детали перекрашены, замена крыла',
-            ),
-          ],
+          year: 2020,
+          vinMasked: '··· 100077',
+          mileageKm: 71000,
+          inspectionId: 90,
+          inspectionStatus: 'completed',
+          verdict: InspectionVerdict.notRecommended,
+          verdictComment: '3 детали перекрашены, замена крыла',
         ),
-        const Order(
-          id: 2041,
-          status: OrderStatus.inspecting,
-          brand: 'Toyota',
-          model: 'Camry',
-          yearFrom: 2018,
-          budgetMin: 2000000,
-          budgetMax: 2400000,
-          customer: _me,
-          executor: _maxim,
-          price: 12000,
+      ],
+    ),
+    const Order(
+      id: 2041,
+      status: OrderStatus.inspecting,
+      brand: 'Toyota',
+      model: 'Camry',
+      yearFrom: 2018,
+      budgetMin: 2000000,
+      budgetMax: 2400000,
+      customer: _me,
+      executor: _maxim,
+      price: 12000,
+    ),
+    const Order(
+      id: 2038,
+      status: OrderStatus.sourcing,
+      brand: 'Kia',
+      model: 'Sportage',
+      yearFrom: 2021,
+      budgetMax: 3100000,
+      customer: _me,
+      executor: UserSummary(id: 11, name: 'Игорь В.'),
+      price: 15000,
+    ),
+    const Order(
+      id: 2044,
+      status: OrderStatus.awaitingExecutor,
+      brand: 'Volkswagen',
+      model: 'Tiguan',
+      yearFrom: 2019,
+      budgetMax: 2000000,
+      customer: _me,
+      responses: [
+        OrderResponse(
+          id: 1,
+          status: OrderResponseStatus.pending,
+          proposedPrice: 10000,
+          executor: UserSummary(id: 12, name: 'Денис П.'),
         ),
-        const Order(
-          id: 2038,
-          status: OrderStatus.sourcing,
-          brand: 'Kia',
-          model: 'Sportage',
-          yearFrom: 2021,
-          budgetMax: 3100000,
-          customer: _me,
-          executor: UserSummary(id: 11, name: 'Игорь В.'),
-          price: 15000,
-        ),
-        const Order(
-          id: 2044,
-          status: OrderStatus.awaitingExecutor,
-          brand: 'Volkswagen',
-          model: 'Tiguan',
-          yearFrom: 2019,
-          budgetMax: 2000000,
-          customer: _me,
-          responses: [
-            OrderResponse(
-              id: 1,
-              status: OrderResponseStatus.pending,
-              proposedPrice: 10000,
-              executor: UserSummary(id: 12, name: 'Денис П.'),
-            ),
-          ],
-        ),
-      ];
+      ],
+    ),
+  ];
 
   @override
   Future<List<Order>> fetchMyOrders() async => _orders;
@@ -204,24 +208,27 @@ class MockOrderRepository implements OrderRepository {
   /// Как бекенд (OrderResource): не заказчику — только свой отклик,
   /// общее число — в responsesCount.
   static Order _asExecutor(Order o) => o.copyWith(
-        responses: o.responses.where((r) => r.executor.id == _me.id).toList(),
-        responsesCount: o.responses.length,
-      );
+    responses: o.responses.where((r) => r.executor.id == _me.id).toList(),
+    responsesCount: o.responses.length,
+  );
 
   @override
   Future<List<Order>> fetchAssignedOrders() async =>
       _orders.where((o) => o.executor != null).toList();
 
   @override
-  Future<Order> fetchOrder(int id) async => _withCanCancel(_orders.firstWhere((o) => o.id == id));
+  Future<Order> fetchOrder(int id) async =>
+      _withCanCancel(_orders.firstWhere((o) => o.id == id));
 
   /// Имитация сервера (Order::canBeCancelledBy): свой заказ до выбора
   /// исполнителя, в том числе после срыва. Экраны правило не повторяют —
   /// только читают флаг.
   static Order _withCanCancel(Order o) => o.copyWith(
-        canCancel: o.customer.id == _me.id &&
-            (o.status == OrderStatus.awaitingExecutor || o.status == OrderStatus.awaitingDecision),
-      );
+    canCancel:
+        o.customer.id == _me.id &&
+        (o.status == OrderStatus.awaitingExecutor ||
+            o.status == OrderStatus.awaitingDecision),
+  );
 
   @override
   Future<Order> createOrder({
@@ -386,24 +393,26 @@ class MockOrderRepository implements OrderRepository {
   }) async {
     final order = await fetchOrder(orderId);
     // как Order::finishCandidateInspection(): статус заказа прежний
-    final updated = order.copyWith(cars: [
-      for (final c in order.cars)
-        c.id != carId
-            ? c
-            : OrderCar(
-                id: c.id,
-                brand: c.brand,
-                model: c.model,
-                year: c.year,
-                vinMasked: c.vinMasked,
-                mileageKm: c.mileageKm,
-                inspectionId: c.inspectionId,
-                inspectionStatus: 'completed',
-                inspectionOutcome: c.inspectionOutcome,
-                verdict: verdict,
-                verdictComment: comment,
-              ),
-    ]);
+    final updated = order.copyWith(
+      cars: [
+        for (final c in order.cars)
+          c.id != carId
+              ? c
+              : OrderCar(
+                  id: c.id,
+                  brand: c.brand,
+                  model: c.model,
+                  year: c.year,
+                  vinMasked: c.vinMasked,
+                  mileageKm: c.mileageKm,
+                  inspectionId: c.inspectionId,
+                  inspectionStatus: 'completed',
+                  inspectionOutcome: c.inspectionOutcome,
+                  verdict: verdict,
+                  verdictComment: comment,
+                ),
+      ],
+    );
     _replace(updated);
     return updated;
   }
@@ -429,8 +438,9 @@ class MockOrderRepository implements OrderRepository {
                   mileageKm: c.mileageKm,
                   inspectionId: c.inspectionId,
                   inspectionStatus: c.inspectionStatus,
-                  inspectionOutcome:
-                      c.id == carId ? InspectionOutcome.purchased : InspectionOutcome.rejected,
+                  inspectionOutcome: c.id == carId
+                      ? InspectionOutcome.purchased
+                      : InspectionOutcome.rejected,
                 ),
       ],
     );
@@ -505,7 +515,9 @@ class MockOrderRepository implements OrderRepository {
       status: order.isInspection ? OrderStatus.scheduled : OrderStatus.sourcing,
       price: response.proposedPrice,
       executor: response.executor,
-      executorDeadlineAt: order.isInspection ? DateTime.now().add(const Duration(hours: 24)) : null,
+      executorDeadlineAt: order.isInspection
+          ? DateTime.now().add(const Duration(hours: 24))
+          : null,
       // как на бекенде (Order::acceptResponse): у подбора остальные отклики
       // отклоняются, у осмотра остаются ждать — на случай отказа исполнителя
       responses: [
@@ -515,8 +527,8 @@ class MockOrderRepository implements OrderRepository {
             status: r.id == responseId
                 ? OrderResponseStatus.accepted
                 : order.isInspection
-                    ? r.status
-                    : OrderResponseStatus.rejected,
+                ? r.status
+                : OrderResponseStatus.rejected,
             proposedPrice: r.proposedPrice,
             message: r.message,
             executor: r.executor,
@@ -552,11 +564,14 @@ class MockOrderRepository implements OrderRepository {
     int orderId,
     int carId, {
     InspectionType type = InspectionType.full,
-  }) async =>
-      carId;
+  }) async => carId;
 
   @override
-  Future<Order> leaveReview(int orderId, {required int rating, String? text}) async {
+  Future<Order> leaveReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
     final order = await fetchOrder(orderId);
     final e = order.executor!;
     // как сервер: сумма оценок растёт, отзыв один, can_review гаснет
@@ -571,7 +586,11 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<Order> updateReview(int orderId, {required int rating, String? text}) async {
+  Future<Order> updateReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
     final order = await fetchOrder(orderId);
     final e = order.executor!;
     final old = order.review!;
@@ -629,12 +648,12 @@ class MockOrderRepository implements OrderRepository {
   }
 
   UserSummary _withRating(UserSummary e, double sum, int count) => UserSummary(
-        id: e.id,
-        name: e.name,
-        rating: count == 0 ? null : (sum / count * 10).round() / 10,
-        reviewsCount: count,
-        completedOrdersCount: e.completedOrdersCount,
-      );
+    id: e.id,
+    name: e.name,
+    rating: count == 0 ? null : (sum / count * 10).round() / 10,
+    reviewsCount: count,
+    completedOrdersCount: e.completedOrdersCount,
+  );
 
   @override
   Future<Order> declineOrder(int orderId) async {
@@ -662,7 +681,10 @@ class MockOrderRepository implements OrderRepository {
   @override
   Future<Order> markPaymentSent(int orderId) async {
     final order = await fetchOrder(orderId);
-    final updated = order.copyWith(status: OrderStatus.paymentSent, paymentSentAt: DateTime.now());
+    final updated = order.copyWith(
+      status: OrderStatus.paymentSent,
+      paymentSentAt: DateTime.now(),
+    );
     _replace(updated);
     return updated;
   }
@@ -687,7 +709,11 @@ class MockOrderRepository implements OrderRepository {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(
       status: OrderStatus.disputed,
-      dispute: OrderDispute(openedBy: _me.id, reason: reason, openedAt: DateTime.now()),
+      dispute: OrderDispute(
+        openedBy: _me.id,
+        reason: reason,
+        openedAt: DateTime.now(),
+      ),
     );
     _replace(updated);
     return updated;

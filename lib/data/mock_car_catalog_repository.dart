@@ -17,19 +17,61 @@ class MockCarCatalogRepository implements CarCatalogRepository {
 
   static const _models = {
     'TOYOTA': [
-      CarModel(id: 'TOYOTA_CAMRY', name: 'Camry', nameRu: 'Камри', yearFrom: 1982, yearTo: 2026),
-      CarModel(id: 'TOYOTA_RAV4', name: 'RAV4', nameRu: 'РАВ4', yearFrom: 1994, yearTo: 2026),
+      CarModel(
+        id: 'TOYOTA_CAMRY',
+        name: 'Camry',
+        nameRu: 'Камри',
+        yearFrom: 1982,
+        yearTo: 2026,
+      ),
+      CarModel(
+        id: 'TOYOTA_RAV4',
+        name: 'RAV4',
+        nameRu: 'РАВ4',
+        yearFrom: 1994,
+        yearTo: 2026,
+      ),
     ],
     'VAZ': [
-      CarModel(id: 'VAZ_GRANTA', name: 'Granta', nameRu: 'Гранта', yearFrom: 2011, yearTo: 2026),
-      CarModel(id: 'VAZ_VESTA', name: 'Vesta', nameRu: 'Веста', yearFrom: 2015, yearTo: 2026),
+      CarModel(
+        id: 'VAZ_GRANTA',
+        name: 'Granta',
+        nameRu: 'Гранта',
+        yearFrom: 2011,
+        yearTo: 2026,
+      ),
+      CarModel(
+        id: 'VAZ_VESTA',
+        name: 'Vesta',
+        nameRu: 'Веста',
+        yearFrom: 2015,
+        yearTo: 2026,
+      ),
     ],
     'KIA': [
-      CarModel(id: 'KIA_RIO', name: 'Rio', nameRu: 'Рио', yearFrom: 2000, yearTo: 2026),
-      CarModel(id: 'KIA_SPORTAGE', name: 'Sportage', nameRu: 'Спортейдж', yearFrom: 1993, yearTo: 2026),
+      CarModel(
+        id: 'KIA_RIO',
+        name: 'Rio',
+        nameRu: 'Рио',
+        yearFrom: 2000,
+        yearTo: 2026,
+      ),
+      CarModel(
+        id: 'KIA_SPORTAGE',
+        name: 'Sportage',
+        nameRu: 'Спортейдж',
+        yearFrom: 1993,
+        yearTo: 2026,
+      ),
     ],
     'ABARTH': [
-      CarModel(id: 'ABARTH_500', name: '500', nameRu: '500', yearFrom: 2008, yearTo: 2024),
+      CarModel(
+        id: 'ABARTH_500',
+        name: '500',
+        nameRu: '500',
+        yearFrom: 2008,
+        yearTo: 2024,
+      ),
     ],
   };
 
@@ -52,7 +94,8 @@ class MockCarCatalogRepository implements CarCatalogRepository {
     if (fail) throw Exception('нет сети');
     final u = url.toLowerCase();
     for (final make in _makes) {
-      if (!u.contains('/${make.id.toLowerCase()}') && !u.contains('/${make.name.toLowerCase()}')) {
+      if (!u.contains('/${make.id.toLowerCase()}') &&
+          !u.contains('/${make.name.toLowerCase()}')) {
         continue;
       }
       CarModel? model;

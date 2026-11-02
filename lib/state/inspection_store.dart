@@ -47,6 +47,7 @@ class InspectionStore extends ChangeNotifier {
     final stale = panel.defects.where((d) => !allowed.contains(d));
     return stale.isEmpty ? allowed : [...allowed, ...stale];
   }
+
   bool get isLoading => _loading;
 
   int get totalCount => _panels.length;
@@ -102,8 +103,7 @@ class InspectionStore extends ChangeNotifier {
     };
   }
 
-  InspectionPanel panelById(String id) =>
-      _panels.firstWhere((p) => p.id == id);
+  InspectionPanel panelById(String id) => _panels.firstWhere((p) => p.id == id);
 
   int indexOf(String id) => _panels.indexWhere((p) => p.id == id);
 
@@ -136,8 +136,16 @@ class InspectionStore extends ChangeNotifier {
     _replacePanel(updated);
   }
 
-  Future<void> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
-    final updated = await _repository.uploadAudioNote(panelId, filePath, durationSeconds);
+  Future<void> uploadAudioNote(
+    String panelId,
+    String filePath,
+    int durationSeconds,
+  ) async {
+    final updated = await _repository.uploadAudioNote(
+      panelId,
+      filePath,
+      durationSeconds,
+    );
     _replacePanel(updated);
   }
 

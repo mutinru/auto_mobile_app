@@ -71,7 +71,11 @@ const orderPush = PushMessage(
 const supportPush = PushMessage(
   title: 'Поддержка',
   body: 'Сейчас посмотрим',
-  data: {'type': 'chat_message', 'conversation_id': '3', 'conversation_type': 'support'},
+  data: {
+    'type': 'chat_message',
+    'conversation_id': '3',
+    'conversation_type': 'support',
+  },
 );
 
 void main() {
@@ -87,17 +91,31 @@ void main() {
       expect(target.opensOrder, isTrue);
     });
 
-    test('без viewer_role роль из типа; отклонённый отклик заказ не открывает', () {
-      final target = PushTarget.fromData({'type': 'response_rejected', 'order_id': '7'}) as OrderTarget;
-      expect(target.type, NotificationType.responseRejected);
-      expect(target.viewerIsCustomer, isFalse);
-      expect(target.opensOrder, isFalse);
-    });
+    test(
+      'без viewer_role роль из типа; отклонённый отклик заказ не открывает',
+      () {
+        final target =
+            PushTarget.fromData({'type': 'response_rejected', 'order_id': '7'})
+                as OrderTarget;
+        expect(target.type, NotificationType.responseRejected);
+        expect(target.viewerIsCustomer, isFalse);
+        expect(target.opensOrder, isFalse);
+      },
+    );
 
     test('чат поддержки и непонятные пуши', () {
       expect(PushTarget.fromData(supportPush.data), isA<SupportChatTarget>());
-      expect(PushTarget.fromData({'type': 'chat_message', 'conversation_type': 'order'}), isNull);
-      expect(PushTarget.fromData({'type': 'from_the_future', 'order_id': '1'}), isNull);
+      expect(
+        PushTarget.fromData({
+          'type': 'chat_message',
+          'conversation_type': 'order',
+        }),
+        isNull,
+      );
+      expect(
+        PushTarget.fromData({'type': 'from_the_future', 'order_id': '1'}),
+        isNull,
+      );
       expect(PushTarget.fromData({'type': 'report_ready'}), isNull);
       expect(PushTarget.fromData(const {}), isNull);
     });
@@ -114,7 +132,10 @@ void main() {
       messaging = FakePushMessaging();
     });
 
-    PushService service({NotificationUnread? notifications, SupportUnread? support}) => PushService(
+    PushService service({
+      NotificationUnread? notifications,
+      SupportUnread? support,
+    }) => PushService(
       auth: auth,
       devices: devices,
       messaging: messaging,
@@ -132,28 +153,31 @@ void main() {
       expect(devices.registered, isEmpty);
     });
 
-    test('устройство регистрируется на каждую новую сессию, разрешение — один раз', () async {
-      final push = service();
-      await push.start();
-      expect(devices.registered, isEmpty, reason: 'гостю не регистрируем');
+    test(
+      'устройство регистрируется на каждую новую сессию, разрешение — один раз',
+      () async {
+        final push = service();
+        await push.start();
+        expect(devices.registered, isEmpty, reason: 'гостю не регистрируем');
 
-      auth.debugSetToken('session-1');
-      await pumpEventQueue();
-      auth.debugSetToken('session-1'); // тот же вход — повторно не шлём
-      await pumpEventQueue();
-      expect(devices.registered, ['fcm-1']);
+        auth.debugSetToken('session-1');
+        await pumpEventQueue();
+        auth.debugSetToken('session-1'); // тот же вход — повторно не шлём
+        await pumpEventQueue();
+        expect(devices.registered, ['fcm-1']);
 
-      messaging.refresh.add('fcm-2');
-      await pumpEventQueue();
-      expect(devices.registered, ['fcm-1', 'fcm-2']);
+        messaging.refresh.add('fcm-2');
+        await pumpEventQueue();
+        expect(devices.registered, ['fcm-1', 'fcm-2']);
 
-      auth.expireSession();
-      auth.debugSetToken('session-2');
-      await pumpEventQueue();
-      expect(devices.registered, ['fcm-1', 'fcm-2', 'fcm-1']);
-      expect(messaging.permissionRequests, 1);
-      push.dispose();
-    });
+        auth.expireSession();
+        auth.debugSetToken('session-2');
+        await pumpEventQueue();
+        expect(devices.registered, ['fcm-1', 'fcm-2', 'fcm-1']);
+        expect(messaging.permissionRequests, 1);
+        push.dispose();
+      },
+    );
 
     test('сбой регистрации повторится на следующем изменении сессии', () async {
       devices.fail = true;
@@ -170,28 +194,35 @@ void main() {
       push.dispose();
     });
 
-    test('в открытом приложении — показать и обновить бейдж; ответ при открытом чате — нет', () async {
-      auth.debugSetToken('t');
-      final feed = MockNotificationRepository();
-      final notifications = NotificationUnread(auth, feed);
-      final support = SupportUnread(auth, MockChatRepository());
-      final push = service(notifications: notifications, support: support);
-      await push.start();
+    test(
+      'в открытом приложении — показать и обновить бейдж; ответ при открытом чате — нет',
+      () async {
+        auth.debugSetToken('t');
+        final feed = MockNotificationRepository();
+        final notifications = NotificationUnread(auth, feed);
+        final support = SupportUnread(auth, MockChatRepository());
+        final push = service(notifications: notifications, support: support);
+        await push.start();
 
-      messaging.foreground.add(orderPush);
-      messaging.foreground.add(supportPush);
-      await pumpEventQueue();
-      expect(messaging.shown, [orderPush, supportPush]);
+        messaging.foreground.add(orderPush);
+        messaging.foreground.add(supportPush);
+        await pumpEventQueue();
+        expect(messaging.shown, [orderPush, supportPush]);
 
-      support.chatOpen = true;
-      messaging.foreground.add(supportPush);
-      await pumpEventQueue();
-      expect(messaging.shown, hasLength(2), reason: 'чат открыт — ответ и так на экране');
+        support.chatOpen = true;
+        messaging.foreground.add(supportPush);
+        await pumpEventQueue();
+        expect(
+          messaging.shown,
+          hasLength(2),
+          reason: 'чат открыт — ответ и так на экране',
+        );
 
-      push.dispose();
-      notifications.dispose();
-      support.dispose();
-    });
+        push.dispose();
+        notifications.dispose();
+        support.dispose();
+      },
+    );
 
     test('тап — в поток taps; пуш запуска — забирается один раз', () async {
       messaging.launchedBy = supportPush;

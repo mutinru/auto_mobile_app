@@ -43,17 +43,25 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.photo_camera_outlined,
-                  color: context.colors.text2),
-              title: Text('Снять камерой',
-                  style: TextStyle(color: context.colors.text1)),
+              leading: Icon(
+                Icons.photo_camera_outlined,
+                color: context.colors.text2,
+              ),
+              title: Text(
+                'Снять камерой',
+                style: TextStyle(color: context.colors.text1),
+              ),
               onTap: () => Navigator.of(context).pop(ImageSource.camera),
             ),
             ListTile(
-              leading:
-                  Icon(Icons.photo_library_outlined, color: context.colors.text2),
-              title: Text('Выбрать из галереи',
-                  style: TextStyle(color: context.colors.text1)),
+              leading: Icon(
+                Icons.photo_library_outlined,
+                color: context.colors.text2,
+              ),
+              title: Text(
+                'Выбрать из галереи',
+                style: TextStyle(color: context.colors.text1),
+              ),
               onTap: () => Navigator.of(context).pop(ImageSource.gallery),
             ),
             const SizedBox(height: 8),
@@ -149,7 +157,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: context.colors.bg1,
                           borderRadius: BorderRadius.circular(8),
@@ -186,7 +196,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                               selected: panel.condition == c,
                               onTap: store.readOnly
                                   ? null
-                                  : () => _mutate(() => store.applyCondition(_panelId, c)),
+                                  : () => _mutate(
+                                      () => store.applyCondition(_panelId, c),
+                                    ),
                             ),
                         ],
                       ),
@@ -216,7 +228,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                               on: panel.defects.contains(d),
                               onTap: store.readOnly
                                   ? null
-                                  : () => _mutate(() => store.toggleDefect(_panelId, d)),
+                                  : () => _mutate(
+                                      () => store.toggleDefect(_panelId, d),
+                                    ),
                             ),
                         ],
                       ),
@@ -404,7 +418,9 @@ class _ConditionTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: selected ? context.colors.doneText : context.colors.text1,
+                color: selected
+                    ? context.colors.doneText
+                    : context.colors.text1,
               ),
             ),
           ],

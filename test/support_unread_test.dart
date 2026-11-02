@@ -31,23 +31,26 @@ void main() {
   group('SupportUnread', () {
     TestWidgetsFlutterBinding.ensureInitialized();
 
-    test('гость — 0 и без запроса; вошёл — число с сервера; вышел — 0', () async {
-      final auth = AuthService();
-      final repo = MockChatRepository(supportUnread: 3)..failUnread = true;
-      final unread = SupportUnread(auth, repo)..start();
-      // гость: запрос упал бы, но его нет — 0 без ошибок
-      await unread.refresh();
-      expect(unread.count, 0);
+    test(
+      'гость — 0 и без запроса; вошёл — число с сервера; вышел — 0',
+      () async {
+        final auth = AuthService();
+        final repo = MockChatRepository(supportUnread: 3)..failUnread = true;
+        final unread = SupportUnread(auth, repo)..start();
+        // гость: запрос упал бы, но его нет — 0 без ошибок
+        await unread.refresh();
+        expect(unread.count, 0);
 
-      repo.failUnread = false;
-      auth.debugSetToken('t');
-      await unread.refresh();
-      expect(unread.count, 3);
+        repo.failUnread = false;
+        auth.debugSetToken('t');
+        await unread.refresh();
+        expect(unread.count, 3);
 
-      auth.expireSession();
-      expect(unread.count, 0);
-      unread.dispose();
-    });
+        auth.expireSession();
+        expect(unread.count, 0);
+        unread.dispose();
+      },
+    );
 
     test('нет сети — остаётся прежнее число', () async {
       final auth = AuthService()..debugSetToken('t');
@@ -73,23 +76,27 @@ void main() {
       // dispose — в конце теста: таймер опроса переживёт addTearDown
       final unread = SupportUnread(auth, repo)..start();
       await unread.refresh();
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        builder: (_, child) => SupportChatScope(
-          auth: auth,
-          repository: () => repo,
-          unread: unread,
-          child: child!,
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          builder: (_, child) => SupportChatScope(
+            auth: auth,
+            repository: () => repo,
+            unread: unread,
+            child: child!,
+          ),
+          home: home,
         ),
-        home: home,
-      ));
+      );
       await tester.pumpAndSettle();
       return unread;
     }
 
     final intent = IntentScreen(onChoose: (_) {});
 
-    testWidgets('стартовый экран: «Поддержка» с числом, при 0 — без', (tester) async {
+    testWidgets('стартовый экран: «Поддержка» с числом, при 0 — без', (
+      tester,
+    ) async {
       final repo = MockChatRepository(supportUnread: 2);
       final unread = await pump(tester, intent, repo: repo);
       expect(find.widgetWithText(UnreadBadge, '2'), findsOneWidget);
@@ -101,7 +108,9 @@ void main() {
       unread.dispose();
     });
 
-    testWidgets('шторка: «2 новых сообщения», после чата бейдж гаснет', (tester) async {
+    testWidgets('шторка: «2 новых сообщения», после чата бейдж гаснет', (
+      tester,
+    ) async {
       final repo = MockChatRepository(supportUnread: 2, messages: [reply]);
       final unread = await pump(tester, intent, repo: repo);
 
@@ -139,10 +148,12 @@ void main() {
     });
 
     testWidgets('больше 99 — «99+»', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: const Scaffold(body: UnreadBadge(150)),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: const Scaffold(body: UnreadBadge(150)),
+        ),
+      );
       expect(find.text('99+'), findsOneWidget);
     });
   });

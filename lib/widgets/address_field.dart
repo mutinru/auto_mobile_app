@@ -91,7 +91,10 @@ class _AddressFieldState extends State<AddressField> {
 
   Future<void> _load(String query) async {
     _requested = query;
-    final results = await widget.addresses!.suggest(query, cityId: widget.cityId);
+    final results = await widget.addresses!.suggest(
+      query,
+      cityId: widget.cityId,
+    );
     if (!mounted || query != _requested) return;
     setState(() => _suggestions = results);
   }
@@ -101,7 +104,9 @@ class _AddressFieldState extends State<AddressField> {
     _requested = '';
     _picked = s.value;
     widget.controller.text = s.value;
-    widget.controller.selection = TextSelection.collapsed(offset: s.value.length);
+    widget.controller.selection = TextSelection.collapsed(
+      offset: s.value.length,
+    );
     setState(() => _suggestions = const []);
     FocusScope.of(context).unfocus();
 
@@ -137,17 +142,31 @@ class _AddressFieldState extends State<AddressField> {
                     onTap: () => _select(s),
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         border: i == 0
                             ? null
-                            : Border(top: BorderSide(color: context.colors.line)),
+                            : Border(
+                                top: BorderSide(color: context.colors.line),
+                              ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.location_on_outlined, size: 16, color: context.colors.text3),
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: context.colors.text3,
+                          ),
                           const SizedBox(width: 10),
-                          Expanded(child: Text(s.value, style: context.text.fieldValue)),
+                          Expanded(
+                            child: Text(
+                              s.value,
+                              style: context.text.fieldValue,
+                            ),
+                          ),
                         ],
                       ),
                     ),

@@ -45,7 +45,8 @@ class ApiInspectionRepository implements InspectionRepository {
     );
     if (fresh != null) {
       _catalog = [
-        for (final d in fresh.json['data'] as List) DefectDef.fromJson(d as Map<String, dynamic>),
+        for (final d in fresh.json['data'] as List)
+          DefectDef.fromJson(d as Map<String, dynamic>),
       ];
       _catalogEtag = fresh.etag;
     }
@@ -53,7 +54,10 @@ class ApiInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> updateCondition(String panelId, PanelCondition condition) async {
+  Future<InspectionPanel> updateCondition(
+    String panelId,
+    PanelCondition condition,
+  ) async {
     final json = await _client.patch(
       '/inspections/$inspectionId/panels/$panelId',
       {'condition': condition.apiValue},
@@ -78,7 +82,11 @@ class ApiInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
+  Future<InspectionPanel> uploadAudioNote(
+    String panelId,
+    String filePath,
+    int durationSeconds,
+  ) async {
     return _multipart(
       '/inspections/$inspectionId/panels/$panelId/audio-note',
       await http.MultipartFile.fromPath('audio', filePath),
@@ -88,7 +96,9 @@ class ApiInspectionRepository implements InspectionRepository {
 
   @override
   Future<InspectionPanel> deleteAudioNote(String panelId) async {
-    final json = await _client.delete('/inspections/$inspectionId/panels/$panelId/audio-note');
+    final json = await _client.delete(
+      '/inspections/$inspectionId/panels/$panelId/audio-note',
+    );
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
   }
 
@@ -99,11 +109,12 @@ class ApiInspectionRepository implements InspectionRepository {
     http.MultipartFile file, {
     Map<String, String> fields = const {},
   }) async {
-    final request = http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
-      ..headers['Accept'] = 'application/json'
-      ..headers['Authorization'] = 'Bearer ${_client.token}'
-      ..fields.addAll(fields)
-      ..files.add(file);
+    final request =
+        http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
+          ..headers['Accept'] = 'application/json'
+          ..headers['Authorization'] = 'Bearer ${_client.token}'
+          ..fields.addAll(fields)
+          ..files.add(file);
 
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();

@@ -7,10 +7,12 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
 void main() {
   Future<void> pump(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: PhoneLoginScreen(auth: AuthService(), onLoggedIn: () {}),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: PhoneLoginScreen(auth: AuthService(), onLoggedIn: () {}),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 

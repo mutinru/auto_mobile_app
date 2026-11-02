@@ -102,10 +102,13 @@ class ApiOrderRepository implements OrderRepository {
       'inspect_on': _ymd(inspectOn),
       'time_slot': timeSlot.apiValue,
       'asking_price': askingPrice,
-      if (timeSlot == TimeSlot.exact && inspectTime != null) 'inspect_time': inspectTime,
+      if (timeSlot == TimeSlot.exact && inspectTime != null)
+        'inspect_time': inspectTime,
       if (vin != null && vin.isNotEmpty) 'vin': vin,
-      if (listingUrl != null && listingUrl.isNotEmpty) 'listing_url': listingUrl,
-      if (sellerPhone != null && sellerPhone.isNotEmpty) 'seller_phone': sellerPhone,
+      if (listingUrl != null && listingUrl.isNotEmpty)
+        'listing_url': listingUrl,
+      if (sellerPhone != null && sellerPhone.isNotEmpty)
+        'seller_phone': sellerPhone,
       if (comment != null && comment.isNotEmpty) 'comment': comment,
     });
     return Order.fromJson(json['data'] as Map<String, dynamic>);
@@ -140,13 +143,16 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<Order> declineOrder(int orderId) => _orderAction('/orders/$orderId/decline');
+  Future<Order> declineOrder(int orderId) =>
+      _orderAction('/orders/$orderId/decline');
 
   @override
-  Future<Order> markPaymentSent(int orderId) => _orderAction('/orders/$orderId/payment/sent');
+  Future<Order> markPaymentSent(int orderId) =>
+      _orderAction('/orders/$orderId/payment/sent');
 
   @override
-  Future<Order> confirmPayment(int orderId) => _orderAction('/orders/$orderId/payment/confirm');
+  Future<Order> confirmPayment(int orderId) =>
+      _orderAction('/orders/$orderId/payment/confirm');
 
   @override
   Future<Order> openDispute(int orderId, {required String reason}) =>
@@ -159,7 +165,9 @@ class ApiOrderRepository implements OrderRepository {
 
   @override
   Future<Order> acceptResponse(int orderId, int responseId) async {
-    final json = await _client.post('/orders/$orderId/responses/$responseId/accept');
+    final json = await _client.post(
+      '/orders/$orderId/responses/$responseId/accept',
+    );
     return Order.fromJson(json['data'] as Map<String, dynamic>);
   }
 
@@ -169,18 +177,18 @@ class ApiOrderRepository implements OrderRepository {
     int carId, {
     required InspectionVerdict verdict,
     String? comment,
-  }) =>
-      _orderAction('/orders/$orderId/cars/$carId/inspection/complete', {
-        'verdict': verdict.apiValue,
-        if (comment != null && comment.isNotEmpty) 'comment': comment,
-      });
+  }) => _orderAction('/orders/$orderId/cars/$carId/inspection/complete', {
+    'verdict': verdict.apiValue,
+    if (comment != null && comment.isNotEmpty) 'comment': comment,
+  });
 
   @override
   Future<Order> completeSelection(int orderId, {required int carId}) =>
       _orderAction('/orders/$orderId/complete', {'car_id': carId});
 
   @override
-  Future<Order> cancelOrder(int orderId) => _orderAction('/orders/$orderId/cancel');
+  Future<Order> cancelOrder(int orderId) =>
+      _orderAction('/orders/$orderId/cancel');
 
   @override
   Future<Order> repostInspection(
@@ -189,32 +197,46 @@ class ApiOrderRepository implements OrderRepository {
     required TimeSlot timeSlot,
     String? inspectTime,
     int? askingPrice,
-  }) =>
-      _orderAction('/orders/$orderId/repost', {
-        'inspect_on': _ymd(inspectOn),
-        'time_slot': timeSlot.apiValue,
-        if (timeSlot == TimeSlot.exact && inspectTime != null) 'inspect_time': inspectTime,
-        'asking_price': ?askingPrice,
-      });
+  }) => _orderAction('/orders/$orderId/repost', {
+    'inspect_on': _ymd(inspectOn),
+    'time_slot': timeSlot.apiValue,
+    if (timeSlot == TimeSlot.exact && inspectTime != null)
+      'inspect_time': inspectTime,
+    'asking_price': ?askingPrice,
+  });
 
   @override
-  Future<Order> leaveReview(int orderId, {required int rating, String? text}) async {
-    final json = await _client.post('/orders/$orderId/review', _reviewBody(rating, text));
+  Future<Order> leaveReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
+    final json = await _client.post(
+      '/orders/$orderId/review',
+      _reviewBody(rating, text),
+    );
     return Order.fromJson(json['data'] as Map<String, dynamic>);
   }
 
   @override
-  Future<Order> updateReview(int orderId, {required int rating, String? text}) async {
-    final json = await _client.patch('/orders/$orderId/review', _reviewBody(rating, text));
+  Future<Order> updateReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
+    final json = await _client.patch(
+      '/orders/$orderId/review',
+      _reviewBody(rating, text),
+    );
     return Order.fromJson(json['data'] as Map<String, dynamic>);
   }
 
   /// Пустой текст уходит как null — иначе min:10 на бекенде отклонит
   /// «без комментария» у высокой оценки.
   Map<String, dynamic> _reviewBody(int rating, String? text) => {
-        'rating': rating,
-        'text': (text == null || text.trim().isEmpty) ? null : text.trim(),
-      };
+    'rating': rating,
+    'text': (text == null || text.trim().isEmpty) ? null : text.trim(),
+  };
 
   @override
   Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1}) async {
@@ -224,7 +246,9 @@ class ApiOrderRepository implements OrderRepository {
       items: (json['data'] as List)
           .map((r) => Review.fromJson(r as Map<String, dynamic>))
           .toList(),
-      hasMore: (meta['current_page'] as int? ?? 1) < (meta['last_page'] as int? ?? 1),
+      hasMore:
+          (meta['current_page'] as int? ?? 1) <
+          (meta['last_page'] as int? ?? 1),
     );
   }
 

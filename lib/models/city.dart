@@ -27,14 +27,14 @@ class City {
   final double? distanceKm;
 
   factory City.fromJson(Map<String, dynamic> json) => City(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        region: json['region'] as String? ?? '',
-        lat: (json['lat'] as num).toDouble(),
-        lon: (json['lon'] as num).toDouble(),
-        population: json['population'] as int?,
-        distanceKm: (json['distance_km'] as num?)?.toDouble(),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    region: json['region'] as String? ?? '',
+    lat: (json['lat'] as num).toDouble(),
+    lon: (json['lon'] as num).toDouble(),
+    population: json['population'] as int?,
+    distanceKm: (json['distance_km'] as num?)?.toDouble(),
+  );
 }
 
 /// Клиентское значение «без ограничения по городу» — в справочнике его нет.

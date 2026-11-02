@@ -133,7 +133,10 @@ class _PanelRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     panel.zone,
-                    style: TextStyle(fontSize: 10.5, color: context.colors.text3),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: context.colors.text3,
+                    ),
                   ),
                 ],
               ),
@@ -162,17 +165,17 @@ class _Trailing extends StatelessWidget {
     if (condition != null) {
       final (bg, fg) = switch (condition) {
         PanelCondition.excellent || PanelCondition.good => (
-            context.colors.statusDone.withValues(alpha: 0.14),
-            context.colors.doneText
-          ),
+          context.colors.statusDone.withValues(alpha: 0.14),
+          context.colors.doneText,
+        ),
         PanelCondition.satisfactory => (
-            context.colors.statusProgress.withValues(alpha: 0.14),
-            context.colors.progressText
-          ),
+          context.colors.statusProgress.withValues(alpha: 0.14),
+          context.colors.progressText,
+        ),
         PanelCondition.needsRepair => (
-            context.colors.statusDefect.withValues(alpha: 0.14),
-            context.colors.defectText
-          ),
+          context.colors.statusDefect.withValues(alpha: 0.14),
+          context.colors.defectText,
+        ),
       };
 
       return Container(

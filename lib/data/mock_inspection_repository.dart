@@ -7,9 +7,19 @@ import '../models/panel_status.dart';
 import 'inspection_repository.dart';
 
 const _body = {
-  'front_bumper', 'front_left_fender', 'front_right_fender', 'hood',
-  'front_left_door', 'front_right_door', 'rear_left_door', 'rear_right_door',
-  'roof', 'rear_left_fender', 'rear_right_fender', 'trunk', 'rear_bumper',
+  'front_bumper',
+  'front_left_fender',
+  'front_right_fender',
+  'hood',
+  'front_left_door',
+  'front_right_door',
+  'rear_left_door',
+  'rear_right_door',
+  'roof',
+  'rear_left_fender',
+  'rear_right_fender',
+  'trunk',
+  'rear_bumper',
 };
 
 /// Тот же каталог и привязки, что в DefectSeeder на бекенде.
@@ -31,7 +41,11 @@ const _mockDefects = [
   DefectDef(id: 15, label: 'Скол', panelCodes: {'windows'}),
   DefectDef(id: 16, label: 'Трещина', panelCodes: {'windows'}),
   DefectDef(id: 17, label: 'Не заводское стекло', panelCodes: {'windows'}),
-  DefectDef(id: 18, label: 'Неисправен стеклоподъёмник', panelCodes: {'windows'}),
+  DefectDef(
+    id: 18,
+    label: 'Неисправен стеклоподъёмник',
+    panelCodes: {'windows'},
+  ),
   DefectDef(id: 19, label: 'VIN не совпадает', panelCodes: {'documents'}),
   DefectDef(id: 20, label: 'Дубликат ПТС', panelCodes: {'documents'}),
   DefectDef(id: 21, label: 'Залог или ограничения', panelCodes: {'documents'}),
@@ -58,16 +72,17 @@ class MockInspectionRepository implements InspectionRepository {
 
   List<InspectionPanel>? _panels;
 
-  List<InspectionPanel> get _loadedPanels =>
-      _panels ??= _blank ? [for (final p in _buildPanels()) _unrated(p)] : _buildPanels();
+  List<InspectionPanel> get _loadedPanels => _panels ??= _blank
+      ? [for (final p in _buildPanels()) _unrated(p)]
+      : _buildPanels();
 
   static InspectionPanel _unrated(InspectionPanel p) => InspectionPanel(
-        id: p.id,
-        name: p.name,
-        zone: p.zone,
-        kind: p.kind,
-        status: PanelStatus.none,
-      );
+    id: p.id,
+    name: p.name,
+    zone: p.zone,
+    kind: p.kind,
+    status: PanelStatus.none,
+  );
 
   @override
   Future<InspectionSnapshot> fetchInspection() async {
@@ -85,7 +100,10 @@ class MockInspectionRepository implements InspectionRepository {
   Future<List<DefectDef>> fetchDefectCatalog() async => _mockDefects;
 
   @override
-  Future<InspectionPanel> updateCondition(String panelId, PanelCondition condition) async {
+  Future<InspectionPanel> updateCondition(
+    String panelId,
+    PanelCondition condition,
+  ) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     panel.applyCondition(condition);
     return panel;
@@ -100,125 +118,125 @@ class MockInspectionRepository implements InspectionRepository {
   }
 
   List<InspectionPanel> _buildPanels() => [
-        InspectionPanel(
-          id: 'front_bumper',
-          name: 'Передний бампер',
-          zone: 'Перед',
-          condition: PanelCondition.satisfactory,
-          status: PanelStatus.inProgress,
-        ),
-        InspectionPanel(
-          id: 'front_left_fender',
-          name: 'Переднее левое крыло',
-          zone: 'Перед',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'front_right_fender',
-          name: 'Переднее правое крыло',
-          zone: 'Перед',
-          condition: PanelCondition.needsRepair,
-          status: PanelStatus.defect,
-        ),
-        InspectionPanel(
-          id: 'hood',
-          name: 'Капот',
-          zone: 'Перед',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'front_left_door',
-          name: 'Передняя левая дверь',
-          zone: 'Двери',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'front_right_door',
-          name: 'Передняя правая дверь',
-          zone: 'Двери',
-          condition: PanelCondition.satisfactory,
-          status: PanelStatus.inProgress,
-        ),
-        InspectionPanel(
-          id: 'rear_left_door',
-          name: 'Задняя левая дверь',
-          zone: 'Двери',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'rear_right_door',
-          name: 'Задняя правая дверь',
-          zone: 'Двери',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'roof',
-          name: 'Крыша',
-          zone: 'Верх',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'rear_left_fender',
-          name: 'Заднее левое крыло',
-          zone: 'Зад',
-          status: PanelStatus.none,
-        ),
-        InspectionPanel(
-          id: 'rear_right_fender',
-          name: 'Заднее правое крыло',
-          zone: 'Зад',
-          status: PanelStatus.none,
-        ),
-        InspectionPanel(
-          id: 'trunk',
-          name: 'Крышка багажника',
-          zone: 'Зад',
-          status: PanelStatus.none,
-        ),
-        InspectionPanel(
-          id: 'rear_bumper',
-          name: 'Задний бампер',
-          zone: 'Зад',
-          status: PanelStatus.none,
-        ),
-        InspectionPanel(
-          id: 'engine',
-          name: 'Двигатель',
-          zone: 'Дополнительно',
-          kind: 'extra',
-          condition: PanelCondition.good,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'sills',
-          name: 'Пороги',
-          zone: 'Дополнительно',
-          kind: 'extra',
-          condition: PanelCondition.satisfactory,
-          status: PanelStatus.inProgress,
-        ),
-        InspectionPanel(
-          id: 'windows',
-          name: 'Окна',
-          zone: 'Дополнительно',
-          kind: 'extra',
-          condition: PanelCondition.excellent,
-          status: PanelStatus.done,
-        ),
-        InspectionPanel(
-          id: 'documents',
-          name: 'Документы',
-          zone: 'Дополнительно',
-          kind: 'extra',
-          status: PanelStatus.none,
-        ),
-      ];
+    InspectionPanel(
+      id: 'front_bumper',
+      name: 'Передний бампер',
+      zone: 'Перед',
+      condition: PanelCondition.satisfactory,
+      status: PanelStatus.inProgress,
+    ),
+    InspectionPanel(
+      id: 'front_left_fender',
+      name: 'Переднее левое крыло',
+      zone: 'Перед',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'front_right_fender',
+      name: 'Переднее правое крыло',
+      zone: 'Перед',
+      condition: PanelCondition.needsRepair,
+      status: PanelStatus.defect,
+    ),
+    InspectionPanel(
+      id: 'hood',
+      name: 'Капот',
+      zone: 'Перед',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'front_left_door',
+      name: 'Передняя левая дверь',
+      zone: 'Двери',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'front_right_door',
+      name: 'Передняя правая дверь',
+      zone: 'Двери',
+      condition: PanelCondition.satisfactory,
+      status: PanelStatus.inProgress,
+    ),
+    InspectionPanel(
+      id: 'rear_left_door',
+      name: 'Задняя левая дверь',
+      zone: 'Двери',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'rear_right_door',
+      name: 'Задняя правая дверь',
+      zone: 'Двери',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'roof',
+      name: 'Крыша',
+      zone: 'Верх',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'rear_left_fender',
+      name: 'Заднее левое крыло',
+      zone: 'Зад',
+      status: PanelStatus.none,
+    ),
+    InspectionPanel(
+      id: 'rear_right_fender',
+      name: 'Заднее правое крыло',
+      zone: 'Зад',
+      status: PanelStatus.none,
+    ),
+    InspectionPanel(
+      id: 'trunk',
+      name: 'Крышка багажника',
+      zone: 'Зад',
+      status: PanelStatus.none,
+    ),
+    InspectionPanel(
+      id: 'rear_bumper',
+      name: 'Задний бампер',
+      zone: 'Зад',
+      status: PanelStatus.none,
+    ),
+    InspectionPanel(
+      id: 'engine',
+      name: 'Двигатель',
+      zone: 'Дополнительно',
+      kind: 'extra',
+      condition: PanelCondition.good,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'sills',
+      name: 'Пороги',
+      zone: 'Дополнительно',
+      kind: 'extra',
+      condition: PanelCondition.satisfactory,
+      status: PanelStatus.inProgress,
+    ),
+    InspectionPanel(
+      id: 'windows',
+      name: 'Окна',
+      zone: 'Дополнительно',
+      kind: 'extra',
+      condition: PanelCondition.excellent,
+      status: PanelStatus.done,
+    ),
+    InspectionPanel(
+      id: 'documents',
+      name: 'Документы',
+      zone: 'Дополнительно',
+      kind: 'extra',
+      status: PanelStatus.none,
+    ),
+  ];
 
   @override
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
@@ -228,7 +246,11 @@ class MockInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds) async {
+  Future<InspectionPanel> uploadAudioNote(
+    String panelId,
+    String filePath,
+    int durationSeconds,
+  ) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     panel
       ..audioNoteSeconds = durationSeconds

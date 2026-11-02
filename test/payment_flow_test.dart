@@ -25,55 +25,65 @@ void main() {
   const executor = UserSummary(id: 10, name: 'Максим К.');
 
   Order inspection(OrderStatus status, {DateTime? deadline}) => Order(
-        id: 3001,
-        kind: OrderKind.inspection,
-        status: status,
+    id: 3001,
+    kind: OrderKind.inspection,
+    status: status,
+    brand: 'Hyundai',
+    model: 'Solaris',
+    yearFrom: 2018,
+    customer: customer,
+    executor: executor,
+    price: 3500,
+    askingPrice: 3500,
+    address: 'Москва, Профсоюзная ул., 56',
+    executorDeadlineAt: deadline,
+    payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,
+    reportSummary: status.isAwaitingPayment
+        ? const ReportSummary(
+            panelsTotal: 17,
+            panelsInspected: 17,
+            defectsCount: 2,
+            photosCount: 5,
+          )
+        : null,
+    cars: const [
+      OrderCar(
+        id: 901,
         brand: 'Hyundai',
         model: 'Solaris',
-        yearFrom: 2018,
-        customer: customer,
-        executor: executor,
-        price: 3500,
-        askingPrice: 3500,
-        address: 'Москва, Профсоюзная ул., 56',
-        executorDeadlineAt: deadline,
-        payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,
-        reportSummary: status.isAwaitingPayment
-            ? const ReportSummary(panelsTotal: 17, panelsInspected: 17, defectsCount: 2, photosCount: 5)
-            : null,
-        cars: const [
-          OrderCar(
-            id: 901,
-            brand: 'Hyundai',
-            model: 'Solaris',
-            year: 2018,
-            vinMasked: '—',
-            mileageKm: 96000,
-            inspectionId: 77,
-            inspectionStatus: 'completed',
-            verdict: InspectionVerdict.notRecommended,
-            verdictComment: 'Подвеска под замену',
-          ),
-        ],
-      );
+        year: 2018,
+        vinMasked: '—',
+        mileageKm: 96000,
+        inspectionId: 77,
+        inspectionStatus: 'completed',
+        verdict: InspectionVerdict.notRecommended,
+        verdictComment: 'Подвеска под замену',
+      ),
+    ],
+  );
 
-  OrderStore store(MockOrderRepository repo) =>
-      OrderStore(repo, catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+  OrderStore store(MockOrderRepository repo) => OrderStore(
+    repo,
+    catalog: MockCarCatalogRepository(),
+    cities: MockCityRepository(),
+  );
 
   /// Экран открыт поверх «домашнего», чтобы его закрытие было видно.
   Widget host(Widget Function() screen) => MaterialApp(
-        theme: AppTheme.dark,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen())),
-                child: const Text('открыть'),
-              ),
-            ),
+    theme: AppTheme.dark,
+    home: Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => screen())),
+            child: const Text('открыть'),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> open(WidgetTester tester, Widget Function() screen) async {
     await tester.pumpWidget(host(screen));
@@ -93,11 +103,30 @@ void main() {
         'customer': {'id': 1, 'name': 'Андрей'},
         'executor_deadline_at': '2026-10-29T10:00:00.000000Z',
         'payout': {'card': '2200700000000009', 'phone': null, 'bank': null},
-        'report_summary': {'panels_total': 13, 'panels_inspected': 9, 'defects_count': 4, 'photos_count': 12},
-        'dispute': {'opened_by': 1, 'reason': 'Оплатил', 'opened_at': '2026-10-29T10:00:00.000000Z'},
+        'report_summary': {
+          'panels_total': 13,
+          'panels_inspected': 9,
+          'defects_count': 4,
+          'photos_count': 12,
+        },
+        'dispute': {
+          'opened_by': 1,
+          'reason': 'Оплатил',
+          'opened_at': '2026-10-29T10:00:00.000000Z',
+        },
         'responses': [
-          {'id': 1, 'status': 'declined', 'proposed_price': 3000, 'executor': {'id': 5, 'name': 'Олег'}},
-          {'id': 2, 'status': 'expired', 'proposed_price': 3100, 'executor': {'id': 6, 'name': 'Игорь'}},
+          {
+            'id': 1,
+            'status': 'declined',
+            'proposed_price': 3000,
+            'executor': {'id': 5, 'name': 'Олег'},
+          },
+          {
+            'id': 2,
+            'status': 'expired',
+            'proposed_price': 3100,
+            'executor': {'id': 6, 'name': 'Игорь'},
+          },
         ],
       });
 
@@ -109,63 +138,110 @@ void main() {
       expect(order.reportSummary!.panelsInspected, 9);
       expect(order.dispute!.reason, 'Оплатил');
       expect(order.executorDeadlineAt, isNotNull);
-      expect(order.responses.map((r) => r.status.label), ['отказался', 'не успел']);
+      expect(order.responses.map((r) => r.status.label), [
+        'отказался',
+        'не успел',
+      ]);
       // без responses_count — считаем по списку
       expect(order.responsesCount, 2);
       expect(orderStatusFromApi('payment_sent'), OrderStatus.paymentSent);
       expect(orderStatusFromApi('disputed'), OrderStatus.disputed);
     });
 
-    test('responses_count важнее длины списка: исполнителю приходит только свой отклик', () {
-      final order = Order.fromJson({
-        'id': 2,
-        'status': 'awaiting_executor',
-        'brand': 'Kia',
-        'model': 'Rio',
-        'customer': {'id': 1, 'name': 'Андрей'},
-        'responses': [
-          {'id': 7, 'status': 'pending', 'proposed_price': 3000, 'executor': {'id': 5, 'name': 'Олег'}},
-        ],
-        'responses_count': 3,
-      });
+    test(
+      'responses_count важнее длины списка: исполнителю приходит только свой отклик',
+      () {
+        final order = Order.fromJson({
+          'id': 2,
+          'status': 'awaiting_executor',
+          'brand': 'Kia',
+          'model': 'Rio',
+          'customer': {'id': 1, 'name': 'Андрей'},
+          'responses': [
+            {
+              'id': 7,
+              'status': 'pending',
+              'proposed_price': 3000,
+              'executor': {'id': 5, 'name': 'Олег'},
+            },
+          ],
+          'responses_count': 3,
+        });
 
-      expect(order.responses, hasLength(1));
-      expect(order.responsesCount, 3);
-      // новый список без числа — счётчик снова по списку, а не устаревший
-      expect(order.copyWith(responses: const []).responsesCount, 0);
-    });
+        expect(order.responses, hasLength(1));
+        expect(order.responsesCount, 3);
+        // новый список без числа — счётчик снова по списку, а не устаревший
+        expect(order.copyWith(responses: const []).responsesCount, 0);
+      },
+    );
 
     test('таймер дедлайна', () {
       final now = DateTime(2026, 10, 28, 12);
-      expect(DeadlineCountdown.remainingLabel(now.add(const Duration(hours: 5, minutes: 12)), now), '5 ч 12 мин');
-      expect(DeadlineCountdown.remainingLabel(now.add(const Duration(minutes: 40)), now), '40 мин');
-      expect(DeadlineCountdown.remainingLabel(now.subtract(const Duration(minutes: 1)), now), isNull);
+      expect(
+        DeadlineCountdown.remainingLabel(
+          now.add(const Duration(hours: 5, minutes: 12)),
+          now,
+        ),
+        '5 ч 12 мин',
+      );
+      expect(
+        DeadlineCountdown.remainingLabel(
+          now.add(const Duration(minutes: 40)),
+          now,
+        ),
+        '40 мин',
+      );
+      expect(
+        DeadlineCountdown.remainingLabel(
+          now.subtract(const Duration(minutes: 1)),
+          now,
+        ),
+        isNull,
+      );
     });
   });
 
-  testWidgets('заказчик: отчёт готов — сумма, реквизиты, сводка без вердикта, «Я оплатил»', (tester) async {
-    final repo = MockOrderRepository(orders: [inspection(OrderStatus.reportReady)]);
-    await open(tester, () => InspectionOrderDetailScreen(store: store(repo), orderId: 3001));
+  testWidgets(
+    'заказчик: отчёт готов — сумма, реквизиты, сводка без вердикта, «Я оплатил»',
+    (tester) async {
+      final repo = MockOrderRepository(
+        orders: [inspection(OrderStatus.reportReady)],
+      );
+      await open(
+        tester,
+        () => InspectionOrderDetailScreen(store: store(repo), orderId: 3001),
+      );
 
-    expect(find.text('3 500 ₽'), findsWidgets);
-    expect(find.text('2200 7000 0000 0009'), findsOneWidget);
-    expect(find.textContaining('Осмотрено 17 из 17 пунктов'), findsOneWidget);
-    // вердикт до оплаты не показываем, даже если он пришёл
-    expect(find.text('Не рекомендую'), findsNothing);
+      expect(find.text('3 500 ₽'), findsWidgets);
+      expect(find.text('2200 7000 0000 0009'), findsOneWidget);
+      expect(find.textContaining('Осмотрено 17 из 17 пунктов'), findsOneWidget);
+      // вердикт до оплаты не показываем, даже если он пришёл
+      expect(find.text('Не рекомендую'), findsNothing);
 
-    await tester.tap(find.text('Я оплатил'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Да, я оплатил'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Я оплатил'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Да, я оплатил'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('ЖДЁМ ПОДТВЕРЖДЕНИЯ'), findsOneWidget);
-    expect(find.textContaining('Ждём, пока исполнитель подтвердит'), findsOneWidget);
-    expect((await repo.fetchOrder(3001)).status, OrderStatus.paymentSent);
-  });
+      expect(find.text('ЖДЁМ ПОДТВЕРЖДЕНИЯ'), findsOneWidget);
+      expect(
+        find.textContaining('Ждём, пока исполнитель подтвердит'),
+        findsOneWidget,
+      );
+      expect((await repo.fetchOrder(3001)).status, OrderStatus.paymentSent);
+    },
+  );
 
-  testWidgets('заказчик: спор, если исполнитель не подтверждает', (tester) async {
-    final repo = MockOrderRepository(orders: [inspection(OrderStatus.paymentSent)]);
-    await open(tester, () => InspectionOrderDetailScreen(store: store(repo), orderId: 3001));
+  testWidgets('заказчик: спор, если исполнитель не подтверждает', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [inspection(OrderStatus.paymentSent)],
+    );
+    await open(
+      tester,
+      () => InspectionOrderDetailScreen(store: store(repo), orderId: 3001),
+    );
 
     await tester.tap(find.text('Исполнитель не подтверждает — открыть спор'));
     await tester.pumpAndSettle();
@@ -174,7 +250,10 @@ void main() {
     // без причины спор не отправляется
     expect(tester.widget<ElevatedButton>(submit).onPressed, isNull);
 
-    await tester.enterText(find.byType(TextField), 'Перевёл вчера, подтверждения нет');
+    await tester.enterText(
+      find.byType(TextField),
+      'Перевёл вчера, подтверждения нет',
+    );
     await tester.pump();
     await tester.tap(submit);
     await tester.pumpAndSettle();
@@ -185,9 +264,16 @@ void main() {
     expect(find.text('Перевёл вчера, подтверждения нет'), findsOneWidget);
   });
 
-  testWidgets('исполнитель: «Оплату получил» открывает отчёт заказчику', (tester) async {
-    final repo = MockOrderRepository(orders: [inspection(OrderStatus.paymentSent)]);
-    await open(tester, () => AssignedInspectionScreen(store: store(repo), orderId: 3001));
+  testWidgets('исполнитель: «Оплату получил» открывает отчёт заказчику', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [inspection(OrderStatus.paymentSent)],
+    );
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
 
     expect(find.textContaining('Заказчик отметил оплату'), findsOneWidget);
     await tester.tap(find.text('Оплату получил'));
@@ -202,11 +288,21 @@ void main() {
     expect(order.payout, isNull);
   });
 
-  testWidgets('исполнитель: таймер и отказ возвращают заказ к откликам', (tester) async {
+  testWidgets('исполнитель: таймер и отказ возвращают заказ к откликам', (
+    tester,
+  ) async {
     final repo = MockOrderRepository(
-      orders: [inspection(OrderStatus.scheduled, deadline: DateTime.now().add(const Duration(hours: 20)))],
+      orders: [
+        inspection(
+          OrderStatus.scheduled,
+          deadline: DateTime.now().add(const Duration(hours: 20)),
+        ),
+      ],
     );
-    await open(tester, () => AssignedInspectionScreen(store: store(repo), orderId: 3001));
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
 
     expect(find.textContaining('Осталось'), findsOneWidget);
     await tester.tap(find.text('Отказаться от заказа'));
@@ -221,9 +317,16 @@ void main() {
     expect(order.executor, isNull);
   });
 
-  testWidgets('исполнитель: отчёт готов — ждём оплату, можно поправить', (tester) async {
-    final repo = MockOrderRepository(orders: [inspection(OrderStatus.reportReady)]);
-    await open(tester, () => AssignedInspectionScreen(store: store(repo), orderId: 3001));
+  testWidgets('исполнитель: отчёт готов — ждём оплату, можно поправить', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [inspection(OrderStatus.reportReady)],
+    );
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
 
     expect(find.textContaining('Ждём оплату от заказчика'), findsOneWidget);
     expect(find.text('Поправить отчёт'), findsOneWidget);

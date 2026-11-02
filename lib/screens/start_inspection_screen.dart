@@ -47,15 +47,27 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   Map<String, String> _errors = {};
 
   /// Поля, у которых экран умеет показать ошибку; прочие — строкой.
-  static const _fieldKeys = {'vin', 'brand', 'model', 'mileage_km', 'year', 'license_plate'};
+  static const _fieldKeys = {
+    'vin',
+    'brand',
+    'model',
+    'mileage_km',
+    'year',
+    'license_plate',
+  };
 
   @override
   void initState() {
     super.initState();
     // поправили поле — его ошибка уходит, остальные остаются
-    void clearOnEdit(TextEditingController c, List<String> keys) => c.addListener(() {
+    void clearOnEdit(TextEditingController c, List<String> keys) =>
+        c.addListener(() {
           if (keys.any(_errors.containsKey)) {
-            setState(() => _errors = {..._errors}..removeWhere((k, _) => keys.contains(k)));
+            setState(
+              () =>
+                  _errors = {..._errors}
+                    ..removeWhere((k, _) => keys.contains(k)),
+            );
           }
         });
     clearOnEdit(_vinController, ['vin']);
@@ -106,19 +118,29 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.photo_camera_outlined,
-                  color: context.colors.text2),
-              title: Text('Сфотографировать VIN',
-                  style: TextStyle(color: context.colors.text1)),
-              subtitle: Text('Наведите на табличку или стекло',
-                  style: TextStyle(color: context.colors.text3, fontSize: 11.5)),
+              leading: Icon(
+                Icons.photo_camera_outlined,
+                color: context.colors.text2,
+              ),
+              title: Text(
+                'Сфотографировать VIN',
+                style: TextStyle(color: context.colors.text1),
+              ),
+              subtitle: Text(
+                'Наведите на табличку или стекло',
+                style: TextStyle(color: context.colors.text3, fontSize: 11.5),
+              ),
               onTap: () => Navigator.of(context).pop(true),
             ),
             ListTile(
-              leading: Icon(Icons.keyboard_alt_outlined,
-                  color: context.colors.text2),
-              title: Text('Ввести вручную',
-                  style: TextStyle(color: context.colors.text1)),
+              leading: Icon(
+                Icons.keyboard_alt_outlined,
+                color: context.colors.text2,
+              ),
+              title: Text(
+                'Ввести вручную',
+                style: TextStyle(color: context.colors.text1),
+              ),
               onTap: () => Navigator.of(context).pop(false),
             ),
             const SizedBox(height: 8),
@@ -145,7 +167,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     setState(() => _scanning = true);
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
-      final result = await recognizer.processImage(InputImage.fromFilePath(shot.path));
+      final result = await recognizer.processImage(
+        InputImage.fromFilePath(shot.path),
+      );
       final vin = _extractVin(result.text);
       if (!mounted) return;
       if (vin == null) {
@@ -159,7 +183,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось распознать VIN — введите вручную')),
+          SnackBar(
+            content: Text('Не удалось распознать VIN — введите вручную'),
+          ),
         );
       }
     } finally {
@@ -205,7 +231,10 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
               inputFormatters: const [VinFormatter()],
             ),
             const SizedBox(height: 6),
-            CtaPrimary(label: 'Готово', onPressed: () => Navigator.of(context).pop()),
+            CtaPrimary(
+              label: 'Готово',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ],
         ),
       ),
@@ -222,7 +251,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     // все ошибки разом — исполнитель видит сразу всё, что не заполнено
     final errors = <String, String>{
       if (vin.length != 17) 'vin': 'VIN — 17 символов',
-      if (_brandController.text.trim().isEmpty || _modelController.text.trim().isEmpty)
+      if (_brandController.text.trim().isEmpty ||
+          _modelController.text.trim().isEmpty)
         'brand': 'Выберите марку и модель',
       if (mileage == null) 'mileage_km': 'Укажите пробег',
       if (year == null)
@@ -247,7 +277,11 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         mileageKm: mileage!,
       );
       // другие типы пока не реализованы: набор пунктов у осмотра один
-      await widget.repository.startInspection(widget.order.id, car.id, type: InspectionType.full);
+      await widget.repository.startInspection(
+        widget.order.id,
+        car.id,
+        type: InspectionType.full,
+      );
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
       // 422 по полям (VIN уже занят и т. п.) — к своим полям, остальное строкой
@@ -265,7 +299,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось начать осмотр: ${apiErrorText(e)}')),
+          SnackBar(
+            content: Text('Не удалось начать осмотр: ${apiErrorText(e)}'),
+          ),
         );
       }
     } finally {
@@ -290,11 +326,16 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 18),
                 children: [
-                  SectionHead('VIN', extra: vin.length == 17 ? 'распознан' : 'нужен ввод'),
+                  SectionHead(
+                    'VIN',
+                    extra: vin.length == 17 ? 'распознан' : 'нужен ввод',
+                  ),
                   VinScanner(
                     vin: _scanning
                         ? 'распознаём…'
-                        : (vin.isEmpty ? 'нажмите, чтобы снять или ввести' : vin),
+                        : (vin.isEmpty
+                              ? 'нажмите, чтобы снять или ввести'
+                              : vin),
                     onTap: _scanning ? null : _vinTapped,
                     error: _errors.containsKey('vin'),
                   ),
@@ -304,7 +345,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                   const SectionHead('Данные', extra: 'из заказа'),
                   FieldBox(
                     label: 'Марка и модель',
-                    value: '${_brandController.text} ${_modelController.text}'.trim(),
+                    value: '${_brandController.text} ${_modelController.text}'
+                        .trim(),
                     trailing: Icon(
                       Icons.keyboard_arrow_down,
                       size: 15,

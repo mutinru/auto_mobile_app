@@ -86,13 +86,17 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
     super.dispose();
   }
 
-  String get _phoneDigits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
+  String get _phoneDigits =>
+      _phoneController.text.replaceAll(RegExp(r'\D'), '');
 
   /// Полный номер и не текущий — иначе сервер всё равно ответит 422.
-  bool get _canRequest => _phoneDigits.length == 10 && '+7$_phoneDigits' != widget.currentPhone;
+  bool get _canRequest =>
+      _phoneDigits.length == 10 && '+7$_phoneDigits' != widget.currentPhone;
 
   Duration? get _cooldownLeft =>
-      _resendLeft > 0 && _cooldownPhone == _phoneDigits ? Duration(seconds: _resendLeft) : null;
+      _resendLeft > 0 && _cooldownPhone == _phoneDigits
+      ? Duration(seconds: _resendLeft)
+      : null;
 
   void _startCooldown(int seconds) {
     if (seconds <= 0) return;
@@ -198,17 +202,29 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
             current == null
                 ? 'По нему вы будете входить в приложение'
                 : 'Сейчас — ${formatPhone(current)}. После смены входите по новому номеру, '
-                    'на других устройствах войдите заново',
-            style: TextStyle(fontSize: 12, color: context.colors.text2, height: 1.4),
+                      'на других устройствах войдите заново',
+            style: TextStyle(
+              fontSize: 12,
+              color: context.colors.text2,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 14),
-          PhoneField(controller: _phoneController, enabled: !_codeSent, autofocus: true),
+          PhoneField(
+            controller: _phoneController,
+            enabled: !_codeSent,
+            autofocus: true,
+          ),
           const SizedBox(height: 8),
           Text(
             _codeSent
                 ? 'Отправили код на +7 ${_phoneController.text}. ${codeChannelHint(_channel)}'
                 : codeChannelHint(null),
-            style: TextStyle(fontSize: 12, color: context.colors.text2, height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: context.colors.text2,
+              height: 1.4,
+            ),
           ),
           if (_codeSent) ...[
             const SizedBox(height: 12),
@@ -233,8 +249,8 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
             label: _codeSent
                 ? 'Сменить номер'
                 : cooldown == null
-                    ? 'Получить код'
-                    : 'Получить код через ${formatCountdown(cooldown)}',
+                ? 'Получить код'
+                : 'Получить код через ${formatCountdown(cooldown)}',
             loading: _busy,
             onPressed: _codeSent
                 ? (_codeController.text.length == 4 ? _confirm : null)
@@ -252,10 +268,10 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
               onPressed: _busy
                   ? null
                   : () => setState(() {
-                        _codeSent = false;
-                        _error = null;
-                        _codeController.clear();
-                      }),
+                      _codeSent = false;
+                      _error = null;
+                      _codeController.clear();
+                    }),
             ),
           ],
         ],

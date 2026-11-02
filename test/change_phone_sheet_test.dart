@@ -38,7 +38,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ElevatedButton primary(WidgetTester tester) => tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+  ElevatedButton primary(WidgetTester tester) =>
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton));
 
   Future<void> enterPhone(WidgetTester tester, String digits) async {
     await tester.enterText(find.byType(TextField).first, digits);
@@ -46,14 +47,24 @@ void main() {
   }
 
   test('профиль читает phone, номер форматируется', () {
-    final user = CurrentUser.fromJson({'id': 1, 'name': 'А', 'email': 'x', 'phone': '+79001234567'});
+    final user = CurrentUser.fromJson({
+      'id': 1,
+      'name': 'А',
+      'email': 'x',
+      'phone': '+79001234567',
+    });
     expect(user.phone, '+79001234567');
-    expect(CurrentUser.fromJson({'id': 1, 'name': 'А', 'email': 'x'}).phone, isNull);
+    expect(
+      CurrentUser.fromJson({'id': 1, 'name': 'А', 'email': 'x'}).phone,
+      isNull,
+    );
     expect(formatPhone('+79001234567'), '+7 900 123 45 67');
     expect(formatPhone('+44123'), '+44123');
   });
 
-  testWidgets('кнопка неактивна для неполного и текущего номера', (tester) async {
+  testWidgets('кнопка неактивна для неполного и текущего номера', (
+    tester,
+  ) async {
     await openSheet(tester);
 
     expect(find.textContaining('+7 900 000 00 02'), findsOneWidget);
@@ -69,44 +80,54 @@ void main() {
     expect(primary(tester).onPressed, isNotNull);
   });
 
-  testWidgets('код ушёл — подсказка канала, dev_code подставлен, номер сменён', (tester) async {
-    String? requested;
-    String? confirmedPhone;
-    String? confirmedCode;
-    await openSheet(
-      tester,
-      onRequest: (phone) async {
-        requested = phone;
-        return const PhoneCodeSent(devCode: '4321', resendIn: 120, channel: CodeChannel.sms);
-      },
-      onConfirm: (phone, code) async {
-        confirmedPhone = phone;
-        confirmedCode = code;
-      },
-    );
+  testWidgets(
+    'код ушёл — подсказка канала, dev_code подставлен, номер сменён',
+    (tester) async {
+      String? requested;
+      String? confirmedPhone;
+      String? confirmedCode;
+      await openSheet(
+        tester,
+        onRequest: (phone) async {
+          requested = phone;
+          return const PhoneCodeSent(
+            devCode: '4321',
+            resendIn: 120,
+            channel: CodeChannel.sms,
+          );
+        },
+        onConfirm: (phone, code) async {
+          confirmedPhone = phone;
+          confirmedCode = code;
+        },
+      );
 
-    await enterPhone(tester, '9000000021');
-    await tester.tap(find.text('Получить код'));
-    await tester.pump();
+      await enterPhone(tester, '9000000021');
+      await tester.tap(find.text('Получить код'));
+      await tester.pump();
 
-    expect(requested, '900 000 00 21');
-    expect(find.textContaining('Код придёт в SMS'), findsOneWidget);
-    expect(find.text('Запросить код снова через 2:00'), findsOneWidget);
-    expect(find.text('4321'), findsOneWidget);
+      expect(requested, '900 000 00 21');
+      expect(find.textContaining('Код придёт в SMS'), findsOneWidget);
+      expect(find.text('Запросить код снова через 2:00'), findsOneWidget);
+      expect(find.text('4321'), findsOneWidget);
 
-    await tester.tap(find.text('Сменить номер'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Сменить номер'));
+      await tester.pumpAndSettle();
 
-    expect(confirmedPhone, '900 000 00 21');
-    expect(confirmedCode, '4321');
-    expect(find.text('Новый номер'), findsNothing);
-    expect(find.text('Номер изменён'), findsOneWidget);
-  });
+      expect(confirmedPhone, '900 000 00 21');
+      expect(confirmedCode, '4321');
+      expect(find.text('Новый номер'), findsNothing);
+      expect(find.text('Номер изменён'), findsOneWidget);
+    },
+  );
 
   testWidgets('429 с retry_after запускает отсчёт', (tester) async {
     await openSheet(
       tester,
-      onRequest: (_) async => throw ApiException(429, '{"message":"Новый код можно запросить через 90 с.","retry_after":90}'),
+      onRequest: (_) async => throw ApiException(
+        429,
+        '{"message":"Новый код можно запросить через 90 с.","retry_after":90}',
+      ),
     );
 
     await enterPhone(tester, '9000000021');
@@ -122,8 +143,10 @@ void main() {
     await openSheet(
       tester,
       onRequest: (_) async => const PhoneCodeSent(devCode: '1234'),
-      onConfirm: (_, _) async =>
-          throw ApiException(422, '{"message":"x","errors":{"phone":["Номер уже привязан к другому аккаунту."]}}'),
+      onConfirm: (_, _) async => throw ApiException(
+        422,
+        '{"message":"x","errors":{"phone":["Номер уже привязан к другому аккаунту."]}}',
+      ),
     );
 
     await enterPhone(tester, '9000000021');

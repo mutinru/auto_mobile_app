@@ -19,11 +19,11 @@ class CarMake {
   final bool popular;
 
   factory CarMake.fromJson(Map<String, dynamic> json) => CarMake(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        nameRu: json['name_ru'] as String? ?? '',
-        popular: json['popular'] as bool? ?? false,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    nameRu: json['name_ru'] as String? ?? '',
+    popular: json['popular'] as bool? ?? false,
+  );
 
   bool matches(String query) => catalogMatches(query, name, nameRu);
 }
@@ -44,12 +44,12 @@ class CarModel {
   final int? yearTo;
 
   factory CarModel.fromJson(Map<String, dynamic> json) => CarModel(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        nameRu: json['name_ru'] as String? ?? '',
-        yearFrom: json['year_from'] as int?,
-        yearTo: json['year_to'] as int?,
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    nameRu: json['name_ru'] as String? ?? '',
+    yearFrom: json['year_from'] as int?,
+    yearTo: json['year_to'] as int?,
+  );
 
   /// «2015–2026», «2024» или null, если годы неизвестны.
   String? get years {
@@ -66,7 +66,8 @@ class CarModel {
 bool catalogMatches(String query, String name, String nameRu) {
   final q = normalizeSearch(query.trim());
   if (q.isEmpty) return true;
-  return normalizeSearch(name).contains(q) || normalizeSearch(nameRu).contains(q);
+  return normalizeSearch(name).contains(q) ||
+      normalizeSearch(nameRu).contains(q);
 }
 
 /// Нижний регистр и «ё» → «е» — общая нормализация поиска по справочникам.
@@ -83,12 +84,12 @@ class ListingGuess {
   final int? year;
 
   factory ListingGuess.fromJson(Map<String, dynamic> json) => ListingGuess(
-        make: CarMake.fromJson(json['make'] as Map<String, dynamic>),
-        model: json['model'] == null
-            ? null
-            : CarModel.fromJson(json['model'] as Map<String, dynamic>),
-        year: json['year'] as int?,
-      );
+    make: CarMake.fromJson(json['make'] as Map<String, dynamic>),
+    model: json['model'] == null
+        ? null
+        : CarModel.fromJson(json['model'] as Map<String, dynamic>),
+    year: json['year'] as int?,
+  );
 
   /// «Toyota Camry, 2019» / «Toyota».
   String get label {

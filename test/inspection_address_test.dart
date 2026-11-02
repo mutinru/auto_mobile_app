@@ -16,42 +16,53 @@ void main() {
     late TextEditingController controller;
     late List<AddressPoint?> points;
 
-    Future<void> pump(WidgetTester tester, {AddressRepository? addresses}) async {
+    Future<void> pump(
+      WidgetTester tester, {
+      AddressRepository? addresses,
+    }) async {
       controller = TextEditingController();
       points = [];
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: Scaffold(
-          body: AddressField(
-            controller: controller,
-            addresses: addresses,
-            cityId: 'khimki',
-            onPoint: points.add,
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: AddressField(
+              controller: controller,
+              addresses: addresses,
+              cityId: 'khimki',
+              onPoint: points.add,
+            ),
           ),
         ),
-      ));
+      );
     }
 
-    testWidgets('подсказка: выбор ставит адрес и точку, правка точку сбрасывает', (tester) async {
-      await pump(tester, addresses: MockAddressRepository());
+    testWidgets(
+      'подсказка: выбор ставит адрес и точку, правка точку сбрасывает',
+      (tester) async {
+        await pump(tester, addresses: MockAddressRepository());
 
-      await tester.enterText(find.byType(TextField), 'лен');
-      await tester.pump(const Duration(milliseconds: 450));
-      await tester.pumpAndSettle();
-      expect(find.text('ул Ленина, д 5'), findsOneWidget);
-      expect(find.text('ул Ленинградская, д 12'), findsOneWidget);
+        await tester.enterText(find.byType(TextField), 'лен');
+        await tester.pump(const Duration(milliseconds: 450));
+        await tester.pumpAndSettle();
+        expect(find.text('ул Ленина, д 5'), findsOneWidget);
+        expect(find.text('ул Ленинградская, д 12'), findsOneWidget);
 
-      await tester.tap(find.text('ул Ленина, д 5'));
-      await tester.pumpAndSettle();
-      expect(controller.text, 'ул Ленина, д 5');
-      expect(points.single?.precision, 0);
-      // список закрылся
-      expect(find.text('ул Ленинградская, д 12'), findsNothing);
+        await tester.tap(find.text('ул Ленина, д 5'));
+        await tester.pumpAndSettle();
+        expect(controller.text, 'ул Ленина, д 5');
+        expect(points.single?.precision, 0);
+        // список закрылся
+        expect(find.text('ул Ленинградская, д 12'), findsNothing);
 
-      await tester.enterText(find.byType(TextField), 'ул Ленина, д 5, подъезд 2');
-      await tester.pump();
-      expect(points.last, isNull);
-    });
+        await tester.enterText(
+          find.byType(TextField),
+          'ул Ленина, д 5, подъезд 2',
+        );
+        await tester.pump();
+        expect(points.last, isNull);
+      },
+    );
 
     testWidgets('короче трёх букв — без подсказок', (tester) async {
       await pump(tester, addresses: MockAddressRepository());
@@ -73,17 +84,21 @@ void main() {
     });
   });
 
-  testWidgets('город осмотра выбирается одним тапом, без «Вся Россия»', (tester) async {
+  testWidgets('город осмотра выбирается одним тапом, без «Вся Россия»', (
+    tester,
+  ) async {
     final store = OrderStore(
       MockOrderRepository(),
       catalog: MockCarCatalogRepository(),
       cities: MockCityRepository(),
       addresses: MockAddressRepository(),
     );
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: NewInspectionScreen(store: store),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NewInspectionScreen(store: store),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // поле ниже первого экрана, а ListView строит его только при прокрутке

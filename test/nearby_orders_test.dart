@@ -13,7 +13,11 @@ void main() {
   Widget app({int passed = 0, bool required = true}) => MaterialApp(
     theme: AppTheme.dark,
     home: NearbyOrdersScreen(
-      store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
+      store: OrderStore(
+        MockOrderRepository(),
+        catalog: MockCarCatalogRepository(),
+        cities: MockCityRepository(),
+      ),
       verification: MockVerificationRepository(
         passed: passed,
         required: required,
@@ -76,33 +80,45 @@ void main() {
     expect(respondButton(tester).onPressed, isNotNull);
   });
 
-  test('мок отдаёт исполнителю только свой отклик, остальные — числом', () async {
-    final repo = MockOrderRepository();
-    final tiguan = (await repo.fetchAvailableOrders())
-        .firstWhere((o) => o.brand == 'Volkswagen');
-    expect(tiguan.responses, isEmpty);
-    expect(tiguan.responsesCount, 1);
+  test(
+    'мок отдаёт исполнителю только свой отклик, остальные — числом',
+    () async {
+      final repo = MockOrderRepository();
+      final tiguan = (await repo.fetchAvailableOrders()).firstWhere(
+        (o) => o.brand == 'Volkswagen',
+      );
+      expect(tiguan.responses, isEmpty);
+      expect(tiguan.responsesCount, 1);
 
-    final after = await repo.respondToOrder(tiguan.id, proposedPrice: 9000);
-    expect(after.responses.map((r) => r.proposedPrice), [9000]);
-    expect(after.responsesCount, 2);
-  });
+      final after = await repo.respondToOrder(tiguan.id, proposedPrice: 9000);
+      expect(after.responses.map((r) => r.proposedPrice), [9000]);
+      expect(after.responsesCount, 2);
+    },
+  );
 
   testWidgets('после отклика заказ остаётся в ленте с погашенной кнопкой', (
     tester,
   ) async {
-    final store = OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: NearbyOrdersScreen(
-        store: store,
-        verification: MockVerificationRepository(passed: 0, required: false),
+    final store = OrderStore(
+      MockOrderRepository(),
+      catalog: MockCarCatalogRepository(),
+      cities: MockCityRepository(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NearbyOrdersScreen(
+          store: store,
+          verification: MockVerificationRepository(passed: 0, required: false),
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     expect(find.text('Вы откликнулись'), findsNothing);
 
-    final tiguan = store.availableOrders.firstWhere((o) => o.brand == 'Volkswagen');
+    final tiguan = store.availableOrders.firstWhere(
+      (o) => o.brand == 'Volkswagen',
+    );
     await store.respondToOrder(tiguan.id, proposedPrice: 9000);
     await tester.pumpAndSettle();
 
@@ -110,10 +126,12 @@ void main() {
     expect(find.text('Ваш отклик'), findsOneWidget);
     expect(find.text('9 000 ₽'), findsOneWidget);
     expect(find.textContaining('2 отклика'), findsOneWidget);
-    final button = tester.widget<ElevatedButton>(find.ancestor(
-      of: find.text('Вы откликнулись'),
-      matching: find.byType(ElevatedButton),
-    ));
+    final button = tester.widget<ElevatedButton>(
+      find.ancestor(
+        of: find.text('Вы откликнулись'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
     expect(button.onPressed, isNull);
   });
 

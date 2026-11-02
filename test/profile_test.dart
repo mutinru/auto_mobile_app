@@ -21,11 +21,19 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  Widget app({required bool required, CurrentUser? user, Future<void> Function()? onLogout}) => MaterialApp(
+  Widget app({
+    required bool required,
+    CurrentUser? user,
+    Future<void> Function()? onLogout,
+  }) => MaterialApp(
     theme: AppTheme.dark,
     home: ProfileScreen(
       auth: user == null ? AuthService() : (AuthService()..debugSetUser(user)),
-      store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
+      store: OrderStore(
+        MockOrderRepository(),
+        catalog: MockCarCatalogRepository(),
+        cities: MockCityRepository(),
+      ),
       verification: MockVerificationRepository(required: required),
       onMyOrders: () {},
       onNearbyOrders: () {},
@@ -38,7 +46,9 @@ void main() {
   ) async {
     tallScreen(tester);
     var loggedOut = 0;
-    await tester.pumpWidget(app(required: false, onLogout: () async => loggedOut++));
+    await tester.pumpWidget(
+      app(required: false, onLogout: () async => loggedOut++),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Выйти'));
@@ -101,8 +111,10 @@ void main() {
 
     expect(find.text('4.8'), findsOneWidget);
     expect(find.text('рейтинг'), findsOneWidget);
-    expect(find.text('★ 4.8 · 12 отзывов · 30 заказов', findRichText: true),
-        findsOneWidget);
+    expect(
+      find.text('★ 4.8 · 12 отзывов · 30 заказов', findRichText: true),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(ExecutorStats));
     await tester.pumpAndSettle();
@@ -129,7 +141,12 @@ void main() {
     await tester.pumpWidget(
       app(
         required: false,
-        user: const CurrentUser(id: 15, name: 'Олег К.', email: 'x', phone: '+79000000002'),
+        user: const CurrentUser(
+          id: 15,
+          name: 'Олег К.',
+          email: 'x',
+          phone: '+79000000002',
+        ),
       ),
     );
     await tester.pumpAndSettle();

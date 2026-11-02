@@ -191,7 +191,9 @@ class _AudioNoteEditorState extends State<AudioNoteEditor> {
     try {
       if (!await recorder.hasPermission()) {
         if (mounted) {
-          _snack('Нет доступа к микрофону — разрешите его в настройках телефона');
+          _snack(
+            'Нет доступа к микрофону — разрешите его в настройках телефона',
+          );
         }
         return;
       }

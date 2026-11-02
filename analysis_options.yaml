@@ -26,3 +26,8 @@ linter:
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
+
+# Запятая в конце держит аргументы в столбик (как до Dart 3.7) — меньше
+# склеенных вызовов и разнобоя с ручной вёрсткой.
+formatter:
+  trailing_commas: preserve

@@ -19,15 +19,18 @@ void main() {
   }
 
   Future<InspectionStore> loadedStore({bool readOnly = false}) async {
-    final store = InspectionStore(MockInspectionRepository(), readOnly: readOnly);
+    final store = InspectionStore(
+      MockInspectionRepository(),
+      readOnly: readOnly,
+    );
     await store.load();
     return store;
   }
 
   Widget panelApp(InspectionStore store) => MaterialApp(
-        theme: AppTheme.dark,
-        home: PanelDetailScreen(store: store, panelId: 'hood'),
-      );
+    theme: AppTheme.dark,
+    home: PanelDetailScreen(store: store, panelId: 'hood'),
+  );
 
   testWidgets('без заметки — «нет записи» и кнопка «Записать»', (tester) async {
     tallScreen(tester);
@@ -38,7 +41,9 @@ void main() {
     expect(find.text('Удалить'), findsNothing);
   });
 
-  testWidgets('заметка с сервера: плеер, перезапись и удаление', (tester) async {
+  testWidgets('заметка с сервера: плеер, перезапись и удаление', (
+    tester,
+  ) async {
     tallScreen(tester);
     final store = await loadedStore();
     await store.uploadAudioNote('hood', '/tmp/note.m4a', 18);
@@ -61,7 +66,9 @@ void main() {
     expect(find.text('Записать'), findsOneWidget);
   });
 
-  testWidgets('только просмотр — слушать можно, править нельзя', (tester) async {
+  testWidgets('только просмотр — слушать можно, править нельзя', (
+    tester,
+  ) async {
     tallScreen(tester);
     final store = await loadedStore(readOnly: true);
     await store.uploadAudioNote('hood', '/tmp/note.m4a', 7);
@@ -73,15 +80,19 @@ void main() {
     expect(find.text('Удалить'), findsNothing);
   });
 
-  testWidgets('отчёт: секция заметки только у детали с записью', (tester) async {
+  testWidgets('отчёт: секция заметки только у детали с записью', (
+    tester,
+  ) async {
     tallScreen(tester);
     final store = await loadedStore(readOnly: true);
     await store.uploadAudioNote('hood', '/tmp/note.m4a', 18);
     final order = await MockOrderRepository().fetchOrder(2047);
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: InspectionReportScreen(store: store, order: order),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: InspectionReportScreen(store: store, order: order),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Капот').first);

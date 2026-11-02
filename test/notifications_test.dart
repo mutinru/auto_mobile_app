@@ -75,7 +75,10 @@ void main() {
       expect(n.isRead, isFalse);
       expect(n.opensOrder, isTrue);
 
-      expect(notificationTypeFromApi('from_the_future'), NotificationType.unknown);
+      expect(
+        notificationTypeFromApi('from_the_future'),
+        NotificationType.unknown,
+      );
     });
 
     test('без viewer_role роль берётся из типа', () {
@@ -92,7 +95,10 @@ void main() {
     });
 
     test('отклонённый отклик заказ не открывает', () {
-      expect(note('a', type: NotificationType.responseRejected).opensOrder, isFalse);
+      expect(
+        note('a', type: NotificationType.responseRejected).opensOrder,
+        isFalse,
+      );
       expect(note('b', orderId: null).opensOrder, isFalse);
     });
   });
@@ -130,75 +136,109 @@ void main() {
       // dispose — в конце теста: таймер опроса переживёт addTearDown
       unread = NotificationUnread(auth, repo)..start();
       await unread.refresh();
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        builder: (_, child) => NotificationScope(
-          auth: auth,
-          repository: () => repo,
-          unread: unread,
-          child: child!,
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          builder: (_, child) => NotificationScope(
+            auth: auth,
+            repository: () => repo,
+            unread: unread,
+            child: child!,
+          ),
+          home: home,
         ),
-        home: home,
-      ));
+      );
       await tester.pumpAndSettle();
     }
 
-    Future<void> pumpFeed(WidgetTester tester) => pump(
-      tester,
-      Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: NotificationBell(
-              onTap: () => openNotifications(context, store: orders()),
+    Future<void> pumpFeed(WidgetTester tester) =>
+        pump(
+          tester,
+          Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: NotificationBell(
+                  onTap: () => openNotifications(context, store: orders()),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    ).then((_) async {
-      await tester.tap(find.byType(NotificationBell));
-      await tester.pumpAndSettle();
-    });
+        ).then((_) async {
+          await tester.tap(find.byType(NotificationBell));
+          await tester.pumpAndSettle();
+        });
 
-    testWidgets('колокольчик в «Моих заказах» с числом непрочитанных', (tester) async {
-      repo = MockNotificationRepository(items: [note('a'), note('b'), note('c', read: true)]);
+    testWidgets('колокольчик в «Моих заказах» с числом непрочитанных', (
+      tester,
+    ) async {
+      repo = MockNotificationRepository(
+        items: [note('a'), note('b'), note('c', read: true)],
+      );
       await pump(tester, MyOrdersScreen(store: orders(), onProfile: () {}));
 
       expect(
-        find.descendant(of: find.byType(NotificationBell), matching: find.widgetWithText(UnreadBadge, '2')),
+        find.descendant(
+          of: find.byType(NotificationBell),
+          matching: find.widgetWithText(UnreadBadge, '2'),
+        ),
         findsOneWidget,
       );
       unread.dispose();
     });
 
-    testWidgets('лента: дни, точка непрочитанного, «Прочитать все» гасит бейдж', (tester) async {
-      repo = MockNotificationRepository(items: [
-        note('a', title: 'Отчёт готов'),
-        note('b', title: 'Новый отзыв', read: true, at: now.subtract(const Duration(days: 1))),
-      ]);
-      await pumpFeed(tester);
+    testWidgets(
+      'лента: дни, точка непрочитанного, «Прочитать все» гасит бейдж',
+      (tester) async {
+        repo = MockNotificationRepository(
+          items: [
+            note('a', title: 'Отчёт готов'),
+            note(
+              'b',
+              title: 'Новый отзыв',
+              read: true,
+              at: now.subtract(const Duration(days: 1)),
+            ),
+          ],
+        );
+        await pumpFeed(tester);
 
-      expect(find.byType(NotificationsScreen), findsOneWidget);
-      expect(find.text('СЕГОДНЯ'), findsOneWidget);
-      expect(find.text('ВЧЕРА'), findsOneWidget);
-      expect(find.text('Отчёт готов'), findsOneWidget);
-      expect(find.byKey(const ValueKey('unread-dot')), findsOneWidget);
-      expect(find.text('1 НОВОЕ'), findsOneWidget);
+        expect(find.byType(NotificationsScreen), findsOneWidget);
+        expect(find.text('СЕГОДНЯ'), findsOneWidget);
+        expect(find.text('ВЧЕРА'), findsOneWidget);
+        expect(find.text('Отчёт готов'), findsOneWidget);
+        expect(find.byKey(const ValueKey('unread-dot')), findsOneWidget);
+        expect(find.text('1 НОВОЕ'), findsOneWidget);
 
-      await tester.tap(find.text('Прочитать все'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('unread-dot')), findsNothing);
-      expect(find.text('Прочитать все'), findsNothing);
-      expect(unread.count, 0);
-      unread.dispose();
-    });
+        await tester.tap(find.text('Прочитать все'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('unread-dot')), findsNothing);
+        expect(find.text('Прочитать все'), findsNothing);
+        expect(unread.count, 0);
+        unread.dispose();
+      },
+    );
 
-    testWidgets('тап отмечает прочитанным и открывает экран по роли и виду', (tester) async {
-      repo = MockNotificationRepository(items: [
-        note('customer-inspection', title: 'Отчёт готов', orderId: inspectionOrderId, kind: OrderKind.inspection),
-        note('executor-inspection',
-            title: 'Вас выбрали', orderId: inspectionOrderId, kind: OrderKind.inspection, customer: false),
-        note('customer-selection', title: 'Новый отклик'),
-      ]);
+    testWidgets('тап отмечает прочитанным и открывает экран по роли и виду', (
+      tester,
+    ) async {
+      repo = MockNotificationRepository(
+        items: [
+          note(
+            'customer-inspection',
+            title: 'Отчёт готов',
+            orderId: inspectionOrderId,
+            kind: OrderKind.inspection,
+          ),
+          note(
+            'executor-inspection',
+            title: 'Вас выбрали',
+            orderId: inspectionOrderId,
+            kind: OrderKind.inspection,
+            customer: false,
+          ),
+          note('customer-selection', title: 'Новый отклик'),
+        ],
+      );
       await pumpFeed(tester);
 
       Future<void> openAndBack(String title, Type screen) async {
@@ -213,16 +253,29 @@ void main() {
       await openAndBack('Вас выбрали', AssignedInspectionScreen);
       await openAndBack('Новый отклик', OrderDetailScreen);
 
-      expect(repo.readCalls, ['customer-inspection', 'executor-inspection', 'customer-selection']);
+      expect(repo.readCalls, [
+        'customer-inspection',
+        'executor-inspection',
+        'customer-selection',
+      ]);
       expect(find.byKey(const ValueKey('unread-dot')), findsNothing);
       expect(unread.count, 0);
       unread.dispose();
     });
 
-    testWidgets('отклонённый отклик только читается, заказ не открывается', (tester) async {
-      repo = MockNotificationRepository(items: [
-        note('a', type: NotificationType.responseRejected, title: 'Отклик не принят', customer: false),
-      ]);
+    testWidgets('отклонённый отклик только читается, заказ не открывается', (
+      tester,
+    ) async {
+      repo = MockNotificationRepository(
+        items: [
+          note(
+            'a',
+            type: NotificationType.responseRejected,
+            title: 'Отклик не принят',
+            customer: false,
+          ),
+        ],
+      );
       await pumpFeed(tester);
 
       await tester.tap(find.text('Отклик не принят'));
@@ -238,7 +291,12 @@ void main() {
         pageSize: 5,
         items: [
           for (var i = 0; i < 8; i++)
-            note('n$i', title: 'Уведомление $i', read: true, at: now.subtract(Duration(minutes: i))),
+            note(
+              'n$i',
+              title: 'Уведомление $i',
+              read: true,
+              at: now.subtract(Duration(minutes: i)),
+            ),
         ],
       );
       await pumpFeed(tester);
@@ -251,7 +309,9 @@ void main() {
     });
 
     testWidgets('ошибка загрузки — текст и «Повторить»', (tester) async {
-      repo = MockNotificationRepository(items: [note('a', title: 'Отчёт готов')])..failPage = true;
+      repo = MockNotificationRepository(
+        items: [note('a', title: 'Отчёт готов')],
+      )..failPage = true;
       await pumpFeed(tester);
       expect(find.text('Не удалось загрузить уведомления'), findsOneWidget);
 

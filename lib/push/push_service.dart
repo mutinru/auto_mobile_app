@@ -71,9 +71,11 @@ class PushService {
     _subscriptions
       ..add(_messaging.onForeground.listen(_onForeground))
       ..add(_messaging.onTap.listen(_onTap))
-      ..add(_messaging.onTokenRefresh.listen((token) {
-        if (_auth.isAuthenticated) _register(token);
-      }));
+      ..add(
+        _messaging.onTokenRefresh.listen((token) {
+          if (_auth.isAuthenticated) _register(token);
+        }),
+      );
     _auth.addListener(_onAuthChanged);
 
     try {

@@ -20,16 +20,18 @@ void main() {
   });
 
   Future<void> openForm(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: NewOrderScreen(
-        store: OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NewOrderScreen(
+          store: OrderStore(
+            MockOrderRepository(),
+            catalog: MockCarCatalogRepository(),
+            cities: MockCityRepository(),
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
@@ -55,7 +57,8 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), '120.000 км');
     await tester.pump();
 
-    TextField field(int i) => tester.widget<TextField>(find.byType(TextField).at(i));
+    TextField field(int i) =>
+        tester.widget<TextField>(find.byType(TextField).at(i));
     expect(field(0).controller!.text, '2018');
     expect(field(1).controller!.text, '120000');
   });

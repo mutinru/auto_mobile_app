@@ -8,8 +8,11 @@ import 'chat_repository.dart';
 /// Чат в памяти для виджет-тестов. Своя фикстура — с MockOrderRepository
 /// не пересекается. Ответ оператора тест имитирует через [simulateReply].
 class MockChatRepository implements ChatRepository {
-  MockChatRepository({List<ChatMessage>? messages, this.failOpen = false, this.supportUnread = 0})
-      : _messages = [...?messages];
+  MockChatRepository({
+    List<ChatMessage>? messages,
+    this.failOpen = false,
+    this.supportUnread = 0,
+  }) : _messages = [...?messages];
 
   /// Что вернёт [fetchSupportUnread]; [markRead] обнуляет — как сервер.
   int supportUnread;
@@ -30,22 +33,41 @@ class MockChatRepository implements ChatRepository {
   @override
   Future<Conversation> openSupport() async {
     if (failOpen) throw ApiException(500, '');
-    return const Conversation(id: conversationId, type: ConversationType.support, title: 'Поддержка');
+    return const Conversation(
+      id: conversationId,
+      type: ConversationType.support,
+      title: 'Поддержка',
+    );
   }
 
   @override
-  Future<List<ChatMessage>> fetchMessages(int conversationId, {int? afterId, int? beforeId}) async {
+  Future<List<ChatMessage>> fetchMessages(
+    int conversationId, {
+    int? afterId,
+    int? beforeId,
+  }) async {
     final sorted = [..._messages]..sort((a, b) => a.id.compareTo(b.id));
     if (afterId != null) {
       return sorted.where((m) => m.id > afterId).take(50).toList();
     }
-    final older = beforeId == null ? sorted : sorted.where((m) => m.id < beforeId).toList();
+    final older = beforeId == null
+        ? sorted
+        : sorted.where((m) => m.id < beforeId).toList();
     return older.length > 50 ? older.sublist(older.length - 50) : older;
   }
 
   @override
-  Future<ChatMessage> send(int conversationId, {String? body, List<String> photoPaths = const []}) async {
-    final message = ChatMessage(id: _nextId++, body: body, isMine: true, createdAt: DateTime.now());
+  Future<ChatMessage> send(
+    int conversationId, {
+    String? body,
+    List<String> photoPaths = const [],
+  }) async {
+    final message = ChatMessage(
+      id: _nextId++,
+      body: body,
+      isMine: true,
+      createdAt: DateTime.now(),
+    );
     _messages.add(message);
     return message;
   }
@@ -67,12 +89,14 @@ class MockChatRepository implements ChatRepository {
 
   /// Оператор ответил — придёт со следующим опросом.
   void simulateReply(String text) {
-    _messages.add(ChatMessage(
-      id: _nextId++,
-      body: text,
-      senderRole: ChatRole.support,
-      senderName: 'Поддержка',
-      createdAt: DateTime.now(),
-    ));
+    _messages.add(
+      ChatMessage(
+        id: _nextId++,
+        body: text,
+        senderRole: ChatRole.support,
+        senderName: 'Поддержка',
+        createdAt: DateTime.now(),
+      ),
+    );
   }
 }

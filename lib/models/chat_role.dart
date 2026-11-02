@@ -5,8 +5,8 @@
 enum ChatRole { requester, customer, executor, support }
 
 ChatRole chatRoleFromApi(String? value) => switch (value) {
-      'customer' => ChatRole.customer,
-      'executor' => ChatRole.executor,
-      'support' => ChatRole.support,
-      _ => ChatRole.requester,
-    };
+  'customer' => ChatRole.customer,
+  'executor' => ChatRole.executor,
+  'support' => ChatRole.support,
+  _ => ChatRole.requester,
+};

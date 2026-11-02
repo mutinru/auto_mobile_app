@@ -6,7 +6,7 @@ import 'notification_repository.dart';
 /// не пересекается. Ведёт себя как сервер: свежие сверху, курсор — индекс.
 class MockNotificationRepository implements NotificationRepository {
   MockNotificationRepository({List<AppNotification>? items, this.pageSize = 20})
-      : _items = [...?items]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    : _items = [...?items]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
   final List<AppNotification> _items;
   final int pageSize;

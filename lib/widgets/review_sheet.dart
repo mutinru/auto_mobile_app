@@ -50,7 +50,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
   static const _maxLength = 2000;
   static const _minLowText = 10;
 
-  late final _controller = TextEditingController(text: widget.initial?.text ?? '');
+  late final _controller = TextEditingController(
+    text: widget.initial?.text ?? '',
+  );
   late int _rating = widget.initial?.rating ?? 0;
   bool _saving = false;
   String? _error;
@@ -145,7 +147,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
                   onPressed: _saving ? null : () => setState(() => _rating = i),
                   iconSize: 36,
                   icon: Icon(
-                    i <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    i <= _rating
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     color: i <= _rating
                         ? context.colors.statusProgress
                         : context.colors.text3,
@@ -157,7 +161,9 @@ class _ReviewSheetState extends State<ReviewSheet> {
           FieldBoxInput(
             label: 'Отзыв',
             controller: _controller,
-            hint: _needsText ? 'Что пошло не так' : 'Что понравилось — по желанию',
+            hint: _needsText
+                ? 'Что пошло не так'
+                : 'Что понравилось — по желанию',
             maxLines: 4,
             minHeight: 96,
             maxLength: _maxLength,
@@ -175,7 +181,10 @@ class _ReviewSheetState extends State<ReviewSheet> {
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
                 _error!,
-                style: TextStyle(fontSize: 12, color: context.colors.defectText),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.colors.defectText,
+                ),
               ),
             ),
           const SizedBox(height: 4),

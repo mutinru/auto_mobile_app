@@ -11,18 +11,24 @@ sealed class PushTarget {
   static PushTarget? fromData(Map<String, dynamic> data) {
     final type = data['type'] as String?;
     if (type == 'chat_message') {
-      return data['conversation_type'] == 'support' ? const SupportChatTarget() : null;
+      return data['conversation_type'] == 'support'
+          ? const SupportChatTarget()
+          : null;
     }
 
     final orderId = int.tryParse('${data['order_id']}');
     final notificationType = notificationTypeFromApi(type);
-    if (orderId == null || notificationType == NotificationType.unknown) return null;
+    if (orderId == null || notificationType == NotificationType.unknown) {
+      return null;
+    }
     final role = data['viewer_role'] as String?;
     return OrderTarget(
       type: notificationType,
       orderId: orderId,
       orderKind: orderKindFromApi(data['order_kind'] as String?),
-      viewerIsCustomer: role == null ? notificationType.defaultViewerIsCustomer : role == 'customer',
+      viewerIsCustomer: role == null
+          ? notificationType.defaultViewerIsCustomer
+          : role == 'customer',
       notificationId: data['notification_id'] as String?,
     );
   }

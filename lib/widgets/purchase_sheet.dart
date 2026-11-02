@@ -35,7 +35,8 @@ class _PurchaseSheetState extends State<_PurchaseSheet> {
   Widget build(BuildContext context) {
     return SheetFrame(
       title: 'Какую машину купили?',
-      subtitle: 'Заказ закроется, и вы сможете оценить подборщика. '
+      subtitle:
+          'Заказ закроется, и вы сможете оценить подборщика. '
           'Отменить это нельзя.',
       children: [
         for (final car in widget.order.cars)
@@ -47,7 +48,9 @@ class _PurchaseSheetState extends State<_PurchaseSheet> {
         const SizedBox(height: 6),
         CtaPrimary(
           label: 'Зафиксировать покупку',
-          onPressed: _carId == null ? null : () => Navigator.of(context).pop(_carId),
+          onPressed: _carId == null
+              ? null
+              : () => Navigator.of(context).pop(_carId),
         ),
         CtaGhost(label: 'Отмена', onPressed: () => Navigator.of(context).pop()),
       ],
@@ -56,7 +59,11 @@ class _PurchaseSheetState extends State<_PurchaseSheet> {
 }
 
 class _CarOption extends StatelessWidget {
-  const _CarOption({required this.car, required this.selected, required this.onTap});
+  const _CarOption({
+    required this.car,
+    required this.selected,
+    required this.onTap,
+  });
 
   final OrderCar car;
   final bool selected;
@@ -74,9 +81,13 @@ class _CarOption extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
-            color: selected ? accent.withValues(alpha: 0.10) : context.colors.bg1,
+            color: selected
+                ? accent.withValues(alpha: 0.10)
+                : context.colors.bg1,
             border: Border.all(
-              color: selected ? accent.withValues(alpha: 0.55) : context.colors.line,
+              color: selected
+                  ? accent.withValues(alpha: 0.55)
+                  : context.colors.line,
             ),
             borderRadius: BorderRadius.circular(13),
           ),
@@ -91,18 +102,24 @@ class _CarOption extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: selected ? context.colors.doneText : context.colors.text1,
+                        color: selected
+                            ? context.colors.doneText
+                            : context.colors.text1,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'VIN ${car.vinMasked}',
-                      style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: context.colors.text3,
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (selected) Icon(Icons.check, size: 16, color: context.colors.doneText),
+              if (selected)
+                Icon(Icons.check, size: 16, color: context.colors.doneText),
             ],
           ),
         ),

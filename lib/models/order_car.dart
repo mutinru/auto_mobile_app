@@ -63,7 +63,9 @@ class OrderCar {
       mileageKm: json['mileage_km'] as int?,
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
-      inspectionOutcome: inspectionOutcomeFromApi(inspection?['outcome'] as String?),
+      inspectionOutcome: inspectionOutcomeFromApi(
+        inspection?['outcome'] as String?,
+      ),
       verdict: inspectionVerdictFromApi(inspection?['verdict'] as String?),
       verdictComment: inspection?['verdict_comment'] as String?,
     );

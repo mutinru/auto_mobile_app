@@ -43,8 +43,9 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         // иконки статус-бара — тёмные на светлой теме и наоборот
-        systemOverlayStyle:
-            isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: c.bg0,
@@ -99,7 +100,6 @@ class AppText extends ThemeExtension<AppText> {
 
   /// Вес обычного текста: в светлой теме плотнее (см. AppTheme._lightWeight).
   FontWeight? get _regular => c.isLight ? FontWeight.w500 : null;
-
 
   /// .detail-title — заголовок экрана
   TextStyle get detailTitle => TextStyle(

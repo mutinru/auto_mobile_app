@@ -4,7 +4,12 @@ import 'chat_role.dart';
 /// Фото в сообщении. Файл приватный: грузить только с заголовками
 /// ChatRepository.imageHeaders, без токена сервер отдаёт 401.
 class ChatAttachment {
-  const ChatAttachment({required this.id, required this.url, this.width, this.height});
+  const ChatAttachment({
+    required this.id,
+    required this.url,
+    this.width,
+    this.height,
+  });
 
   final int id;
   final String url;
@@ -16,11 +21,11 @@ class ChatAttachment {
       (width != null && height != null && height! > 0) ? width! / height! : 1;
 
   factory ChatAttachment.fromJson(Map<String, dynamic> json) => ChatAttachment(
-        id: json['id'] as int,
-        url: chatAttachmentUrl(json['url'] as String),
-        width: json['width'] as int?,
-        height: json['height'] as int?,
-      );
+    id: json['id'] as int,
+    url: chatAttachmentUrl(json['url'] as String),
+    width: json['width'] as int?,
+    height: json['height'] as int?,
+  );
 }
 
 /// Сервер строит адрес от своего APP_URL (на dev — localhost:8083, а
@@ -71,7 +76,9 @@ class ChatMessage {
       ],
       isMine: role == 'me',
       isSystem: role == 'system',
-      senderRole: role == 'me' || role == 'system' ? null : chatRoleFromApi(role),
+      senderRole: role == 'me' || role == 'system'
+          ? null
+          : chatRoleFromApi(role),
       senderName: sender['name'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
     );

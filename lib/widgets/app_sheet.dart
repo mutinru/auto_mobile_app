@@ -32,7 +32,12 @@ class SheetFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(22, 12, 22, 22 + MediaQuery.viewInsetsOf(context).bottom),
+      padding: EdgeInsets.fromLTRB(
+        22,
+        12,
+        22,
+        22 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -62,7 +67,11 @@ class SheetFrame extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle!,
-                style: TextStyle(fontSize: 12, color: context.colors.text2, height: 1.4),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: context.colors.text2,
+                  height: 1.4,
+                ),
               ),
             ],
             const SizedBox(height: 14),
@@ -85,7 +94,10 @@ class SheetError extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.defectText)),
+      child: Text(
+        text!,
+        style: TextStyle(fontSize: 12, color: context.colors.defectText),
+      ),
     );
   }
 }

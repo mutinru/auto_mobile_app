@@ -63,8 +63,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
         return;
       }
       setState(() {
-        _data = (jsonDecode(response.body) as Map<String, dynamic>)['data']
-            as Map<String, dynamic>;
+        _data =
+            (jsonDecode(response.body) as Map<String, dynamic>)['data']
+                as Map<String, dynamic>;
         _loading = false;
       });
     } catch (e) {
@@ -96,16 +97,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(
-                          child: Text(
-                            'Не удалось загрузить: $_error',
-                            style: TextStyle(
-                              color: context.colors.text3,
-                              fontSize: 12,
-                            ),
-                          ),
-                        )
-                      : _body(data!, passed, total),
+                  ? Center(
+                      child: Text(
+                        'Не удалось загрузить: $_error',
+                        style: TextStyle(
+                          color: context.colors.text3,
+                          fontSize: 12,
+                        ),
+                      ),
+                    )
+                  : _body(data!, passed, total),
             ),
           ],
         ),
@@ -188,10 +189,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
             index: i + 1,
             onTap: steps[i]['key'] == 'test'
                 ? () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => QuizScreen(auth: widget.auth),
-                      ),
-                    )
+                    MaterialPageRoute(
+                      builder: (_) => QuizScreen(auth: widget.auth),
+                    ),
+                  )
                 : null,
           ),
 
@@ -203,7 +204,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(right: 7),
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 11),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     color: (l['reached'] as bool)
                         ? context.colors.statusDone.withValues(alpha: 0.07)
@@ -249,13 +253,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
             color: context.colors.statusInfo.withValues(alpha: 0.07),
-            border: Border.all(color: context.colors.statusInfo.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: context.colors.statusInfo.withValues(alpha: 0.25),
+            ),
             borderRadius: BorderRadius.circular(13),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline, size: 15, color: context.colors.infoText),
+              Icon(
+                Icons.info_outline,
+                size: 15,
+                color: context.colors.infoText,
+              ),
               SizedBox(width: 11),
               Expanded(
                 child: Text(
@@ -293,9 +303,9 @@ class _StepRow extends StatelessWidget {
     final (markColor, markFg) = switch (status) {
       'passed' => (context.colors.statusDone, context.colors.modeBuyInk),
       'in_review' => (
-          context.colors.statusProgress.withValues(alpha: 0.16),
-          context.colors.progressText
-        ),
+        context.colors.statusProgress.withValues(alpha: 0.16),
+        context.colors.progressText,
+      ),
       _ => (context.colors.bg3, context.colors.text3),
     };
 
@@ -303,90 +313,90 @@ class _StepRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: inReview
-            ? context.colors.statusInfo.withValues(alpha: 0.05)
-            : context.colors.bg1,
-        border: Border.all(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
           color: inReview
-              ? context.colors.statusInfo.withValues(alpha: 0.5)
-              : context.colors.line,
+              ? context.colors.statusInfo.withValues(alpha: 0.05)
+              : context.colors.bg1,
+          border: Border.all(
+            color: inReview
+                ? context.colors.statusInfo.withValues(alpha: 0.5)
+                : context.colors.line,
+          ),
+          borderRadius: BorderRadius.circular(14),
         ),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // .step-mark
-          Container(
-            width: 24,
-            height: 24,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: markColor,
-              borderRadius: BorderRadius.circular(8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // .step-mark
+            Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: markColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: passedStep
+                  ? Icon(Icons.check, size: 11, color: markFg)
+                  : Text(
+                      '$index',
+                      style: TextStyle(
+                        fontFamily: AppTheme.monoFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: markFg,
+                      ),
+                    ),
             ),
-            child: passedStep
-                ? Icon(Icons.check, size: 11, color: markFg)
-                : Text(
-                    '$index',
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    step['name'] as String,
                     style: TextStyle(
-                      fontFamily: AppTheme.monoFamily,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: markFg,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: context.colors.text1,
                     ),
                   ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  step['name'] as String,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.text1,
+                  const SizedBox(height: 3),
+                  Text(
+                    step['description'] as String,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: context.colors.text2,
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  step['description'] as String,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: context.colors.text2,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  switch (status) {
-                    'passed' => 'ПРОЙДЕНО',
-                    'in_review' => 'НА ПРОВЕРКЕ',
-                    'failed' => 'НЕ ПРОЙДЕНО',
-                    _ => 'НЕ НАЧАТО',
-                  },
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.8,
-                    color: switch (status) {
-                      'passed' => context.colors.doneText,
-                      'in_review' => context.colors.progressText,
-                      'failed' => context.colors.defectText,
-                      _ => context.colors.text3,
+                  const SizedBox(height: 6),
+                  Text(
+                    switch (status) {
+                      'passed' => 'ПРОЙДЕНО',
+                      'in_review' => 'НА ПРОВЕРКЕ',
+                      'failed' => 'НЕ ПРОЙДЕНО',
+                      _ => 'НЕ НАЧАТО',
                     },
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                      color: switch (status) {
+                        'passed' => context.colors.doneText,
+                        'in_review' => context.colors.progressText,
+                        'failed' => context.colors.defectText,
+                        _ => context.colors.text3,
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

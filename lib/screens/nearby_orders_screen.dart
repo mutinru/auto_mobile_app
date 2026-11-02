@@ -145,7 +145,8 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
   Future<void> _respond(Order order) async {
     final auth = widget.auth;
     // разовый осмотр оплачивается напрямую — без реквизитов сервер вернёт 422
-    final requiresPayout = order.isInspection && auth?.user != null && auth!.user!.payout == null;
+    final requiresPayout =
+        order.isInspection && auth?.user != null && auth!.user!.payout == null;
     final sent = await showRespondSheet(
       context,
       order: order,
@@ -162,7 +163,9 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
       },
     );
     if (sent == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Отклик отправлен')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Отклик отправлен')));
     }
   }
 
@@ -624,7 +627,9 @@ class _JobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: canRespond && !order.hasViewerResponse ? onRespond : null,
+              onPressed: canRespond && !order.hasViewerResponse
+                  ? onRespond
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.colors.modeWork,
                 foregroundColor: context.colors.modeWorkInk,
@@ -638,7 +643,10 @@ class _JobCard extends StatelessWidget {
               ),
               child: Text(
                 order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

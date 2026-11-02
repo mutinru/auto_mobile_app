@@ -60,7 +60,9 @@ class ProgressSummary extends StatelessWidget {
               child: Row(
                 children: [
                   for (final p in panels) ...[
-                    Expanded(child: Container(color: p.status.color(context.colors))),
+                    Expanded(
+                      child: Container(color: p.status.color(context.colors)),
+                    ),
                     if (p != panels.last) const SizedBox(width: 2),
                   ],
                 ],

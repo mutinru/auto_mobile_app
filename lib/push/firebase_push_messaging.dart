@@ -51,8 +51,10 @@ class FirebasePushMessaging implements PushMessaging {
         if (message != null) _localTaps.add(message);
       },
     );
-    final android = _local.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _local
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     for (final channel in _channels) {
       await android?.createNotificationChannel(channel);
     }
@@ -77,13 +79,14 @@ class FirebasePushMessaging implements PushMessaging {
   Stream<String> get onTokenRefresh => _fcm.onTokenRefresh;
 
   @override
-  Stream<PushMessage> get onForeground => FirebaseMessaging.onMessage.map(_fromRemote);
+  Stream<PushMessage> get onForeground =>
+      FirebaseMessaging.onMessage.map(_fromRemote);
 
   @override
   Stream<PushMessage> get onTap => StreamGroup.merge([
-        FirebaseMessaging.onMessageOpenedApp.map(_fromRemote),
-        _localTaps.stream,
-      ]);
+    FirebaseMessaging.onMessageOpenedApp.map(_fromRemote),
+    _localTaps.stream,
+  ]);
 
   @override
   Future<PushMessage?> initialTap() async {
@@ -99,7 +102,9 @@ class FirebasePushMessaging implements PushMessaging {
 
   @override
   Future<void> show(PushMessage message) {
-    final channel = message.data['type'] == 'chat_message' ? _channels[1] : _channels[0];
+    final channel = message.data['type'] == 'chat_message'
+        ? _channels[1]
+        : _channels[0];
     return _local.show(
       // id — чтобы новые не затирали друг друга
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000 % 0x7fffffff,
@@ -119,10 +124,10 @@ class FirebasePushMessaging implements PushMessaging {
   }
 
   static PushMessage _fromRemote(RemoteMessage remote) => PushMessage(
-        title: remote.notification?.title,
-        body: remote.notification?.body,
-        data: remote.data,
-      );
+    title: remote.notification?.title,
+    body: remote.notification?.body,
+    data: remote.data,
+  );
 
   static PushMessage? _decode(String? payload) {
     if (payload == null || payload.isEmpty) return null;

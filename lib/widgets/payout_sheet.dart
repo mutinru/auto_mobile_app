@@ -14,7 +14,10 @@ Future<void> showPayoutSheet(
   Payout? initial,
   required Future<void> Function(Payout payout) onSave,
 }) {
-  return showAppSheet<void>(context, (context) => _PayoutSheet(initial: initial, onSave: onSave));
+  return showAppSheet<void>(
+    context,
+    (context) => _PayoutSheet(initial: initial, onSave: onSave),
+  );
 }
 
 class _PayoutSheet extends StatefulWidget {
@@ -64,7 +67,8 @@ class _PayoutSheetState extends State<_PayoutSheet> {
   Widget build(BuildContext context) {
     return SheetFrame(
       title: 'Реквизиты для выплат',
-      subtitle: 'Заказчик разового осмотра переводит оплату вам напрямую — '
+      subtitle:
+          'Заказчик разового осмотра переводит оплату вам напрямую — '
           'на карту или по СБП.',
       children: [
         PayoutFields(controller: _form),

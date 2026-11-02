@@ -4,12 +4,16 @@ import 'api_client.dart';
 /// [unrestrictedValue] — полный адрес, по нему [AddressRepository.resolve]
 /// находит точку.
 class AddressSuggestion {
-  const AddressSuggestion({required this.value, required this.unrestrictedValue});
+  const AddressSuggestion({
+    required this.value,
+    required this.unrestrictedValue,
+  });
 
   final String value;
   final String unrestrictedValue;
 
-  factory AddressSuggestion.fromJson(Map<String, dynamic> json) => AddressSuggestion(
+  factory AddressSuggestion.fromJson(Map<String, dynamic> json) =>
+      AddressSuggestion(
         value: json['value'] as String,
         unrestrictedValue: json['unrestricted_value'] as String,
       );
@@ -18,7 +22,11 @@ class AddressSuggestion {
 /// Точка выбранной подсказки; [precision] — qc_geo DaData (0 — дом …
 /// 5 — не определено).
 class AddressPoint {
-  const AddressPoint({required this.lat, required this.lon, required this.precision});
+  const AddressPoint({
+    required this.lat,
+    required this.lon,
+    required this.precision,
+  });
 
   final double lat;
   final double lon;
@@ -44,7 +52,10 @@ class ApiAddressRepository implements AddressRepository {
   final Map<String, List<AddressSuggestion>> _suggest = {};
 
   @override
-  Future<List<AddressSuggestion>> suggest(String query, {String? cityId}) async {
+  Future<List<AddressSuggestion>> suggest(
+    String query, {
+    String? cityId,
+  }) async {
     final q = query.trim();
     final key = '${cityId ?? ''}|${q.toLowerCase()}';
     final cached = _suggest[key];
@@ -86,12 +97,17 @@ class ApiAddressRepository implements AddressRepository {
 
 /// Для виджет-тестов: подсказки по началу строки из маленького списка.
 class MockAddressRepository implements AddressRepository {
-  MockAddressRepository({this.streets = const ['ул Ленина, д 5', 'ул Ленинградская, д 12']});
+  MockAddressRepository({
+    this.streets = const ['ул Ленина, д 5', 'ул Ленинградская, д 12'],
+  });
 
   final List<String> streets;
 
   @override
-  Future<List<AddressSuggestion>> suggest(String query, {String? cityId}) async {
+  Future<List<AddressSuggestion>> suggest(
+    String query, {
+    String? cityId,
+  }) async {
     final q = query.trim().toLowerCase();
     return [
       for (final s in streets)

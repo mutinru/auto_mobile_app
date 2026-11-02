@@ -107,7 +107,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     _cityTouched = true;
     // адрес из подсказки — про прежний город, свой текст оставляем;
     // точку сбросит само поле (onPoint(null))
-    if (choice.name != _city?.name && _point != null) _addressController.clear();
+    if (choice.name != _city?.name && _point != null) {
+      _addressController.clear();
+    }
     setState(() => _city = choice);
   }
 
@@ -211,11 +213,15 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   /// «+79161234567» прежнего заказа → «916 123 45 67» для поля с маской.
   static String _sellerDigits(String phone) {
     var digits = phone.replaceAll(RegExp(r'\D'), '');
-    if (digits.length == 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    if (digits.length == 11 &&
+        (digits.startsWith('7') || digits.startsWith('8'))) {
       digits = digits.substring(1);
     }
     return const PhoneMask()
-        .formatEditUpdate(TextEditingValue.empty, TextEditingValue(text: digits))
+        .formatEditUpdate(
+          TextEditingValue.empty,
+          TextEditingValue(text: digits),
+        )
         .text;
   }
 
@@ -236,7 +242,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _ when brand.isEmpty || model.isEmpty => 'Укажите марку и модель',
       _ when year == null => 'Укажите год',
       _ when yearProblem(year) != null => yearProblem(year),
-      _ when mileageText.isNotEmpty && mileage == null => 'Пробег — числом, в км',
+      _ when mileageText.isNotEmpty && mileage == null =>
+        'Пробег — числом, в км',
       _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
       _ when vin.isNotEmpty && vin.length != 17 => 'VIN — ровно 17 символов',
@@ -248,7 +255,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _ => null,
     };
     if (problem != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(problem)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
 
@@ -278,7 +287,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось разместить осмотр: ${apiErrorText(e)}')),
+          SnackBar(
+            content: Text('Не удалось разместить осмотр: ${apiErrorText(e)}'),
+          ),
         );
       }
     } finally {
@@ -397,13 +408,19 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                   ),
 
                   const SizedBox(height: 22),
-                  const SectionHead('Продавец', extra: 'увидит только выбранный'),
+                  const SectionHead(
+                    'Продавец',
+                    extra: 'увидит только выбранный',
+                  ),
                   // та же маска, что на входе: «+7 | 900 123 45 67»
                   PhoneField(controller: _phoneController),
 
                   const SizedBox(height: 12),
                   const SectionHead('Ваша цена'),
-                  PriceBox(value: _price, onChanged: (v) => setState(() => _price = v)),
+                  PriceBox(
+                    value: _price,
+                    onChanged: (v) => setState(() => _price = v),
+                  ),
                   Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
@@ -510,12 +527,18 @@ class _ListingGuessCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
       decoration: BoxDecoration(
         color: context.colors.bg1,
-        border: Border.all(color: context.colors.statusDone.withValues(alpha: 0.45)),
+        border: Border.all(
+          color: context.colors.statusDone.withValues(alpha: 0.45),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(Icons.auto_awesome_outlined, size: 16, color: context.colors.doneText),
+          Icon(
+            Icons.auto_awesome_outlined,
+            size: 16,
+            color: context.colors.doneText,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text.rich(

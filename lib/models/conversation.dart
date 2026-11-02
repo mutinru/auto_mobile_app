@@ -19,12 +19,12 @@ class Conversation {
   final int unreadCount;
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
-        id: json['id'] as int,
-        type: conversationTypeFromApi(json['type'] as String?),
-        title: json['title'] as String? ?? 'Поддержка',
-        lastMessage: json['last_message'] == null
-            ? null
-            : ChatMessage.fromJson(json['last_message'] as Map<String, dynamic>),
-        unreadCount: json['unread_count'] as int? ?? 0,
-      );
+    id: json['id'] as int,
+    type: conversationTypeFromApi(json['type'] as String?),
+    title: json['title'] as String? ?? 'Поддержка',
+    lastMessage: json['last_message'] == null
+        ? null
+        : ChatMessage.fromJson(json['last_message'] as Map<String, dynamic>),
+    unreadCount: json['unread_count'] as int? ?? 0,
+  );
 }

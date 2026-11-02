@@ -41,27 +41,31 @@ void main() {
     Future<List<int>> pumpBox(WidgetTester tester, int start) async {
       final changes = <int>[];
       var value = start;
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => PriceBox(
-              value: value,
-              onChanged: (v) => setState(() {
-                value = v;
-                changes.add(v);
-              }),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => PriceBox(
+                value: value,
+                onChanged: (v) => setState(() {
+                  value = v;
+                  changes.add(v);
+                }),
+              ),
             ),
           ),
         ),
-      ));
+      );
       return changes;
     }
 
     String fieldText(WidgetTester tester) =>
         tester.widget<TextField>(find.byType(TextField)).controller!.text;
 
-    testWidgets('сумму можно вписать: только цифры, с разрядами', (tester) async {
+    testWidgets('сумму можно вписать: только цифры, с разрядами', (
+      tester,
+    ) async {
       final changes = await pumpBox(tester, 15000);
       await tester.enterText(find.byType(TextField), '48а00');
       await tester.pump();
@@ -70,7 +74,9 @@ void main() {
       expect(changes.last, 4800);
     });
 
-    testWidgets('на минимуме «−» не работает, на максимуме — «+»', (tester) async {
+    testWidgets('на минимуме «−» не работает, на максимуме — «+»', (
+      tester,
+    ) async {
       var changes = await pumpBox(tester, 500);
       await tester.tap(find.byIcon(Icons.remove));
       await tester.pump();
@@ -82,10 +88,16 @@ void main() {
       expect(changes, isEmpty);
     });
 
-    testWidgets('удержание «+» листает, отпускание останавливает', (tester) async {
+    testWidgets('удержание «+» листает, отпускание останавливает', (
+      tester,
+    ) async {
       final changes = await pumpBox(tester, 3000);
-      final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.add)));
-      await tester.pump(const Duration(milliseconds: 600)); // long press сработал
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byIcon(Icons.add)),
+      );
+      await tester.pump(
+        const Duration(milliseconds: 600),
+      ); // long press сработал
       await tester.pump(const Duration(milliseconds: 500));
       await gesture.up();
       await tester.pump();
@@ -111,22 +123,24 @@ void main() {
 
     Future<List<int?>> openRepost(WidgetTester tester) async {
       final sent = <int?>[];
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () => showRepostSheet(
-                context,
-                order: order,
-                now: () => DateTime(2026, 10, 31, 10),
-                onSubmit: (when, price) async => sent.add(price),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => showRepostSheet(
+                  context,
+                  order: order,
+                  now: () => DateTime(2026, 10, 31, 10),
+                  onSubmit: (when, price) async => sent.add(price),
+                ),
+                child: const Text('открыть'),
               ),
-              child: const Text('открыть'),
             ),
           ),
         ),
-      ));
+      );
       await tester.tap(find.text('открыть'));
       await tester.pumpAndSettle();
       return sent;

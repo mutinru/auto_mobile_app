@@ -18,12 +18,17 @@ import 'price_box.dart';
 Future<bool?> showRespondSheet(
   BuildContext context, {
   required Order order,
-  required Future<void> Function(int price, String? message, Payout? payout) onSubmit,
+  required Future<void> Function(int price, String? message, Payout? payout)
+  onSubmit,
   bool requiresPayout = false,
 }) {
   return showAppSheet<bool>(
     context,
-    (context) => RespondSheet(order: order, onSubmit: onSubmit, requiresPayout: requiresPayout),
+    (context) => RespondSheet(
+      order: order,
+      onSubmit: onSubmit,
+      requiresPayout: requiresPayout,
+    ),
   );
 }
 
@@ -37,7 +42,8 @@ class RespondSheet extends StatefulWidget {
   });
 
   final Order order;
-  final Future<void> Function(int price, String? message, Payout? payout) onSubmit;
+  final Future<void> Function(int price, String? message, Payout? payout)
+  onSubmit;
   final bool requiresPayout;
 
   @override
@@ -122,7 +128,11 @@ class RespondSheetState extends State<RespondSheet> {
         ],
         SheetError(_error),
         const SizedBox(height: 6),
-        CtaPrimary(label: 'Отправить отклик', loading: _sending, onPressed: _send),
+        CtaPrimary(
+          label: 'Отправить отклик',
+          loading: _sending,
+          onPressed: _send,
+        ),
       ],
     );
   }

@@ -77,20 +77,20 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(22),
-                            child: Text(
-                              'Не удалось загрузить заказ:\n$_error',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: context.colors.text3,
-                                fontSize: 12,
-                              ),
-                            ),
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Text(
+                          'Не удалось загрузить заказ:\n$_error',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: context.colors.text3,
+                            fontSize: 12,
                           ),
-                        )
-                      : _body(order!),
+                        ),
+                      ),
+                    )
+                  : _body(order!),
             ),
             // .join-bar
             Container(
@@ -100,7 +100,10 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
               ),
               child: Column(
                 children: [
-                  CtaPrimary(label: 'Хочу такой же подбор', onPressed: widget.onRepeatSelection),
+                  CtaPrimary(
+                    label: 'Хочу такой же подбор',
+                    onPressed: widget.onRepeatSelection,
+                  ),
                   const SizedBox(height: 9),
                   Text(
                     'Или войдите, чтобы открыть отчёт целиком '
@@ -156,11 +159,16 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _Hero(label: 'Осмотрено', value: '${order.carsInspected} авто'),
+                  _Hero(
+                    label: 'Осмотрено',
+                    value: '${order.carsInspected} авто',
+                  ),
                   _Hero(
                     label: 'Отклонено',
                     value: '${order.carsRejected}',
-                    color: order.carsRejected > 0 ? context.colors.statusDefect : null,
+                    color: order.carsRejected > 0
+                        ? context.colors.statusDefect
+                        : null,
                     alignEnd: true,
                   ),
                 ],
@@ -178,7 +186,10 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
             children: [
               for (final r in order.requirements)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(999),
@@ -333,10 +344,14 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11, color: context.colors.text3)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: context.colors.text3),
+        ),
         const SizedBox(height: 3),
         Text(
           value,
@@ -345,7 +360,9 @@ class _Hero extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.15,
-            color: color == null ? context.colors.text1 : context.colors.textFor(color!),
+            color: color == null
+                ? context.colors.text1
+                : context.colors.textFor(color!),
           ),
         ),
       ],
@@ -372,12 +389,18 @@ class _TimelineItem extends StatelessWidget {
                 width: 17,
                 height: 17,
                 decoration: BoxDecoration(
-                  color: step.done ? context.colors.statusDone : context.colors.bg3,
+                  color: step.done
+                      ? context.colors.statusDone
+                      : context.colors.bg3,
                   shape: BoxShape.circle,
                   border: Border.all(color: context.colors.bg0, width: 2),
                 ),
                 child: step.done
-                    ? Icon(Icons.check, size: 9, color: context.colors.modeBuyInk)
+                    ? Icon(
+                        Icons.check,
+                        size: 9,
+                        color: context.colors.modeBuyInk,
+                      )
                     : null,
               ),
               if (!last)

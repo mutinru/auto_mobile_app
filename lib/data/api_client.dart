@@ -17,10 +17,10 @@ class ApiClient {
   String? get token => _auth.token;
 
   Map<String, String> get _headers => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        if (_auth.token != null) 'Authorization': 'Bearer ${_auth.token}',
-      };
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    if (_auth.token != null) 'Authorization': 'Bearer ${_auth.token}',
+  };
 
   /// Ошибка ответа; на 401 заодно стирает сессию — корень уведёт на вход.
   /// Нужна и multipart-запросам, которые идут мимо [get]/[post].
@@ -55,15 +55,29 @@ class ApiClient {
     return (json: _decode(response), etag: response.headers['etag']);
   }
 
-  Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> patch(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     await _auth.ensureUser();
-    final response = await http.patch(_uri(path), headers: _headers, body: jsonEncode(body));
+    final response = await http.patch(
+      _uri(path),
+      headers: _headers,
+      body: jsonEncode(body),
+    );
     return _decode(response);
   }
 
-  Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body]) async {
+  Future<Map<String, dynamic>> post(
+    String path, [
+    Map<String, dynamic>? body,
+  ]) async {
     await _auth.ensureUser();
-    final response = await http.post(_uri(path), headers: _headers, body: body == null ? null : jsonEncode(body));
+    final response = await http.post(
+      _uri(path),
+      headers: _headers,
+      body: body == null ? null : jsonEncode(body),
+    );
     return _decode(response);
   }
 

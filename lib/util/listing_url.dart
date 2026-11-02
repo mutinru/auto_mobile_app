@@ -19,7 +19,9 @@ String? normalizeListingUrl(String raw) {
     url = 'https://$url';
   }
   final uri = Uri.tryParse(url);
-  if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) return null;
+  if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https')) {
+    return null;
+  }
   final host = uri.host.replaceAll(RegExp(r'^\.+|\.+$'), '');
   return host.contains('.') ? url : null;
 }
@@ -28,7 +30,9 @@ String? normalizeListingUrl(String raw) {
 String? listingHost(String url) {
   final normalized = normalizeListingUrl(url);
   if (normalized == null) return null;
-  return Uri.parse(normalized).host.toLowerCase().replaceFirst(RegExp(r'^(www|m)\.'), '');
+  return Uri.parse(
+    normalized,
+  ).host.toLowerCase().replaceFirst(RegExp(r'^(www|m)\.'), '');
 }
 
 /// «Авито» / «Авто.ру» / «Дром» или null для чужого сайта.

@@ -72,7 +72,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final reviews = me?.reviewsCount ?? 0;
     final completed = me?.completedOrdersCount ?? 0;
     final missed = me?.missedOrdersCount ?? 0;
-    if (reviews == 0 && completed == 0 && assigned == 0 && missed == 0) return null;
+    if (reviews == 0 && completed == 0 && assigned == 0 && missed == 0) {
+      return null;
+    }
     return [
       _Stat(me?.rating?.toStringAsFixed(1) ?? '—', 'рейтинг'),
       _Stat('$reviews', plural(reviews, 'отзыв', 'отзыва', 'отзывов')),
@@ -105,7 +107,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: c.bg1,
-        title: Text('Выйти из аккаунта?', style: TextStyle(color: c.text1, fontSize: 17)),
+        title: Text(
+          'Выйти из аккаунта?',
+          style: TextStyle(color: c.text1, fontSize: 17),
+        ),
         content: Text(
           'Чтобы вернуться, понадобится код из Telegram или звонка.',
           style: TextStyle(color: c.text2, fontSize: 13.5),
@@ -117,7 +122,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text('Выйти', style: TextStyle(color: c.defectText, fontWeight: FontWeight.w600)),
+            child: Text(
+              'Выйти',
+              style: TextStyle(
+                color: c.defectText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -145,9 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final orders = widget.store.myOrders;
         final assigned = widget.store.assignedOrders;
         final verificationRequired = _verification?.required ?? false;
-        final active = orders
-            .where((o) => !o.status.isFinished)
-            .length;
+        final active = orders.where((o) => !o.status.isFinished).length;
 
         return Scaffold(
           body: SafeArea(
@@ -330,21 +339,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              user?.phone != null ? formatPhone(user!.phone!) : 'не указан',
-                              style: TextStyle(fontSize: 12, color: context.colors.text2),
+                              user?.phone != null
+                                  ? formatPhone(user!.phone!)
+                                  : 'не указан',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.colors.text2,
+                              ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.chevron_right, size: 18, color: context.colors.text3),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: context.colors.text3,
+                            ),
                           ],
                         ),
                         onTap: user == null
                             ? null
                             : () => showChangePhoneSheet(
-                                  context,
-                                  currentPhone: user.phone,
-                                  onRequest: widget.auth.requestPhoneChange,
-                                  onConfirm: widget.auth.confirmPhoneChange,
-                                ),
+                                context,
+                                currentPhone: user.phone,
+                                onRequest: widget.auth.requestPhoneChange,
+                                onConfirm: widget.auth.confirmPhoneChange,
+                              ),
                       ),
 
                       // разовый осмотр оплачивается напрямую исполнителю;
@@ -357,10 +375,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
                             Text(
                               user?.payout?.shortLabel ?? 'не указаны',
-                              style: TextStyle(fontSize: 12, color: context.colors.text2),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.colors.text2,
+                              ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.chevron_right, size: 18, color: context.colors.text3),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: context.colors.text3,
+                            ),
                           ],
                         ),
                         onTap: () => showPayoutSheet(
@@ -389,7 +414,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               builder: (context, count) => count > 0
                                   ? Padding(
                                       padding: const EdgeInsets.only(right: 8),
-                                      child: UnreadBadge(count, borderColor: context.colors.bg1),
+                                      child: UnreadBadge(
+                                        count,
+                                        borderColor: context.colors.bg1,
+                                      ),
                                     )
                                   : const SizedBox.shrink(),
                             ),
@@ -759,7 +787,9 @@ class _SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,
-                      color: labelColor == null ? c.text1 : c.textFor(labelColor!),
+                      color: labelColor == null
+                          ? c.text1
+                          : c.textFor(labelColor!),
                     ),
                   ),
                 ),

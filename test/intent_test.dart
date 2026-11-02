@@ -17,7 +17,9 @@ void main() {
     );
   }
 
-  testWidgets('стартовый экран показывает вопрос и три варианта', (tester) async {
+  testWidgets('стартовый экран показывает вопрос и три варианта', (
+    tester,
+  ) async {
     final (app, _) = build();
     await tester.pumpWidget(app);
 

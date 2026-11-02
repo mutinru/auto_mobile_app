@@ -40,7 +40,10 @@ class DetailHead extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (eyebrow != null) ...[
-                  Text(eyebrow!.toUpperCase(), style: context.text.detailEyebrow),
+                  Text(
+                    eyebrow!.toUpperCase(),
+                    style: context.text.detailEyebrow,
+                  ),
                   const SizedBox(height: 3),
                 ],
                 Text(title, style: context.text.detailTitle),
@@ -125,13 +128,17 @@ class Pill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color == null ? context.colors.bg3 : color!.withValues(alpha: 0.14),
+        color: color == null
+            ? context.colors.bg3
+            : color!.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         text.toUpperCase(),
         style: context.text.pill.copyWith(
-          color: color == null ? context.colors.text2 : context.colors.textFor(color!),
+          color: color == null
+              ? context.colors.text2
+              : context.colors.textFor(color!),
         ),
       ),
     );
@@ -233,7 +240,9 @@ class FieldBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = mono
         ? context.text.fieldMono
-        : (placeholder ? context.text.fieldPlaceholder : context.text.fieldValue);
+        : (placeholder
+              ? context.text.fieldPlaceholder
+              : context.text.fieldValue);
 
     return Padding(
       // .field { margin-bottom: 10px }
@@ -252,7 +261,9 @@ class FieldBox extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.colors.bg1,
                 border: Border.all(
-                  color: error != null ? context.colors.statusDefect : context.colors.line,
+                  color: error != null
+                      ? context.colors.statusDefect
+                      : context.colors.line,
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -325,7 +336,10 @@ class FieldError extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: Text(text!, style: TextStyle(fontSize: 12, color: context.colors.defectText)),
+      child: Text(
+        text!,
+        style: TextStyle(fontSize: 12, color: context.colors.defectText),
+      ),
     );
   }
 }
@@ -390,7 +404,9 @@ class FieldBoxInput extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.colors.bg1,
               border: Border.all(
-                color: error != null ? context.colors.statusDefect : context.colors.line,
+                color: error != null
+                    ? context.colors.statusDefect
+                    : context.colors.line,
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -407,7 +423,9 @@ class FieldBoxInput extends StatelessWidget {
                     inputFormatters: inputFormatters,
                     autofocus: autofocus,
                     maxLength: maxLength,
-                    style: mono ? context.text.fieldMono : context.text.fieldValue,
+                    style: mono
+                        ? context.text.fieldMono
+                        : context.text.fieldValue,
                     cursorColor: context.colors.statusDone,
                     decoration: InputDecoration(
                       isDense: true,
@@ -458,6 +476,7 @@ class AppChip extends StatelessWidget {
 
   /// false — чип виден, но не нажимается и приглушён.
   final bool enabled;
+
   /// null — оранжевый statusProgress текущей темы.
   final Color? activeColor;
 
@@ -535,7 +554,9 @@ class CtaPrimary extends StatelessWidget {
           foregroundColor: context.colors.modeBuyInk,
           disabledBackgroundColor: context.colors.bg3,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           elevation: 0,
         ),
         child: loading
@@ -547,7 +568,10 @@ class CtaPrimary extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 8)],
+                  if (icon != null) ...[
+                    Icon(icon, size: 16),
+                    const SizedBox(width: 8),
+                  ],
                   Text(label, style: context.text.ctaPrimary),
                   if (trailingIcon != null) ...[
                     const SizedBox(width: 8),
@@ -563,7 +587,12 @@ class CtaPrimary extends StatelessWidget {
 /// .cta-ghost — вторичная текстовая кнопка под основной.
 /// .cta.flat — нейтральная кнопка на bg-3 (например, «Повторить»).
 class CtaFlat extends StatelessWidget {
-  const CtaFlat({super.key, required this.label, required this.onPressed, this.icon});
+  const CtaFlat({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+  });
 
   final String label;
   final VoidCallback? onPressed;
@@ -579,13 +608,18 @@ class CtaFlat extends StatelessWidget {
           backgroundColor: context.colors.bg3,
           foregroundColor: context.colors.text1,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           elevation: 0,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[Icon(icon, size: 16), const SizedBox(width: 8)],
+            if (icon != null) ...[
+              Icon(icon, size: 16),
+              const SizedBox(width: 8),
+            ],
             Text(label, style: context.text.ctaPrimary),
           ],
         ),
@@ -647,7 +681,9 @@ class AppToggle extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: i == activeIndex ? context.colors.bg3 : Colors.transparent,
+                    color: i == activeIndex
+                        ? context.colors.bg3
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
@@ -655,7 +691,9 @@ class AppToggle extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: i == activeIndex ? context.colors.text1 : context.colors.text2,
+                      color: i == activeIndex
+                          ? context.colors.text1
+                          : context.colors.text2,
                     ),
                   ),
                 ),
@@ -716,7 +754,6 @@ String initialsOf(String name) {
   }
   return buf.toString();
 }
-
 
 /// VIN: ровно 17 знаков, только заглавные латинские и цифры.
 /// Буквы I, O и Q в VIN не используются — их легко спутать с 1 и 0,

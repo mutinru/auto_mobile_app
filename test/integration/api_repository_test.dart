@@ -37,8 +37,10 @@ import 'package:auto_podbor_mobile/models/panel_status.dart';
 void main() {
   test('login, fetch and mutate an inspection through the real API', () async {
     if (!ApiConfig.isDev) {
-      fail('Тест правит данные — только против локального бекенда: '
-          'запускайте без --flavor prod (сейчас ${ApiConfig.baseUrl})');
+      fail(
+        'Тест правит данные — только против локального бекенда: '
+        'запускайте без --flavor prod (сейчас ${ApiConfig.baseUrl})',
+      );
     }
 
     // в тесте нет платформенного хранилища — токен держим в памяти
@@ -53,17 +55,26 @@ void main() {
     final assigned = await ApiOrderRepository(client).fetchAssignedOrders();
     OrderCar? candidate;
     for (final order in assigned) {
-      if (order.isInspection || order.status != OrderStatus.inspecting) continue;
+      if (order.isInspection || order.status != OrderStatus.inspecting) {
+        continue;
+      }
       for (final car in order.cars) {
-        if (car.inspectionId != null && car.inspectionOutcome == null) candidate = car;
+        if (car.inspectionId != null && car.inspectionOutcome == null) {
+          candidate = car;
+        }
       }
     }
     if (candidate == null) {
-      fail('Нет подбора с открытым осмотром у Максима — засидируйте базу: '
-          'docker compose exec app php artisan migrate:fresh --seed');
+      fail(
+        'Нет подбора с открытым осмотром у Максима — засидируйте базу: '
+        'docker compose exec app php artisan migrate:fresh --seed',
+      );
     }
 
-    final repo = ApiInspectionRepository(client, inspectionId: candidate.inspectionId!);
+    final repo = ApiInspectionRepository(
+      client,
+      inspectionId: candidate.inspectionId!,
+    );
 
     final snapshot = await repo.fetchInspection();
     expect(snapshot.car.brand, 'Toyota');
@@ -92,7 +103,9 @@ void main() {
       expect(updated.status, target.impliedStatus);
 
       // дефект, которого на детали нет, — включаем и сразу выключаем
-      final defect = catalog.firstWhere((d) => !panel.defects.contains(d.label));
+      final defect = catalog.firstWhere(
+        (d) => !panel.defects.contains(d.label),
+      );
       final withDefect = await repo.toggleDefect(panel.id, defect.id);
       expect(withDefect.defects, contains(defect.label));
 
@@ -112,11 +125,34 @@ void main() {
     // голосовая заметка на детали без неё: загрузить, послушать без токена
     // (ссылка подписанная), удалить. m4a с ftyp isom — как пишет Android.
     final silent = after.panels.firstWhere((p) => p.audioNoteSeconds == null);
-    final file = File('${Directory.systemTemp.createTempSync('audio_note').path}/note.m4a')
-      ..writeAsBytesSync([
-        0, 0, 0, 24, ...'ftypisom'.codeUnits, 0, 0, 0, 0, ...'isommp42'.codeUnits,
-        0, 0, 0, 16, ...'mdat'.codeUnits, 0, 0, 0, 0, 0, 0, 0, 0,
-      ]);
+    final file =
+        File(
+          '${Directory.systemTemp.createTempSync('audio_note').path}/note.m4a',
+        )..writeAsBytesSync([
+          0,
+          0,
+          0,
+          24,
+          ...'ftypisom'.codeUnits,
+          0,
+          0,
+          0,
+          0,
+          ...'isommp42'.codeUnits,
+          0,
+          0,
+          0,
+          16,
+          ...'mdat'.codeUnits,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ]);
     try {
       final withNote = await repo.uploadAudioNote(silent.id, file.path, 3);
       expect(withNote.audioNoteSeconds, 3);
@@ -127,7 +163,9 @@ void main() {
       expect(withoutNote.audioNoteSeconds, isNull);
       expect(withoutNote.audioNoteUrl, isNull);
     } finally {
-      final left = (await repo.fetchInspection()).panels.firstWhere((p) => p.id == silent.id);
+      final left = (await repo.fetchInspection()).panels.firstWhere(
+        (p) => p.id == silent.id,
+      );
       if (left.audioNoteSeconds != null) await repo.deleteAudioNote(silent.id);
       file.parent.deleteSync(recursive: true);
     }

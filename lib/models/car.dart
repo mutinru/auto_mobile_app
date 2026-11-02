@@ -33,10 +33,10 @@ class Car {
   }
 
   factory Car.fromJson(Map<String, dynamic> json) => Car(
-        brand: json['brand'] as String,
-        model: json['model'] as String,
-        year: json['year'] as int,
-        vinMasked: json['vin_masked'] as String,
-        mileageKm: json['mileage_km'] as int?,
-      );
+    brand: json['brand'] as String,
+    model: json['model'] as String,
+    year: json['year'] as int,
+    vinMasked: json['vin_masked'] as String,
+    mileageKm: json['mileage_km'] as int?,
+  );
 }

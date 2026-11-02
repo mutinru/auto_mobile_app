@@ -14,7 +14,8 @@ import 'price_box.dart';
 Future<void> showRepostSheet(
   BuildContext context, {
   required Order order,
-  required Future<void> Function(InspectionWhen when, int? askingPrice) onSubmit,
+  required Future<void> Function(InspectionWhen when, int? askingPrice)
+  onSubmit,
   DateTime Function()? now,
 }) {
   return showAppSheet<void>(
@@ -36,6 +37,7 @@ class _RepostSheet extends StatefulWidget {
 
 class _RepostSheetState extends State<_RepostSheet> {
   late InspectionWhen _when;
+
   /// Прежняя цена заказа: не изменилась — не шлём, сервер её оставит.
   late final int _previous = widget.order.askingPrice ?? 3500;
   late int _price = _previous;
@@ -61,7 +63,10 @@ class _RepostSheetState extends State<_RepostSheet> {
     });
     try {
       // цена не изменилась — не шлём, сервер оставит прежнюю
-      await widget.onSubmit(_when, _price == widget.order.askingPrice ? null : _price);
+      await widget.onSubmit(
+        _when,
+        _price == widget.order.askingPrice ? null : _price,
+      );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) setState(() => _error = apiErrorText(e));
@@ -74,7 +79,8 @@ class _RepostSheetState extends State<_RepostSheet> {
   Widget build(BuildContext context) {
     return SheetFrame(
       title: 'Разместить заново',
-      subtitle: 'Выберите новый день осмотра. Прежние отклики были под старую '
+      subtitle:
+          'Выберите новый день осмотра. Прежние отклики были под старую '
           'дату — исполнители получат уведомление и откликнутся заново.',
       children: [
         InspectionWhenPicker(

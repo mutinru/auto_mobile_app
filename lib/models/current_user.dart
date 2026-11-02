@@ -44,43 +44,53 @@ class CurrentUser {
   /// Тот же пользователь в форме, которую понимают ExecutorStats и экран
   /// отзывов.
   UserSummary get asSummary => UserSummary(
-        id: id,
-        name: name,
-        rating: rating,
-        reviewsCount: reviewsCount,
-        completedOrdersCount: completedOrdersCount,
-      );
+    id: id,
+    name: name,
+    rating: rating,
+    reviewsCount: reviewsCount,
+    completedOrdersCount: completedOrdersCount,
+  );
 
   /// «с марта 2026» — вторая строка в шапке профиля.
   String get registeredLabel {
     final d = registeredAt;
     if (d == null) return '';
     const months = [
-      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря',
     ];
     return 'с ${months[d.month - 1]} ${d.year}';
   }
 
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        email: json['email'] as String,
-        phone: json['phone'] as String?,
-        registeredAt: json['registered_at'] != null
-            ? DateTime.tryParse(json['registered_at'] as String)
-            : null,
-        // PHP отдаёт и 5, и 4.8 — num, а не double
-        rating: (json['rating'] as num?)?.toDouble(),
-        reviewsCount: json['reviews_count'] as int? ?? 0,
-        completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
-        missedOrdersCount: json['missed_orders_count'] as int? ?? 0,
-        payout: json['payout'] != null
-            ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
-            : null,
-        pushMuted: {
-          for (final code in (json['push_muted'] as List<dynamic>? ?? const []))
-            ?NotificationCategory.fromApi(code as String),
-        },
-      );
+    id: json['id'] as int,
+    name: json['name'] as String,
+    email: json['email'] as String,
+    phone: json['phone'] as String?,
+    registeredAt: json['registered_at'] != null
+        ? DateTime.tryParse(json['registered_at'] as String)
+        : null,
+    // PHP отдаёт и 5, и 4.8 — num, а не double
+    rating: (json['rating'] as num?)?.toDouble(),
+    reviewsCount: json['reviews_count'] as int? ?? 0,
+    completedOrdersCount: json['completed_orders_count'] as int? ?? 0,
+    missedOrdersCount: json['missed_orders_count'] as int? ?? 0,
+    payout: json['payout'] != null
+        ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
+        : null,
+    pushMuted: {
+      for (final code in (json['push_muted'] as List<dynamic>? ?? const []))
+        ?NotificationCategory.fromApi(code as String),
+    },
+  );
 }

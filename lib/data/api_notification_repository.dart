@@ -9,12 +9,15 @@ class ApiNotificationRepository implements NotificationRepository {
 
   @override
   Future<NotificationPage> fetchPage({String? cursor}) async {
-    final query = cursor == null ? '' : '?cursor=${Uri.encodeQueryComponent(cursor)}';
+    final query = cursor == null
+        ? ''
+        : '?cursor=${Uri.encodeQueryComponent(cursor)}';
     final json = await _client.get('/notifications$query');
     final meta = json['meta'] as Map<String, dynamic>? ?? const {};
     return NotificationPage(
       items: [
-        for (final n in json['data'] as List) AppNotification.fromJson(n as Map<String, dynamic>),
+        for (final n in json['data'] as List)
+          AppNotification.fromJson(n as Map<String, dynamic>),
       ],
       nextCursor: meta['next_cursor'] as String?,
       unreadCount: meta['unread_count'] as int? ?? 0,

@@ -5,18 +5,18 @@ enum OrderResponseStatus { pending, accepted, rejected, declined, expired }
 
 extension OrderResponseStatusX on OrderResponseStatus {
   String get label => switch (this) {
-        OrderResponseStatus.pending => 'ждёт решения',
-        OrderResponseStatus.accepted => 'принят',
-        OrderResponseStatus.rejected => 'отклонён',
-        OrderResponseStatus.declined => 'отказался',
-        OrderResponseStatus.expired => 'не успел',
-      };
+    OrderResponseStatus.pending => 'ждёт решения',
+    OrderResponseStatus.accepted => 'принят',
+    OrderResponseStatus.rejected => 'отклонён',
+    OrderResponseStatus.declined => 'отказался',
+    OrderResponseStatus.expired => 'не успел',
+  };
 }
 
 OrderResponseStatus orderResponseStatusFromApi(String value) => switch (value) {
-      'accepted' => OrderResponseStatus.accepted,
-      'rejected' => OrderResponseStatus.rejected,
-      'declined' => OrderResponseStatus.declined,
-      'expired' => OrderResponseStatus.expired,
-      _ => OrderResponseStatus.pending,
-    };
+  'accepted' => OrderResponseStatus.accepted,
+  'rejected' => OrderResponseStatus.rejected,
+  'declined' => OrderResponseStatus.declined,
+  'expired' => OrderResponseStatus.expired,
+  _ => OrderResponseStatus.pending,
+};

@@ -9,10 +9,10 @@ class TimelineStep {
   final DateTime? at;
 
   factory TimelineStep.fromJson(Map<String, dynamic> json) => TimelineStep(
-        title: json['title'] as String,
-        done: json['done'] as bool,
-        at: json['at'] != null ? DateTime.tryParse(json['at'] as String) : null,
-      );
+    title: json['title'] as String,
+    done: json['done'] as bool,
+    at: json['at'] != null ? DateTime.tryParse(json['at'] as String) : null,
+  );
 }
 
 /// Публичный просмотр заказа (GET /api/public/orders/{id}) — экран 02

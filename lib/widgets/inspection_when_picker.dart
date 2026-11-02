@@ -7,7 +7,11 @@ import 'app_ui.dart';
 
 /// Когда осматривать: день, слот и точное время (если слот — точное).
 class InspectionWhen {
-  const InspectionWhen({required this.date, required this.slot, this.exactTime});
+  const InspectionWhen({
+    required this.date,
+    required this.slot,
+    this.exactTime,
+  });
 
   final DateTime date;
   final TimeSlot slot;
@@ -20,11 +24,15 @@ class InspectionWhen {
     return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
   }
 
-  InspectionWhen copyWith({DateTime? date, TimeSlot? slot, TimeOfDay? exactTime}) => InspectionWhen(
-        date: date ?? this.date,
-        slot: slot ?? this.slot,
-        exactTime: exactTime ?? this.exactTime,
-      );
+  InspectionWhen copyWith({
+    DateTime? date,
+    TimeSlot? slot,
+    TimeOfDay? exactTime,
+  }) => InspectionWhen(
+    date: date ?? this.date,
+    slot: slot ?? this.slot,
+    exactTime: exactTime ?? this.exactTime,
+  );
 }
 
 /// «16:00» с сервера → TimeOfDay; null — времени нет или оно кривое.
@@ -33,7 +41,9 @@ TimeOfDay? parseInspectTime(String? value) {
   if (parts == null || parts.length < 2) return null;
   final hour = int.tryParse(parts[0]);
   final minute = int.tryParse(parts[1]);
-  return hour == null || minute == null ? null : TimeOfDay(hour: hour, minute: minute);
+  return hour == null || minute == null
+      ? null
+      : TimeOfDay(hour: hour, minute: minute);
 }
 
 /// С этого часа «сегодня» для осмотра закрыто — как App\Support\InspectionDay
@@ -45,7 +55,9 @@ const todayCutoffHour = 21;
 /// [todayCutoffHour] — завтра.
 DateTime firstInspectionDay(DateTime now) {
   final today = DateTime(now.year, now.month, now.day);
-  return now.hour >= todayCutoffHour ? today.add(const Duration(days: 1)) : today;
+  return now.hour >= todayCutoffHour
+      ? today.add(const Duration(days: 1))
+      : today;
 }
 
 /// Чипы дня (три ближайших доступных + календарь) и слота времени — форма
@@ -88,7 +100,9 @@ class InspectionWhenPicker extends StatelessWidget {
       context: context,
       initialTime: value.exactTime ?? const TimeOfDay(hour: 16, minute: 0),
     );
-    if (picked != null) onChanged(value.copyWith(exactTime: picked, slot: TimeSlot.exact));
+    if (picked != null) {
+      onChanged(value.copyWith(exactTime: picked, slot: TimeSlot.exact));
+    }
   }
 
   @override
@@ -124,7 +138,9 @@ class InspectionWhenPicker extends StatelessWidget {
           children: [
             for (final slot in TimeSlot.values)
               AppChip(
-                label: slot == TimeSlot.exact ? (value.inspectTime ?? slot.label) : slot.label,
+                label: slot == TimeSlot.exact
+                    ? (value.inspectTime ?? slot.label)
+                    : slot.label,
                 on: value.slot == slot,
                 activeColor: context.colors.statusDone,
                 onTap: () => slot == TimeSlot.exact

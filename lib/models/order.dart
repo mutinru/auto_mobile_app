@@ -92,7 +92,9 @@ class Order {
     final street = address;
     if (street == null || street.isEmpty) return null;
     final city = cities.isEmpty ? null : cities.first;
-    if (city == null || street.toLowerCase().startsWith(city.toLowerCase())) return street;
+    if (city == null || street.toLowerCase().startsWith(city.toLowerCase())) {
+      return street;
+    }
     return '$city, $street';
   }
 
@@ -122,6 +124,7 @@ class Order {
 
   final UserSummary customer;
   final UserSummary? executor;
+
   /// Заказчику — все отклики, исполнителю — только свой (или пусто):
   /// чужие цены и сообщения сервер не отдаёт.
   final List<OrderResponse> responses;
@@ -192,7 +195,9 @@ class Order {
   /// держатся проверки сервера. Без загруженных машин — как пришло.
   OrderStatus get shownStatus {
     if (isInspection || cars.isEmpty) return status;
-    if (status != OrderStatus.sourcing && status != OrderStatus.inspecting) return status;
+    if (status != OrderStatus.sourcing && status != OrderStatus.inspecting) {
+      return status;
+    }
     return cars.any((c) => c.inspectionStatus == 'in_progress')
         ? OrderStatus.inspecting
         : OrderStatus.sourcing;
@@ -202,9 +207,13 @@ class Order {
   /// Осмотренной считается машина с завершённым осмотром, не просто добавленная.
   String get statusLabel {
     final shown = shownStatus;
-    if (isInspection || shown != OrderStatus.sourcing) return shown.labelFor(kind);
+    if (isInspection || shown != OrderStatus.sourcing) {
+      return shown.labelFor(kind);
+    }
     final done = cars.where((c) => c.inspectionStatus == 'completed').length;
-    return done > 0 ? '${shown.labelFor(kind)} · осмотрено $done' : shown.labelFor(kind);
+    return done > 0
+        ? '${shown.labelFor(kind)} · осмотрено $done'
+        : shown.labelFor(kind);
   }
 
   /// Вердикт завершённого осмотра (у заказа-осмотра машина одна).
@@ -238,119 +247,121 @@ class Order {
     bool clearDecision = false,
     // оплата подтверждена: реквизиты и сводку сервер больше не отдаёт
     bool clearPayment = false,
-  }) =>
-      Order(
-        id: id,
-        kind: kind,
-        status: status ?? this.status,
-        brand: brand,
-        model: model,
-        yearFrom: yearFrom,
-        mileageTo: mileageTo,
-        budgetMin: budgetMin,
-        budgetMax: budgetMax,
-        cities: cities,
-        requirements: requirements,
-        comment: comment,
-        price: price ?? this.price,
-        address: address,
-        lat: lat,
-        lon: lon,
-        inspectOn: inspectOn ?? this.inspectOn,
-        timeSlot: timeSlot ?? this.timeSlot,
-        inspectTime: timeSlot != null ? inspectTime : this.inspectTime,
-        listingUrl: listingUrl,
-        listingHost: listingHost,
-        listingSite: listingSite,
-        hasListing: hasListing,
-        sellerPhone: sellerPhone,
-        askingPrice: askingPrice ?? this.askingPrice,
-        customer: customer,
-        executor: clearExecutor ? null : (executor ?? this.executor),
-        responses: responses ?? this.responses,
-        // новый список без числа — считаем по нему, иначе счётчик устареет
-        responsesCount: responsesCount ?? (responses != null ? null : _responsesCount),
-        cars: cars ?? this.cars,
-        completedAt: completedAt ?? this.completedAt,
-        review: review ?? this.review,
-        canReview: canReview ?? this.canReview,
-        canCancel: canCancel ?? this.canCancel,
-        executorDeadlineAt: clearExecutor ? null : (executorDeadlineAt ?? this.executorDeadlineAt),
-        decisionReason: clearDecision ? null : decisionReason,
-        paymentSentAt: paymentSentAt ?? this.paymentSentAt,
-        paymentConfirmedAt: paymentConfirmedAt ?? this.paymentConfirmedAt,
-        dispute: dispute ?? this.dispute,
-        payout: clearPayment ? null : (payout ?? this.payout),
-        reportSummary: clearPayment ? null : (reportSummary ?? this.reportSummary),
-      );
+  }) => Order(
+    id: id,
+    kind: kind,
+    status: status ?? this.status,
+    brand: brand,
+    model: model,
+    yearFrom: yearFrom,
+    mileageTo: mileageTo,
+    budgetMin: budgetMin,
+    budgetMax: budgetMax,
+    cities: cities,
+    requirements: requirements,
+    comment: comment,
+    price: price ?? this.price,
+    address: address,
+    lat: lat,
+    lon: lon,
+    inspectOn: inspectOn ?? this.inspectOn,
+    timeSlot: timeSlot ?? this.timeSlot,
+    inspectTime: timeSlot != null ? inspectTime : this.inspectTime,
+    listingUrl: listingUrl,
+    listingHost: listingHost,
+    listingSite: listingSite,
+    hasListing: hasListing,
+    sellerPhone: sellerPhone,
+    askingPrice: askingPrice ?? this.askingPrice,
+    customer: customer,
+    executor: clearExecutor ? null : (executor ?? this.executor),
+    responses: responses ?? this.responses,
+    // новый список без числа — считаем по нему, иначе счётчик устареет
+    responsesCount:
+        responsesCount ?? (responses != null ? null : _responsesCount),
+    cars: cars ?? this.cars,
+    completedAt: completedAt ?? this.completedAt,
+    review: review ?? this.review,
+    canReview: canReview ?? this.canReview,
+    canCancel: canCancel ?? this.canCancel,
+    executorDeadlineAt: clearExecutor
+        ? null
+        : (executorDeadlineAt ?? this.executorDeadlineAt),
+    decisionReason: clearDecision ? null : decisionReason,
+    paymentSentAt: paymentSentAt ?? this.paymentSentAt,
+    paymentConfirmedAt: paymentConfirmedAt ?? this.paymentConfirmedAt,
+    dispute: dispute ?? this.dispute,
+    payout: clearPayment ? null : (payout ?? this.payout),
+    reportSummary: clearPayment ? null : (reportSummary ?? this.reportSummary),
+  );
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
-        id: json['id'] as int,
-        kind: orderKindFromApi(json['kind'] as String?),
-        status: orderStatusFromApi(json['status'] as String),
-        brand: json['brand'] as String,
-        model: json['model'] as String,
-        yearFrom: json['year_from'] as int?,
-        mileageTo: json['mileage_to'] as int?,
-        budgetMin: json['budget_min'] as int?,
-        budgetMax: json['budget_max'] as int?,
-        cities: (json['cities'] as List?)?.cast<String>() ?? const [],
-        requirements: (json['requirements'] as List?)?.cast<String>() ?? const [],
-        comment: json['comment'] as String?,
-        price: json['price'] as int?,
-        address: json['address'] as String?,
-        lat: (json['lat'] as num?)?.toDouble(),
-        lon: (json['lon'] as num?)?.toDouble(),
-        // с бекенда приходит 'Y-m-d' — DateTime.parse даёт локальную полночь
-        inspectOn: json['inspect_on'] != null
-            ? DateTime.parse(json['inspect_on'] as String)
-            : null,
-        timeSlot: timeSlotFromApi(json['time_slot'] as String?),
-        inspectTime: json['inspect_time'] as String?,
-        listingUrl: json['listing_url'] as String?,
-        listingHost: json['listing_host'] as String?,
-        listingSite: json['listing_site'] as String?,
-        // старый бекенд поля не знает — тогда объявление есть, если пришла ссылка
-        hasListing: json['has_listing'] as bool? ?? json['listing_url'] != null,
-        sellerPhone: json['seller_phone'] as String?,
-        askingPrice: json['asking_price'] as int?,
-        customer: UserSummary.fromJson(json['customer'] as Map<String, dynamic>),
-        executor: json['executor'] != null
-            ? UserSummary.fromJson(json['executor'] as Map<String, dynamic>)
-            : null,
-        responses: (json['responses'] as List? ?? const [])
-            .map((r) => OrderResponse.fromJson(r as Map<String, dynamic>))
-            .toList(),
-        responsesCount: json['responses_count'] as int?,
-        cars: (json['cars'] as List? ?? const [])
-            .map((c) => OrderCar.fromJson(c as Map<String, dynamic>))
-            .toList(),
-        completedAt: json['completed_at'] != null
-            ? DateTime.parse(json['completed_at'] as String).toLocal()
-            : null,
-        review: json['review'] != null
-            ? Review.fromJson(json['review'] as Map<String, dynamic>)
-            : null,
-        canReview: json['can_review'] as bool? ?? false,
-        canCancel: json['can_cancel'] as bool? ?? false,
-        executorDeadlineAt: _date(json['executor_deadline_at']),
-        decisionReason: switch (json['decision_reason']) {
-          'missed' => DecisionReason.missed,
-          'date_passed' => DecisionReason.datePassed,
-          _ => null,
-        },
-        paymentSentAt: _date(json['payment_sent_at']),
-        paymentConfirmedAt: _date(json['payment_confirmed_at']),
-        dispute: json['dispute'] != null
-            ? OrderDispute.fromJson(json['dispute'] as Map<String, dynamic>)
-            : null,
-        payout: json['payout'] != null
-            ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
-            : null,
-        reportSummary: json['report_summary'] != null
-            ? ReportSummary.fromJson(json['report_summary'] as Map<String, dynamic>)
-            : null,
-      );
+    id: json['id'] as int,
+    kind: orderKindFromApi(json['kind'] as String?),
+    status: orderStatusFromApi(json['status'] as String),
+    brand: json['brand'] as String,
+    model: json['model'] as String,
+    yearFrom: json['year_from'] as int?,
+    mileageTo: json['mileage_to'] as int?,
+    budgetMin: json['budget_min'] as int?,
+    budgetMax: json['budget_max'] as int?,
+    cities: (json['cities'] as List?)?.cast<String>() ?? const [],
+    requirements: (json['requirements'] as List?)?.cast<String>() ?? const [],
+    comment: json['comment'] as String?,
+    price: json['price'] as int?,
+    address: json['address'] as String?,
+    lat: (json['lat'] as num?)?.toDouble(),
+    lon: (json['lon'] as num?)?.toDouble(),
+    // с бекенда приходит 'Y-m-d' — DateTime.parse даёт локальную полночь
+    inspectOn: json['inspect_on'] != null
+        ? DateTime.parse(json['inspect_on'] as String)
+        : null,
+    timeSlot: timeSlotFromApi(json['time_slot'] as String?),
+    inspectTime: json['inspect_time'] as String?,
+    listingUrl: json['listing_url'] as String?,
+    listingHost: json['listing_host'] as String?,
+    listingSite: json['listing_site'] as String?,
+    // старый бекенд поля не знает — тогда объявление есть, если пришла ссылка
+    hasListing: json['has_listing'] as bool? ?? json['listing_url'] != null,
+    sellerPhone: json['seller_phone'] as String?,
+    askingPrice: json['asking_price'] as int?,
+    customer: UserSummary.fromJson(json['customer'] as Map<String, dynamic>),
+    executor: json['executor'] != null
+        ? UserSummary.fromJson(json['executor'] as Map<String, dynamic>)
+        : null,
+    responses: (json['responses'] as List? ?? const [])
+        .map((r) => OrderResponse.fromJson(r as Map<String, dynamic>))
+        .toList(),
+    responsesCount: json['responses_count'] as int?,
+    cars: (json['cars'] as List? ?? const [])
+        .map((c) => OrderCar.fromJson(c as Map<String, dynamic>))
+        .toList(),
+    completedAt: json['completed_at'] != null
+        ? DateTime.parse(json['completed_at'] as String).toLocal()
+        : null,
+    review: json['review'] != null
+        ? Review.fromJson(json['review'] as Map<String, dynamic>)
+        : null,
+    canReview: json['can_review'] as bool? ?? false,
+    canCancel: json['can_cancel'] as bool? ?? false,
+    executorDeadlineAt: _date(json['executor_deadline_at']),
+    decisionReason: switch (json['decision_reason']) {
+      'missed' => DecisionReason.missed,
+      'date_passed' => DecisionReason.datePassed,
+      _ => null,
+    },
+    paymentSentAt: _date(json['payment_sent_at']),
+    paymentConfirmedAt: _date(json['payment_confirmed_at']),
+    dispute: json['dispute'] != null
+        ? OrderDispute.fromJson(json['dispute'] as Map<String, dynamic>)
+        : null,
+    payout: json['payout'] != null
+        ? Payout.fromJson(json['payout'] as Map<String, dynamic>)
+        : null,
+    reportSummary: json['report_summary'] != null
+        ? ReportSummary.fromJson(json['report_summary'] as Map<String, dynamic>)
+        : null,
+  );
 
   static DateTime? _date(Object? value) =>
       value is String ? DateTime.parse(value).toLocal() : null;

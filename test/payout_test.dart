@@ -26,24 +26,37 @@ void main() {
 
   /// Кнопка, открывающая лист, — чтобы pop листа не снимал единственный маршрут.
   Widget host(void Function(BuildContext context) open) => MaterialApp(
-        theme: AppTheme.dark,
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(child: TextButton(onPressed: () => open(context), child: const Text('открыть'))),
+    theme: AppTheme.dark,
+    home: Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: TextButton(
+            onPressed: () => open(context),
+            child: const Text('открыть'),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
-  Future<void> openSheet(WidgetTester tester, void Function(BuildContext context) open) async {
+  Future<void> openSheet(
+    WidgetTester tester,
+    void Function(BuildContext context) open,
+  ) async {
     await tester.pumpWidget(host(open));
     await tester.tap(find.text('открыть'));
     await tester.pumpAndSettle();
   }
 
   Finder field(String label) => find.descendant(
-        of: find.ancestor(of: find.text(label.toUpperCase()), matching: find.byType(Column)).first,
-        matching: find.byType(TextField),
-      );
+    of: find
+        .ancestor(
+          of: find.text(label.toUpperCase()),
+          matching: find.byType(Column),
+        )
+        .first,
+    matching: find.byType(TextField),
+  );
 
   test('проверка карты по Луну', () {
     expect(isValidCard('4111 1111 1111 1111'), isTrue);
@@ -51,7 +64,9 @@ void main() {
     expect(isValidCard('4111'), isFalse);
   });
 
-  testWidgets('первый отклик на осмотр просит реквизиты и отдаёт их', (tester) async {
+  testWidgets('первый отклик на осмотр просит реквизиты и отдаёт их', (
+    tester,
+  ) async {
     Payout? sent;
     int? sentPrice;
     await openSheet(
@@ -107,13 +122,16 @@ void main() {
   testWidgets('с реквизитами в профиле форма их не спрашивает', (tester) async {
     await openSheet(
       tester,
-      (context) => showRespondSheet(context, order: order, onSubmit: (_, _, _) async {}),
+      (context) =>
+          showRespondSheet(context, order: order, onSubmit: (_, _, _) async {}),
     );
 
     expect(find.text('КУДА ЗАКАЗЧИК ПЕРЕВЕДЁТ ОПЛАТУ'), findsNothing);
   });
 
-  testWidgets('ошибка сервера по реквизитам — у поля, лист не закрывается', (tester) async {
+  testWidgets('ошибка сервера по реквизитам — у поля, лист не закрывается', (
+    tester,
+  ) async {
     await openSheet(
       tester,
       (context) => showRespondSheet(
@@ -135,11 +153,14 @@ void main() {
     expect(find.text('Отправить отклик'), findsOneWidget);
   });
 
-  testWidgets('реквизиты в профиле: СБП требует банк, телефон нормализуется', (tester) async {
+  testWidgets('реквизиты в профиле: СБП требует банк, телефон нормализуется', (
+    tester,
+  ) async {
     Payout? saved;
     await openSheet(
       tester,
-      (context) => showPayoutSheet(context, onSave: (payout) async => saved = payout),
+      (context) =>
+          showPayoutSheet(context, onSave: (payout) async => saved = payout),
     );
 
     await tester.tap(find.text('СБП по телефону'));

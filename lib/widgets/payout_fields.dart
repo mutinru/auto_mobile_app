@@ -10,10 +10,10 @@ import 'app_ui.dart';
 /// свои и пришедшие с сервера. Общий для формы отклика и листа в профиле.
 class PayoutFormController extends ChangeNotifier {
   PayoutFormController({Payout? initial})
-      : useCard = initial == null || initial.hasCard || !initial.hasSbp,
-        card = TextEditingController(text: initial?.cardFormatted ?? ''),
-        phone = TextEditingController(text: initial?.phone ?? ''),
-        bank = TextEditingController(text: initial?.bank ?? '');
+    : useCard = initial == null || initial.hasCard || !initial.hasSbp,
+      card = TextEditingController(text: initial?.cardFormatted ?? ''),
+      phone = TextEditingController(text: initial?.phone ?? ''),
+      bank = TextEditingController(text: initial?.bank ?? '');
 
   bool useCard;
   final TextEditingController card;
@@ -59,7 +59,9 @@ class PayoutFormController extends ChangeNotifier {
       if (bank.text.trim().isEmpty) {
         found['payout_bank'] = 'Укажите банк для СБП';
       }
-      if (found.isEmpty) result = Payout(phone: normalized, bank: bank.text.trim());
+      if (found.isEmpty) {
+        result = Payout(phone: normalized, bank: bank.text.trim());
+      }
     }
     errors = found;
     notifyListeners();
@@ -144,7 +146,11 @@ class PayoutFields extends StatelessWidget {
           ],
           Text(
             'Заказчик увидит реквизиты только после того, как вы закончите осмотр.',
-            style: TextStyle(fontSize: 11.5, color: context.colors.text3, height: 1.4),
+            style: TextStyle(
+              fontSize: 11.5,
+              color: context.colors.text3,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -157,7 +163,10 @@ class CardNumberFormatter extends TextInputFormatter {
   const CardNumberFormatter();
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     if (digits.length > 19) digits = digits.substring(0, 19);
     final text = formatCard(digits);

@@ -152,7 +152,10 @@ class _ListingRow extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     var ok = false;
     try {
-      ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      ok = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
     } catch (_) {
       ok = false;
     }
@@ -165,7 +168,11 @@ class _ListingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: 12.5, height: 1.4, color: context.colors.text2);
+    final style = TextStyle(
+      fontSize: 12.5,
+      height: 1.4,
+      color: context.colors.text2,
+    );
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: InkWell(
@@ -200,7 +207,9 @@ class _ListingRow extends StatelessWidget {
                         children: [
                           TextSpan(
                             text: ' · незнакомый сайт',
-                            style: TextStyle(color: context.colors.progressText),
+                            style: TextStyle(
+                              color: context.colors.progressText,
+                            ),
                           ),
                         ],
                       ),
@@ -237,7 +246,9 @@ class _LockedListingRow extends StatelessWidget {
           Expanded(
             child: Text.rich(
               TextSpan(
-                text: site != null ? 'Объявление на ' : 'Объявление на другом сайте',
+                text: site != null
+                    ? 'Объявление на '
+                    : 'Объявление на другом сайте',
                 children: [
                   if (site != null)
                     TextSpan(
@@ -253,7 +264,11 @@ class _LockedListingRow extends StatelessWidget {
                   ),
                 ],
               ),
-              style: TextStyle(fontSize: 12.5, height: 1.4, color: context.colors.text2),
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                color: context.colors.text2,
+              ),
             ),
           ),
           Icon(Icons.lock_outline, size: 14, color: context.colors.text3),

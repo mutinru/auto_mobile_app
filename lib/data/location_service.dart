@@ -50,16 +50,16 @@ class GeolocatorLocationService implements LocationService {
       // последняя известная точка приходит мгновенно, для города её хватает —
       // если она свежая: после перелёта в кеше лежит прошлый город
       final last = await Geolocator.getLastKnownPosition();
-      final fresh = last != null &&
-          DateTime.now().difference(last.timestamp) < _maxAge;
+      final fresh =
+          last != null && DateTime.now().difference(last.timestamp) < _maxAge;
       final position = fresh
           ? last
           : await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.low,
-              timeLimit: Duration(seconds: 10),
-            ),
-          );
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.low,
+                timeLimit: Duration(seconds: 10),
+              ),
+            );
       return (position.latitude, position.longitude);
     } catch (_) {
       // таймаут, отказ платформы — для подсказки города это не ошибка

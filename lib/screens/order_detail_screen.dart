@@ -87,7 +87,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
     // править кандидата может только исполнитель; заказчик смотрит —
     // сервер ему запись всё равно не разрешит (403)
-    final isExecutor = _order?.executor != null && _order!.executor!.id == widget.auth!.user?.id;
+    final isExecutor =
+        _order?.executor != null &&
+        _order!.executor!.id == widget.auth!.user?.id;
     // завершить можно только начатый осмотр: завершённый правится, но итог уже есть
     final canFinish = isExecutor && car.inspectionStatus == 'in_progress';
     // стор — до маршрута: builder перезапускается при смене темы
@@ -112,7 +114,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
     );
     await _load();
-    if (finish && mounted && _order != null) await _finishCandidate(_order!, car);
+    if (finish && mounted && _order != null) {
+      await _finishCandidate(_order!, car);
+    }
   }
 
   /// Итог осмотра кандидата: вердикт и комментарий. Заказ остаётся в поиске,
@@ -177,7 +181,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (carId == null || !mounted) return;
     setState(() => _completing = true);
     try {
-      final updated = await widget.store.completeSelection(order.id, carId: carId);
+      final updated = await widget.store.completeSelection(
+        order.id,
+        carId: carId,
+      );
       if (mounted) setState(() => _order = updated);
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -191,7 +198,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   bool _canCompletePurchase(Order order) =>
       widget.viewerIsCustomer &&
       !order.isInspection &&
-      (order.status == OrderStatus.sourcing || order.status == OrderStatus.inspecting) &&
+      (order.status == OrderStatus.sourcing ||
+          order.status == OrderStatus.inspecting) &&
       order.cars.isNotEmpty;
 
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
@@ -223,8 +231,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       initial: order.review,
       onSubmit: (rating, text) async {
         final updated = order.review == null
-            ? await widget.store.leaveReview(order.id, rating: rating, text: text)
-            : await widget.store.updateReview(order.id, rating: rating, text: text);
+            ? await widget.store.leaveReview(
+                order.id,
+                rating: rating,
+                text: text,
+              )
+            : await widget.store.updateReview(
+                order.id,
+                rating: rating,
+                text: text,
+              );
         if (mounted) setState(() => _order = updated);
       },
     );
@@ -249,7 +265,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     style: IconButton.styleFrom(
                       backgroundColor: context.colors.bg1,
                       foregroundColor: context.colors.text1,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -270,8 +288,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: _error != null && !_loading
                   ? _buildError(_error!)
                   : _loading || _order == null
-                      ? const Center(child: CircularProgressIndicator())
-                      : _buildBody(_order!),
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildBody(_order!),
             ),
           ],
         ),
@@ -311,13 +329,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         const SizedBox(height: 10),
         Text(
           order.carTitle,
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: context.colors.text1),
+          style: TextStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w600,
+            color: context.colors.text1,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           [
             if (order.cities.isNotEmpty) order.cities.join(', '),
-            if (order.mileageTo != null) 'пробег до ${money(order.mileageTo!)} км',
+            if (order.mileageTo != null)
+              'пробег до ${money(order.mileageTo!)} км',
             ?budgetRange(order.budgetMin, order.budgetMax),
           ].join(' · '),
           style: TextStyle(fontSize: 12.5, color: context.colors.text2),
@@ -330,25 +353,40 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             children: [
               for (final r in order.requirements)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text(r, style: TextStyle(fontSize: 11.5, color: context.colors.text2)),
+                  child: Text(
+                    r,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: context.colors.text2,
+                    ),
+                  ),
                 ),
             ],
           ),
         ],
         if (order.comment != null && order.comment!.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text(order.comment!, style: TextStyle(fontSize: 13, color: context.colors.text2)),
+          Text(
+            order.comment!,
+            style: TextStyle(fontSize: 13, color: context.colors.text2),
+          ),
         ],
         if (order.executor != null) ...[
           const SizedBox(height: 22),
           _SectionLabel('Исполнитель'),
           const SizedBox(height: 8),
-          _InfoRow(label: order.executor!.name, trailing: order.price != null ? '${money(order.price!)} ₽' : null),
+          _InfoRow(
+            label: order.executor!.name,
+            trailing: order.price != null ? '${money(order.price!)} ₽' : null,
+          ),
           Padding(
             padding: const EdgeInsets.only(left: 13),
             child: ExecutorStats(
@@ -371,9 +409,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               label: car.title,
               trailing: car.inspectionLabel,
               // исход покупки важнее вердикта; вердикт — его цветом
-              trailingColor: car.inspectionOutcome == InspectionOutcome.purchased
+              trailingColor:
+                  car.inspectionOutcome == InspectionOutcome.purchased
                   ? context.colors.statusDone
-                  : (car.inspectionOutcome == null ? car.verdict?.color(context.colors) : null),
+                  : (car.inspectionOutcome == null
+                        ? car.verdict?.color(context.colors)
+                        : null),
               onTap: car.inspectionId != null && widget.auth != null
                   ? () => _openInspection(car)
                   : null,
@@ -407,24 +448,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(color: context.colors.bg1, borderRadius: BorderRadius.circular(13)),
+              decoration: BoxDecoration(
+                color: context.colors.bg1,
+                borderRadius: BorderRadius.circular(13),
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(r.executor.name, style: TextStyle(fontWeight: FontWeight.w600, color: context.colors.text1)),
+                        Text(
+                          r.executor.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: context.colors.text1,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         ExecutorStats(
                           user: r.executor,
                           onTap: () => _showReviews(order, r.executor),
                         ),
                         const SizedBox(height: 2),
-                        Text('${money(r.proposedPrice)} ₽', style: TextStyle(fontSize: 12, color: context.colors.text2)),
+                        Text(
+                          '${money(r.proposedPrice)} ₽',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.colors.text2,
+                          ),
+                        ),
                         if (r.message != null) ...[
                           const SizedBox(height: 4),
-                          Text(r.message!, style: TextStyle(fontSize: 11.5, color: context.colors.text3)),
+                          Text(
+                            r.message!,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: context.colors.text3,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -435,15 +497,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: context.colors.statusDone,
                         foregroundColor: context.colors.modeBuyInk,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      child: const Text('Принять', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Принять',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   else
                     Text(
                       r.status.label,
-                      style: TextStyle(fontSize: 11, color: context.colors.text3),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.colors.text3,
+                      ),
                     ),
                 ],
               ),
@@ -469,13 +545,23 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: TextStyle(fontSize: 10, letterSpacing: 1.2, color: context.colors.text3, fontWeight: FontWeight.w600),
+      style: TextStyle(
+        fontSize: 10,
+        letterSpacing: 1.2,
+        color: context.colors.text3,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, this.trailing, this.trailingColor, this.onTap});
+  const _InfoRow({
+    required this.label,
+    this.trailing,
+    this.trailingColor,
+    this.onTap,
+  });
   final String label;
   final String? trailing;
   final Color? trailingColor;
@@ -487,26 +573,35 @@ class _InfoRow extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-      decoration: BoxDecoration(color: context.colors.bg1, borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 13, color: context.colors.text1)),
-          if (trailing != null)
-            Text(trailing!, style: TextStyle(
-              fontSize: 12,
-              color: trailingColor == null
-                  ? context.colors.text2
-                  : context.colors.textFor(trailingColor!),
-            )),
-          if (onTap != null) ...[
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        decoration: BoxDecoration(
+          color: context.colors.bg1,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, color: context.colors.text1),
+            ),
+            if (trailing != null)
+              Text(
+                trailing!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: trailingColor == null
+                      ? context.colors.text2
+                      : context.colors.textFor(trailingColor!),
+                ),
+              ),
+            if (onTap != null) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }

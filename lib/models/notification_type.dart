@@ -53,22 +53,22 @@ extension NotificationTypeX on NotificationType {
   /// созданные до этого поля). Спор приходит обеим сторонам — берём
   /// заказчика: его экран покажет только то, что ему видно.
   bool get defaultViewerIsCustomer => switch (this) {
-        NotificationType.executorAssigned ||
-        NotificationType.responseRejected ||
-        NotificationType.deadlineSoon ||
-        NotificationType.deadlineMissed ||
-        NotificationType.orderRescheduled ||
-        NotificationType.paymentSent ||
-        NotificationType.orderCompleted ||
-        NotificationType.orderCancelled ||
-        NotificationType.reviewReceived =>
-          false,
-        _ => true,
-      };
+    NotificationType.executorAssigned ||
+    NotificationType.responseRejected ||
+    NotificationType.deadlineSoon ||
+    NotificationType.deadlineMissed ||
+    NotificationType.orderRescheduled ||
+    NotificationType.paymentSent ||
+    NotificationType.orderCompleted ||
+    NotificationType.orderCancelled ||
+    NotificationType.reviewReceived => false,
+    _ => true,
+  };
 
   /// Открывается ли заказ по тапу. Отклонённый и сорвавший срок исполнитель
   /// заказ уже не видит (сервер ответит 403) — такое уведомление только
   /// читается. Перенесённый заказ снова в ленте — его открываем.
   bool get opensOrder =>
-      this != NotificationType.responseRejected && this != NotificationType.deadlineMissed;
+      this != NotificationType.responseRejected &&
+      this != NotificationType.deadlineMissed;
 }

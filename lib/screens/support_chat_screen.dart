@@ -22,7 +22,8 @@ class SupportChatScreen extends StatefulWidget {
   State<SupportChatScreen> createState() => _SupportChatScreenState();
 }
 
-class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindingObserver {
+class _SupportChatScreenState extends State<SupportChatScreen>
+    with WidgetsBindingObserver {
   /// Ограничения бекенда: до 5 фото и 4000 символов на сообщение.
   static const _maxPhotos = 5;
   static const _maxLength = 4000;
@@ -55,7 +56,8 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _store.resume();
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
       _store.pause();
     }
   }
@@ -93,7 +95,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
   }
 
   bool get _canSend =>
-      !_store.isSending && _store.conversation != null && (_text.text.trim().isNotEmpty || _photos.isNotEmpty);
+      !_store.isSending &&
+      _store.conversation != null &&
+      (_text.text.trim().isNotEmpty || _photos.isNotEmpty);
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +132,10 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Не удалось открыть чат', style: TextStyle(fontSize: 14, color: c.text1)),
+            Text(
+              'Не удалось открыть чат',
+              style: TextStyle(fontSize: 14, color: c.text1),
+            ),
             const SizedBox(height: 6),
             Text(
               _store.error!,
@@ -171,8 +178,12 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
         final message = items[i];
         // соседи в хронологическом порядке: older — выше на экране
         final older = i + 1 < items.length ? items[i + 1] : null;
-        final newDay = older == null || !_sameDay(older.createdAt, message.createdAt);
-        final showName = !message.isMine && !message.isSystem && (newDay || older.isMine || older.isSystem);
+        final newDay =
+            older == null || !_sameDay(older.createdAt, message.createdAt);
+        final showName =
+            !message.isMine &&
+            !message.isSystem &&
+            (newDay || older.isMine || older.isSystem);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -209,7 +220,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) => _PickedPhoto(
                   path: _photos[i],
-                  onRemove: _store.isSending ? null : () => setState(() => _photos.removeAt(i)),
+                  onRemove: _store.isSending
+                      ? null
+                      : () => setState(() => _photos.removeAt(i)),
                 ),
               ),
             ),
@@ -219,7 +232,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
             children: [
               SquareIconButton(
                 icon: Icons.photo_outlined,
-                onTap: _store.isSending || _photos.length >= _maxPhotos ? () {} : _pickPhotos,
+                onTap: _store.isSending || _photos.length >= _maxPhotos
+                    ? () {}
+                    : _pickPhotos,
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -237,7 +252,10 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
                     isDense: true,
                     filled: true,
                     fillColor: c.bg1,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: c.line),
@@ -265,7 +283,8 @@ class _SupportChatScreenState extends State<SupportChatScreen> with WidgetsBindi
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 class _DaySeparator extends StatelessWidget {
@@ -278,7 +297,10 @@ class _DaySeparator extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Center(
-        child: Text(label, style: TextStyle(fontSize: 11, color: context.colors.text3)),
+        child: Text(
+          label,
+          style: TextStyle(fontSize: 11, color: context.colors.text3),
+        ),
       ),
     );
   }
@@ -287,7 +309,11 @@ class _DaySeparator extends StatelessWidget {
 /// Пузырь: моё — справа на акценте, поддержка — слева на bg1,
 /// системное — строкой по центру.
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, required this.showName, required this.headers});
+  const _MessageBubble({
+    required this.message,
+    required this.showName,
+    required this.headers,
+  });
 
   final ChatMessage message;
   final bool showName;
@@ -321,16 +347,24 @@ class _MessageBubble extends StatelessWidget {
       child: Align(
         alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.78),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * 0.78,
+          ),
           child: Column(
-            crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: mine
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               if (showName && message.senderName != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 3, top: 4),
                   child: Text(
                     message.senderName!,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.text2),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: c.text2,
+                    ),
                   ),
                 ),
               Container(
@@ -347,7 +381,10 @@ class _MessageBubble extends StatelessWidget {
                     for (final a in message.attachments)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
-                        child: _AttachmentThumb(attachment: a, headers: headers),
+                        child: _AttachmentThumb(
+                          attachment: a,
+                          headers: headers,
+                        ),
                       ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
@@ -357,10 +394,20 @@ class _MessageBubble extends StatelessWidget {
                         spacing: 8,
                         children: [
                           if (message.body != null && message.body!.isNotEmpty)
-                            Text(message.body!, style: TextStyle(fontSize: 14, color: ink, height: 1.35)),
+                            Text(
+                              message.body!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: ink,
+                                height: 1.35,
+                              ),
+                            ),
                           Text(
                             hhmm(message.createdAt),
-                            style: TextStyle(fontSize: 10, color: ink.withValues(alpha: 0.6)),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: ink.withValues(alpha: 0.6),
+                            ),
                           ),
                         ],
                       ),
@@ -424,7 +471,10 @@ class _PhotoViewer extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            DetailHead(title: 'Фото', onBack: () => Navigator.of(context).pop()),
+            DetailHead(
+              title: 'Фото',
+              onBack: () => Navigator.of(context).pop(),
+            ),
             Expanded(
               child: InteractiveViewer(
                 maxScale: 5,
@@ -452,7 +502,12 @@ class _PickedPhoto extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.file(File(path), width: 64, height: 64, fit: BoxFit.cover),
+          child: Image.file(
+            File(path),
+            width: 64,
+            height: 64,
+            fit: BoxFit.cover,
+          ),
         ),
         if (onRemove != null)
           Positioned(
@@ -500,9 +555,16 @@ class _SendButton extends StatelessWidget {
           child: busy
               ? Padding(
                   padding: const EdgeInsets.all(11),
-                  child: CircularProgressIndicator(strokeWidth: 2, color: c.text2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: c.text2,
+                  ),
                 )
-              : Icon(Icons.arrow_upward, size: 20, color: active ? c.infoInk : c.text3),
+              : Icon(
+                  Icons.arrow_upward,
+                  size: 20,
+                  color: active ? c.infoInk : c.text3,
+                ),
         ),
       ),
     );

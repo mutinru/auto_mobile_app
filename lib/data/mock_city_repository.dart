@@ -10,12 +10,54 @@ class MockCityRepository implements CityRepository {
   bool fail;
 
   static const cities = [
-    City(id: 'msk', name: 'Москва', region: 'Москва', lat: 55.754, lon: 37.620, population: 11514330),
-    City(id: 'spb', name: 'Санкт-Петербург', region: 'Санкт-Петербург', lat: 59.939, lon: 30.316, population: 4848742),
-    City(id: 'kzn', name: 'Казань', region: 'Респ Татарстан', lat: 55.794, lon: 49.111, population: 1143535),
-    City(id: 'khimki', name: 'Химки', region: 'Московская обл', lat: 55.889, lon: 37.445, population: 207425),
-    City(id: 'mytishchi', name: 'Мытищи', region: 'Московская обл', lat: 55.911, lon: 37.731, population: 173160),
-    City(id: 'orel', name: 'Орёл', region: 'Орловская обл', lat: 52.970, lon: 36.064, population: 317854),
+    City(
+      id: 'msk',
+      name: 'Москва',
+      region: 'Москва',
+      lat: 55.754,
+      lon: 37.620,
+      population: 11514330,
+    ),
+    City(
+      id: 'spb',
+      name: 'Санкт-Петербург',
+      region: 'Санкт-Петербург',
+      lat: 59.939,
+      lon: 30.316,
+      population: 4848742,
+    ),
+    City(
+      id: 'kzn',
+      name: 'Казань',
+      region: 'Респ Татарстан',
+      lat: 55.794,
+      lon: 49.111,
+      population: 1143535,
+    ),
+    City(
+      id: 'khimki',
+      name: 'Химки',
+      region: 'Московская обл',
+      lat: 55.889,
+      lon: 37.445,
+      population: 207425,
+    ),
+    City(
+      id: 'mytishchi',
+      name: 'Мытищи',
+      region: 'Московская обл',
+      lat: 55.911,
+      lon: 37.731,
+      population: 173160,
+    ),
+    City(
+      id: 'orel',
+      name: 'Орёл',
+      region: 'Орловская обл',
+      lat: 52.970,
+      lon: 36.064,
+      population: 317854,
+    ),
   ];
 
   @override

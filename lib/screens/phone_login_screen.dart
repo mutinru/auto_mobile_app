@@ -63,11 +63,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     super.dispose();
   }
 
-  String get _phoneDigits => _phoneController.text.replaceAll(RegExp(r'\D'), '');
+  String get _phoneDigits =>
+      _phoneController.text.replaceAll(RegExp(r'\D'), '');
 
   /// Сколько ещё ждать для введённого номера; null — можно запрашивать.
   Duration? get _cooldownLeft =>
-      _resendLeft > 0 && _cooldownPhone == _phoneDigits ? Duration(seconds: _resendLeft) : null;
+      _resendLeft > 0 && _cooldownPhone == _phoneDigits
+      ? Duration(seconds: _resendLeft)
+      : null;
 
   /// Счётчик секунд, а не отметка времени: так отсчёт идёт и в виджет-тестах
   /// с подменённым временем. Погрешность в доли секунды здесь не важна.
@@ -112,7 +115,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       });
       if (devCode != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Код не отправлялся (режим разработки), подставлен автоматически')),
+          const SnackBar(
+            content: Text(
+              'Код не отправлялся (режим разработки), подставлен автоматически',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -128,7 +135,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       _error = null;
     });
     try {
-      await widget.auth.verifyPhoneCode(_phoneController.text, _codeController.text);
+      await widget.auth.verifyPhoneCode(
+        _phoneController.text,
+        _codeController.text,
+      );
       widget.onLoggedIn();
     } catch (e) {
       _fail(e);
@@ -188,7 +198,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 // .auth-proof — соцдоказательство из макета.
                 // Аватарки декоративные: списка исполнителей публично нет.
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     color: context.colors.bg1,
                     borderRadius: BorderRadius.circular(12),
@@ -232,7 +245,11 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   _codeSent
                       ? 'Отправили код на +7 ${_phoneController.text}. ${codeChannelHint(_channel)}'
                       : codeChannelHint(null),
-                  style: TextStyle(fontSize: 12, color: context.colors.text2, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.text2,
+                    height: 1.4,
+                  ),
                 ),
 
                 if (_codeSent) ...[
@@ -262,10 +279,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   label: _codeSent
                       ? 'Войти'
                       : cooldown == null
-                          ? 'Получить код'
-                          : 'Получить код через ${formatCountdown(cooldown)}',
+                      ? 'Получить код'
+                      : 'Получить код через ${formatCountdown(cooldown)}',
                   loading: _busy,
-                  onPressed: _codeSent ? _verify : (cooldown == null ? _requestCode : null),
+                  onPressed: _codeSent
+                      ? _verify
+                      : (cooldown == null ? _requestCode : null),
                 ),
                 if (_codeSent) ...[
                   CtaGhost(
@@ -305,7 +324,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       child: Text.rich(
                         TextSpan(
                           children: [
-                            TextSpan(text: 'Заказать подбор можно сразу после входа. '),
+                            TextSpan(
+                              text: 'Заказать подбор можно сразу после входа. ',
+                            ),
                             TextSpan(
                               text: 'Брать заказы',
                               style: TextStyle(
@@ -345,4 +366,3 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     );
   }
 }
-

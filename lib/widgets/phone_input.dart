@@ -99,7 +99,10 @@ class PhoneMask extends TextInputFormatter {
 
     // сколько цифр стояло слева от курсора — по ним вернём его на место
     final digitsBeforeCursor = newValue.text
-        .substring(0, newValue.selection.baseOffset.clamp(0, newValue.text.length))
+        .substring(
+          0,
+          newValue.selection.baseOffset.clamp(0, newValue.text.length),
+        )
         .replaceAll(RegExp(r'\D'), '')
         .length;
 

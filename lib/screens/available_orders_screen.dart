@@ -58,8 +58,11 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
     final sent = await showRespondSheet(
       context,
       order: order,
-      onSubmit: (price, message, _) =>
-          widget.store.respondToOrder(order.id, proposedPrice: price, message: message),
+      onSubmit: (price, message, _) => widget.store.respondToOrder(
+        order.id,
+        proposedPrice: price,
+        message: message,
+      ),
     );
     if (sent == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,8 +78,9 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
       builder: (context, _) {
         // осмотры на карте не рисуем: у них нет ни координат, ни бюджета,
         // из которых собран пин
-        final orders =
-            widget.store.availableOrders.where((o) => !o.isInspection).toList();
+        final orders = widget.store.availableOrders
+            .where((o) => !o.isInspection)
+            .toList();
 
         return Scaffold(
           body: SafeArea(
@@ -97,8 +101,11 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                       Expanded(
                         child: _RegionButton(
                           icon: Icons.location_on_outlined,
-                          title: _city?.name ??
-                              (_locating ? 'Определяем…' : 'Город не определён'),
+                          title:
+                              _city?.name ??
+                              (_locating
+                                  ? 'Определяем…'
+                                  : 'Город не определён'),
                           sub: _city?.region ?? 'по геопозиции',
                           chevron: true,
                         ),
@@ -113,7 +120,9 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: CustomPaint(painter: CityMapPainter(context.colors.map)),
+                        child: CustomPaint(
+                          painter: CityMapPainter(context.colors.map),
+                        ),
                       ),
                       // .map-me — точка «вы здесь» (52% / 50% в макете)
                       const Positioned.fill(
@@ -122,15 +131,19 @@ class _AvailableOrdersScreenState extends State<AvailableOrdersScreen> {
                           child: _MeDot(),
                         ),
                       ),
-                      for (var i = 0; i < orders.length && i < _pinSpots.length; i++)
+                      for (
+                        var i = 0;
+                        i < orders.length && i < _pinSpots.length;
+                        i++
+                      )
                         _Pin(
                           spot: _pinSpots[i],
                           label: orders[i].budgetMax != null
                               ? '${money(orders[i].budgetMax! ~/ 1000)}К'
                               : orders[i].budgetMin != null
-                                  // без потолка — «от min»
-                                  ? '${money(orders[i].budgetMin! ~/ 1000)}К+'
-                                  : '#${orders[i].id}',
+                              // без потолка — «от min»
+                              ? '${money(orders[i].budgetMin! ~/ 1000)}К+'
+                              : '#${orders[i].id}',
                           hot: i == 0,
                           onTap: () => _respond(orders[i]),
                         ),
@@ -212,7 +225,11 @@ class _RegionButton extends StatelessWidget {
           ),
           if (chevron) ...[
             const SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, size: 14, color: context.colors.text3),
+            Icon(
+              Icons.keyboard_arrow_down,
+              size: 14,
+              color: context.colors.text3,
+            ),
           ],
         ],
       ),
@@ -324,7 +341,11 @@ class _Sheet extends StatelessWidget {
         border: Border(top: BorderSide(color: context.colors.line)),
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         boxShadow: [
-          BoxShadow(color: context.colors.sheetShadow, blurRadius: 40, offset: Offset(0, -18)),
+          BoxShadow(
+            color: context.colors.sheetShadow,
+            blurRadius: 40,
+            offset: Offset(0, -18),
+          ),
         ],
       ),
       child: Column(
@@ -373,23 +394,26 @@ class _Sheet extends StatelessWidget {
                     child: CircularProgressIndicator(),
                   )
                 : orders.isEmpty
-                    ? Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          'Рядом пока пусто',
-                          style: TextStyle(color: context.colors.text3, fontSize: 12),
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        padding: EdgeInsets.zero,
-                        itemCount: orders.length,
-                        itemBuilder: (context, i) => _JobCard(
-                          order: orders[i],
-                          first: i == 0,
-                          onRespond: () => onRespond(orders[i]),
-                        ),
+                ? Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'Рядом пока пусто',
+                      style: TextStyle(
+                        color: context.colors.text3,
+                        fontSize: 12,
                       ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: orders.length,
+                    itemBuilder: (context, i) => _JobCard(
+                      order: orders[i],
+                      first: i == 0,
+                      onRespond: () => onRespond(orders[i]),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -469,8 +493,12 @@ class _JobCard extends StatelessWidget {
             child: ElevatedButton(
               onPressed: order.hasViewerResponse ? null : onRespond,
               style: ElevatedButton.styleFrom(
-                backgroundColor: first ? context.colors.statusDone : context.colors.bg3,
-                foregroundColor: first ? context.colors.modeBuyInk : context.colors.text1,
+                backgroundColor: first
+                    ? context.colors.statusDone
+                    : context.colors.bg3,
+                foregroundColor: first
+                    ? context.colors.modeBuyInk
+                    : context.colors.text1,
                 disabledBackgroundColor: context.colors.bg3,
                 disabledForegroundColor: context.colors.text3,
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -481,7 +509,10 @@ class _JobCard extends StatelessWidget {
               ),
               child: Text(
                 order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

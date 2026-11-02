@@ -21,13 +21,15 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 /// Заказ не грузится — сеть, 500 или что угодно.
 class _FailingOrders extends MockOrderRepository {
   @override
-  Future<Order> fetchOrder(int id) async => throw ApiException(500, '<html>502 Bad Gateway</html>');
+  Future<Order> fetchOrder(int id) async =>
+      throw ApiException(500, '<html>502 Bad Gateway</html>');
 }
 
 /// Осмотр не грузится.
 class _FailingInspection extends MockInspectionRepository {
   @override
-  Future<InspectionSnapshot> fetchInspection() async => throw ApiException(500, '{"message":"Server Error"}');
+  Future<InspectionSnapshot> fetchInspection() async =>
+      throw ApiException(500, '{"message":"Server Error"}');
 }
 
 void main() {
@@ -60,17 +62,26 @@ void main() {
       final client = ApiClient(auth);
 
       await http.runWithClient(
-        () => expectLater(client.get('/orders/mine'), throwsA(isA<ApiException>())),
-        () => MockClient((_) async => http.Response('{"message":"Server Error"}', 500)),
+        () => expectLater(
+          client.get('/orders/mine'),
+          throwsA(isA<ApiException>()),
+        ),
+        () => MockClient(
+          (_) async => http.Response('{"message":"Server Error"}', 500),
+        ),
       );
       expect(auth.isAuthenticated, isTrue);
 
       await http.runWithClient(
         () => expectLater(
           client.get('/orders/mine'),
-          throwsA(isA<ApiException>().having((e) => e.statusCode, 'statusCode', 401)),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'statusCode', 401),
+          ),
         ),
-        () => MockClient((_) async => http.Response('{"message":"Unauthenticated."}', 401)),
+        () => MockClient(
+          (_) async => http.Response('{"message":"Unauthenticated."}', 401),
+        ),
       );
       expect(auth.isAuthenticated, isFalse);
       expect(auth.sessionExpired, isTrue);
@@ -78,15 +89,23 @@ void main() {
   });
 
   group('нет вечного спиннера', () {
-    testWidgets('карточка подбора: ошибка и «Повторить» вместо спиннера', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: OrderDetailScreen(
-          store: OrderStore(_FailingOrders(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
-          orderId: 2044,
-          viewerIsCustomer: true,
+    testWidgets('карточка подбора: ошибка и «Повторить» вместо спиннера', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: OrderDetailScreen(
+            store: OrderStore(
+              _FailingOrders(),
+              catalog: MockCarCatalogRepository(),
+              cities: MockCityRepository(),
+            ),
+            orderId: 2044,
+            viewerIsCustomer: true,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -96,12 +115,19 @@ void main() {
       expect(find.text('Повторить'), findsOneWidget);
     });
 
-    testWidgets('отчёт осмотра: ошибка стора видна, без сырого ApiException', (tester) async {
+    testWidgets('отчёт осмотра: ошибка стора видна, без сырого ApiException', (
+      tester,
+    ) async {
       final order = await MockOrderRepository().fetchOrder(2047);
-      await tester.pumpWidget(MaterialApp(
-        theme: AppTheme.dark,
-        home: InspectionReportScreen(store: InspectionStore(_FailingInspection()), order: order),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: InspectionReportScreen(
+            store: InspectionStore(_FailingInspection()),
+            order: order,
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(CircularProgressIndicator), findsNothing);

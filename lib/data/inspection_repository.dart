@@ -15,7 +15,10 @@ typedef InspectionSnapshot = ({Car car, List<InspectionPanel> panels});
 abstract class InspectionRepository {
   Future<InspectionSnapshot> fetchInspection();
   Future<List<DefectDef>> fetchDefectCatalog();
-  Future<InspectionPanel> updateCondition(String panelId, PanelCondition condition);
+  Future<InspectionPanel> updateCondition(
+    String panelId,
+    PanelCondition condition,
+  );
   Future<InspectionPanel> toggleDefect(String panelId, int defectId);
 
   /// Загрузить снимок детали (multipart). Возвращает обновлённую деталь.
@@ -23,7 +26,11 @@ abstract class InspectionRepository {
 
   /// Загрузить или заменить голосовую заметку детали (одна на деталь).
   /// Длительность считает клиент — сервер аудио не разбирает.
-  Future<InspectionPanel> uploadAudioNote(String panelId, String filePath, int durationSeconds);
+  Future<InspectionPanel> uploadAudioNote(
+    String panelId,
+    String filePath,
+    int durationSeconds,
+  );
 
   Future<InspectionPanel> deleteAudioNote(String panelId);
 }

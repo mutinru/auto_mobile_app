@@ -96,7 +96,8 @@ class OrderCard extends StatelessWidget {
               const SizedBox(height: 5),
               Text(_selectionMeta(order), style: context.text.orderMeta),
             ],
-            if (order.canReview || order.review != null) _ReviewRow(order: order),
+            if (order.canReview || order.review != null)
+              _ReviewRow(order: order),
             const SizedBox(height: 12),
             // .order-foot
             Container(height: 1, color: context.colors.line),
@@ -109,10 +110,10 @@ class OrderCard extends StatelessWidget {
   }
 
   static String _selectionMeta(Order order) => [
-        if (order.cities.isNotEmpty) order.cities.first,
-        ?budgetShort(order.budgetMin, order.budgetMax),
-        if (order.requirements.isNotEmpty) order.requirements.first,
-      ].join(' · ');
+    if (order.cities.isNotEmpty) order.cities.first,
+    ?budgetShort(order.budgetMin, order.budgetMax),
+    if (order.requirements.isNotEmpty) order.requirements.first,
+  ].join(' · ');
 }
 
 /// Напоминание об отзыве в завершённом заказе. Пушей нет, поэтому это и
@@ -132,7 +133,11 @@ class _ReviewRow extends StatelessWidget {
       padding: const EdgeInsets.only(top: 10),
       child: Row(
         children: [
-          Icon(Icons.star_rounded, size: 15, color: context.colors.statusProgress),
+          Icon(
+            Icons.star_rounded,
+            size: 15,
+            color: context.colors.statusProgress,
+          ),
           const SizedBox(width: 6),
           if (review == null)
             Text(
@@ -230,15 +235,36 @@ class _ActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
     final (text, icon, color) = switch (order.status) {
-      OrderStatus.disputed => ('Открыт спор по оплате', Icons.gavel_rounded, context.colors.statusDefect),
-      OrderStatus.awaitingDecision =>
-        ('Нужно решение: разместить заново или отменить', Icons.event_busy_outlined, context.colors.statusProgress),
-      OrderStatus.paymentSent when asExecutor =>
-        ('Подтвердите оплату$price', Icons.payments_outlined, context.colors.statusProgress),
-      OrderStatus.paymentSent =>
-        ('Ждём подтверждения оплаты', Icons.hourglass_empty_rounded, context.colors.statusProgress),
-      _ when asExecutor => ('Ждём оплату от заказчика$price', Icons.hourglass_empty_rounded, context.colors.statusProgress),
-      _ => ('Отчёт готов — оплатите$price', Icons.payments_outlined, context.colors.statusProgress),
+      OrderStatus.disputed => (
+        'Открыт спор по оплате',
+        Icons.gavel_rounded,
+        context.colors.statusDefect,
+      ),
+      OrderStatus.awaitingDecision => (
+        'Нужно решение: разместить заново или отменить',
+        Icons.event_busy_outlined,
+        context.colors.statusProgress,
+      ),
+      OrderStatus.paymentSent when asExecutor => (
+        'Подтвердите оплату$price',
+        Icons.payments_outlined,
+        context.colors.statusProgress,
+      ),
+      OrderStatus.paymentSent => (
+        'Ждём подтверждения оплаты',
+        Icons.hourglass_empty_rounded,
+        context.colors.statusProgress,
+      ),
+      _ when asExecutor => (
+        'Ждём оплату от заказчика$price',
+        Icons.hourglass_empty_rounded,
+        context.colors.statusProgress,
+      ),
+      _ => (
+        'Отчёт готов — оплатите$price',
+        Icons.payments_outlined,
+        context.colors.statusProgress,
+      ),
     };
 
     return Container(
@@ -263,7 +289,11 @@ class _ActionRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.colors.text1),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: context.colors.text1,
+              ),
             ),
           ),
         ],
@@ -280,12 +310,21 @@ class _WhenRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = order.inspectOn;
-    final soon = date != null &&
-        date.difference(DateTime(DateTime.now().year, DateTime.now().month,
-                DateTime.now().day))
-            .inDays <=
+    final soon =
+        date != null &&
+        date
+                .difference(
+                  DateTime(
+                    DateTime.now().year,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                  ),
+                )
+                .inDays <=
             1;
-    final color = soon ? context.colors.statusProgress : context.colors.statusInfo;
+    final color = soon
+        ? context.colors.statusProgress
+        : context.colors.statusInfo;
 
     return Container(
       margin: const EdgeInsets.only(top: 10),
@@ -303,7 +342,11 @@ class _WhenRow extends StatelessWidget {
               color: color.withValues(alpha: soon ? 0.16 : 0.14),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(Icons.calendar_today_outlined, size: 15, color: context.colors.textFor(color)),
+            child: Icon(
+              Icons.calendar_today_outlined,
+              size: 15,
+              color: context.colors.textFor(color),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -318,13 +361,17 @@ class _WhenRow extends StatelessWidget {
                     color: context.colors.text1,
                   ),
                 ),
-                if (order.fullAddress ?? order.cities.firstOrNull case final place?) ...[
+                if (order.fullAddress ?? order.cities.firstOrNull
+                    case final place?) ...[
                   const SizedBox(height: 2),
                   Text(
                     place,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: context.colors.text2),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: context.colors.text2,
+                    ),
                   ),
                 ],
               ],
@@ -361,7 +408,11 @@ class _VerdictRow extends StatelessWidget {
               color: verdict.color(context.colors).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(verdict.icon, size: 15, color: verdict.color(context.colors)),
+            child: Icon(
+              verdict.icon,
+              size: 15,
+              color: verdict.color(context.colors),
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -420,7 +471,9 @@ class _ReportButton extends StatelessWidget {
             foregroundColor: context.colors.doneText,
             side: BorderSide(color: context.colors.buyEdge),
             padding: const EdgeInsets.symmetric(vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11),
+            ),
           ),
         ),
       ),
@@ -451,7 +504,9 @@ class _AgainButton extends StatelessWidget {
             foregroundColor: context.colors.text2,
             side: BorderSide(color: context.colors.line),
             padding: const EdgeInsets.symmetric(vertical: 9),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(11),
+            ),
           ),
         ),
       ),
@@ -501,19 +556,24 @@ class OrderFoot extends StatelessWidget {
                     ),
                     children: [
                       // «Максим К. · приедет» — выезд назначен, но ещё не начат
-                      if (order.isInspection && order.status == OrderStatus.scheduled)
+                      if (order.isInspection &&
+                          order.status == OrderStatus.scheduled)
                         const TextSpan(text: ' · приедет'),
                     ],
                   ),
                   style: context.text.orderExec,
                 )
-              : Text(_responsesLabel(order.responses.length, order.isInspection),
-                  style: context.text.orderExec),
+              : Text(
+                  _responsesLabel(order.responses.length, order.isInspection),
+                  style: context.text.orderExec,
+                ),
         ),
         if (_price(order) != null)
           Text(
             _price(order)!,
-            style: context.text.orderPrice.copyWith(fontFamily: AppTheme.monoFamily),
+            style: context.text.orderPrice.copyWith(
+              fontFamily: AppTheme.monoFamily,
+            ),
           ),
       ],
     );
@@ -539,8 +599,8 @@ class OrderFoot extends StatelessWidget {
     final word = (mod10 == 1 && mod100 != 11)
         ? 'отклик'
         : (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-            ? 'отклика'
-            : 'откликов';
+        ? 'отклика'
+        : 'откликов';
     // у осмотра откликаются не подборщики, а исполнители — просто «3 отклика»
     return isInspection ? '$n $word' : '$n $word от подборщиков';
   }

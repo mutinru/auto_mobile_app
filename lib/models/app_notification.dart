@@ -44,7 +44,9 @@ class AppNotification {
       body: json['body'] as String? ?? '',
       orderId: json['order_id'] as int?,
       orderKind: orderKindFromApi(json['order_kind'] as String?),
-      viewerIsCustomer: role == null ? type.defaultViewerIsCustomer : role == 'customer',
+      viewerIsCustomer: role == null
+          ? type.defaultViewerIsCustomer
+          : role == 'customer',
       readAt: _date(json['read_at']),
       createdAt: _date(json['created_at']) ?? DateTime.now(),
     );

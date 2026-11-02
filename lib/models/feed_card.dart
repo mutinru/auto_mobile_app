@@ -20,6 +20,7 @@ class FeedCard {
   final OrderStatus status;
   final String car;
   final String? city;
+
   /// без потолка («15 млн+») max = null, тогда показываем «от min»
   final int? budgetMin;
   final int? budgetMax;
@@ -66,8 +67,8 @@ class FeedStats {
   final int inspections;
 
   factory FeedStats.fromJson(Map<String, dynamic> json) => FeedStats(
-        completed: json['completed'] as int,
-        inProgress: json['in_progress'] as int,
-        inspections: json['inspections'] as int,
-      );
+    completed: json['completed'] as int,
+    inProgress: json['in_progress'] as int,
+    inspections: json['inspections'] as int,
+  );
 }

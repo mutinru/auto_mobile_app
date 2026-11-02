@@ -42,6 +42,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   int get _budgetMin => BudgetScale.minAt(_budget.start.round());
   int? get _budgetMax => BudgetScale.maxAt(_budget.end.round());
+
   /// Пусто, пока не определили по геопозиции или не выбрали в листе.
   Set<String> _cities = {};
 
@@ -117,7 +118,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _submit() async {
     final year = int.tryParse(_yearController.text);
     final problem = switch (null) {
-      _ when _brandController.text.trim().isEmpty || _modelController.text.trim().isEmpty =>
+      _
+          when _brandController.text.trim().isEmpty ||
+              _modelController.text.trim().isEmpty =>
         'Укажите марку и модель',
       _ when year != null && yearProblem(year) != null => yearProblem(year),
       // без города исполнитель не поймёт, где искать; сервер тоже требует
@@ -125,7 +128,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       _ => null,
     };
     if (problem != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(problem)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(problem)));
       return;
     }
 
@@ -149,7 +154,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось создать заказ: ${apiErrorText(e)}')),
+          SnackBar(
+            content: Text('Не удалось создать заказ: ${apiErrorText(e)}'),
+          ),
         );
       }
     } finally {
@@ -240,7 +247,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       activeTrackColor: context.colors.statusDone,
                       inactiveTrackColor: context.colors.bg1,
                       thumbColor: context.colors.text1,
-                      overlayColor: context.colors.statusDone.withValues(alpha: 0.12),
+                      overlayColor: context.colors.statusDone.withValues(
+                        alpha: 0.12,
+                      ),
                       // в макете дорожка гладкая — деления не показываем
                       activeTickMarkColor: Colors.transparent,
                       inactiveTickMarkColor: Colors.transparent,
@@ -269,9 +278,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     children: [
                       // выбранные — тап снимает; остальное в листе
                       for (final c in _cities)
-                        AppChip(label: '$c  ×', on: true, onTap: () => _removeCity(c)),
+                        AppChip(
+                          label: '$c  ×',
+                          on: true,
+                          onTap: () => _removeCity(c),
+                        ),
                       AppChip(
-                        label: _cities.isEmpty ? '+ Выбрать город' : '+ Ещё город',
+                        label: _cities.isEmpty
+                            ? '+ Выбрать город'
+                            : '+ Ещё город',
                         on: false,
                         onTap: _pickCities,
                       ),
@@ -279,7 +294,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   ),
 
                   const SizedBox(height: 22),
-                  SectionHead('Важно', extra: 'выбрано ${_requirements.length}'),
+                  SectionHead(
+                    'Важно',
+                    extra: 'выбрано ${_requirements.length}',
+                  ),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
@@ -288,9 +306,11 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         AppChip(
                           label: r,
                           on: _requirements.contains(r),
-                          onTap: () => setState(() => _requirements.contains(r)
-                              ? _requirements.remove(r)
-                              : _requirements.add(r)),
+                          onTap: () => setState(
+                            () => _requirements.contains(r)
+                                ? _requirements.remove(r)
+                                : _requirements.add(r),
+                          ),
                         ),
                     ],
                   ),

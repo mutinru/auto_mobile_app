@@ -12,12 +12,15 @@ String apiErrorText(Object error) {
       401 => 'Сессия истекла — войдите заново',
       // бекенд пишет причину по-русски («Новый код можно запросить через
       // 87 с.»); английский дефолт Laravel и пустой ответ — общей фразой
-      429 => _isReadable(error.userMessage) && error.userMessage != 'Too Many Attempts.'
-          ? error.userMessage
-          : 'Слишком много запросов. Подождите немного и повторите',
-      503 => _isReadable(error.userMessage)
-          ? error.userMessage
-          : 'Сервис временно недоступен, попробуйте позже',
+      429 =>
+        _isReadable(error.userMessage) &&
+                error.userMessage != 'Too Many Attempts.'
+            ? error.userMessage
+            : 'Слишком много запросов. Подождите немного и повторите',
+      503 =>
+        _isReadable(error.userMessage)
+            ? error.userMessage
+            : 'Сервис временно недоступен, попробуйте позже',
       >= 500 => 'Ошибка на сервере, попробуйте позже',
       _ => error.userMessage,
     };
@@ -26,7 +29,8 @@ String apiErrorText(Object error) {
 }
 
 /// Сообщение сервера, а не сырое тело ответа.
-bool _isReadable(String message) => message.isNotEmpty && !message.startsWith('{');
+bool _isReadable(String message) =>
+    message.isNotEmpty && !message.startsWith('{');
 
 /// SnackBar с [apiErrorText] — стандартная реакция экрана на упавший запрос.
 void showApiError(BuildContext context, Object error) {

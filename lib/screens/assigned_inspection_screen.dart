@@ -99,7 +99,8 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     final ok = await showConfirmSheet(
       context,
       title: 'Отказаться от заказа?',
-      text: 'Заказ вернётся к другим исполнителям, повторно откликнуться на '
+      text:
+          'Заказ вернётся к другим исполнителям, повторно откликнуться на '
           'него не получится. Начатый осмотр будет удалён из вашего списка.',
       confirmLabel: 'Отказаться',
     );
@@ -118,7 +119,8 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     final ok = await showConfirmSheet(
       context,
       title: 'Оплата пришла?',
-      text: 'Проверьте поступление ${order.price == null ? '' : '${money(order.price!)} ₽ '}'
+      text:
+          'Проверьте поступление ${order.price == null ? '' : '${money(order.price!)} ₽ '}'
           'в банке. После подтверждения заказчик получит полный отчёт.',
       confirmLabel: 'Да, оплату получил',
     );
@@ -133,7 +135,10 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     return showDisputeSheet(
       context,
       onSubmit: (reason) async {
-        final updated = await widget.store.openDispute(order.id, reason: reason);
+        final updated = await widget.store.openDispute(
+          order.id,
+          reason: reason,
+        );
         if (mounted) setState(() => _order = updated);
       },
     );
@@ -157,7 +162,10 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
 
   /// «Отправить отчёт клиенту» в сводке осмотра закрывает осмотр до этого
   /// экрана и открывает шторку вердикта: отчёт заказчику — это и есть вердикт.
-  Future<void> _openInspection(int inspectionId, {bool readOnly = false}) async {
+  Future<void> _openInspection(
+    int inspectionId, {
+    bool readOnly = false,
+  }) async {
     final repo = ApiInspectionRepository(
       ApiClient(widget.auth!),
       inspectionId: inspectionId,
@@ -302,27 +310,29 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
     return switch (order.status) {
       OrderStatus.reportReady => [
-          const SizedBox(height: 22),
-          const SectionHead('Оплата'),
-          StatusNote(
-            text: 'Отчёт готов. Ждём оплату от заказчика:$price. Пока он не '
-                'оплатил, отчёт можно поправить.',
-          ),
-        ],
+        const SizedBox(height: 22),
+        const SectionHead('Оплата'),
+        StatusNote(
+          text:
+              'Отчёт готов. Ждём оплату от заказчика:$price. Пока он не '
+              'оплатил, отчёт можно поправить.',
+        ),
+      ],
       OrderStatus.paymentSent => [
-          const SizedBox(height: 22),
-          const SectionHead('Оплата'),
-          StatusNote(
-            icon: Icons.payments_outlined,
-            text: 'Заказчик отметил оплату$price. Проверьте поступление и '
-                'подтвердите — тогда он получит отчёт.',
-          ),
-        ],
+        const SizedBox(height: 22),
+        const SectionHead('Оплата'),
+        StatusNote(
+          icon: Icons.payments_outlined,
+          text:
+              'Заказчик отметил оплату$price. Проверьте поступление и '
+              'подтвердите — тогда он получит отчёт.',
+        ),
+      ],
       OrderStatus.disputed => [
-          const SizedBox(height: 22),
-          const SectionHead('Спор'),
-          DisputeBox(order: order, viewerId: order.executor?.id),
-        ],
+        const SizedBox(height: 22),
+        const SectionHead('Спор'),
+        DisputeBox(order: order, viewerId: order.executor?.id),
+      ],
       _ => const [],
     };
   }

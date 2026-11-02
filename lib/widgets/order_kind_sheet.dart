@@ -63,7 +63,8 @@ class _OrderKindSheet extends StatelessWidget {
             iconBg: context.colors.statusInfo,
             iconInk: context.colors.infoInk,
             name: 'Осмотреть конкретную машину',
-            description: 'Нашёл объявление. Специалист приедет по адресу, '
+            description:
+                'Нашёл объявление. Специалист приедет по адресу, '
                 'проверит кузов, двигатель и документы и пришлёт отчёт.',
             facts: const ['1–2 дня', 'одна машина', 'отчёт'],
           ),
@@ -73,7 +74,8 @@ class _OrderKindSheet extends StatelessWidget {
             iconBg: context.colors.modeBuy,
             iconInk: context.colors.modeBuyInk,
             name: 'Подобрать автомобиль',
-            description: 'Знаю, чего хочу, но машины ещё нет. '
+            description:
+                'Знаю, чего хочу, но машины ещё нет. '
                 'Подборщик найдёт варианты и проверит лучшие.',
             facts: const ['недели', 'несколько машин'],
           ),

@@ -37,7 +37,8 @@ class ApiException implements Exception {
       if (errors is Map) {
         return {
           for (final e in errors.entries)
-            if (e.value is List && (e.value as List).isNotEmpty) '${e.key}': '${(e.value as List).first}',
+            if (e.value is List && (e.value as List).isNotEmpty)
+              '${e.key}': '${(e.value as List).first}',
         };
       }
     } on FormatException {

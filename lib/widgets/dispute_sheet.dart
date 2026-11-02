@@ -10,7 +10,10 @@ Future<void> showDisputeSheet(
   BuildContext context, {
   required Future<void> Function(String reason) onSubmit,
 }) {
-  return showAppSheet<void>(context, (context) => _DisputeSheet(onSubmit: onSubmit));
+  return showAppSheet<void>(
+    context,
+    (context) => _DisputeSheet(onSubmit: onSubmit),
+  );
 }
 
 class _DisputeSheet extends StatefulWidget {
@@ -55,7 +58,8 @@ class _DisputeSheetState extends State<_DisputeSheet> {
   Widget build(BuildContext context) {
     return SheetFrame(
       title: 'Открыть спор',
-      subtitle: 'Опишите, что пошло не так с оплатой. Поддержка свяжется '
+      subtitle:
+          'Опишите, что пошло не так с оплатой. Поддержка свяжется '
           'с обеими сторонами и разберётся.',
       children: [
         FieldBoxInput(

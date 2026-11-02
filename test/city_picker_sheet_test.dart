@@ -43,22 +43,26 @@ void main() {
     CityLocator? locator,
   }) async {
     final result = <Set<String>?>[];
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () async => result.add(await showCityPickerSheet(
-              context,
-              cities: cities ?? MockCityRepository(),
-              selected: selected,
-              locator: locator,
-            )),
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async => result.add(
+                await showCityPickerSheet(
+                  context,
+                  cities: cities ?? MockCityRepository(),
+                  selected: selected,
+                  locator: locator,
+                ),
+              ),
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     return result;
@@ -76,7 +80,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('без запроса — крупные города, поиск сужает список', (tester) async {
+  testWidgets('без запроса — крупные города, поиск сужает список', (
+    tester,
+  ) async {
     await pumpPicker(tester);
     expect(find.text('КРУПНЫЕ ГОРОДА'), findsOneWidget);
     expect(find.text('Москва'), findsOneWidget);
@@ -130,7 +136,9 @@ void main() {
     expect(find.text('Санкт-Петербург'), findsOneWidget);
   });
 
-  testWidgets('«Определить по геопозиции» добавляет ближайший город', (tester) async {
+  testWidgets('«Определить по геопозиции» добавляет ближайший город', (
+    tester,
+  ) async {
     final result = await pumpPicker(
       tester,
       locator: CityLocator(MockCityRepository(), FakeLocation(khimki)),
@@ -156,22 +164,27 @@ void main() {
     expect(denied.calls, 2);
 
     // сеть упала — тоже null, без исключения
-    final offline = CityLocator(MockCityRepository(fail: true), FakeLocation(kazan));
+    final offline = CityLocator(
+      MockCityRepository(fail: true),
+      FakeLocation(kazan),
+    );
     expect(await offline.detect(), isNull);
   });
 
   Future<void> pumpNewOrder(WidgetTester tester, {CityLocator? locator}) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: NewOrderScreen(
-        store: OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
-          locator: locator,
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NewOrderScreen(
+          store: OrderStore(
+            MockOrderRepository(),
+            catalog: MockCarCatalogRepository(),
+            cities: MockCityRepository(),
+            locator: locator,
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 

@@ -31,7 +31,11 @@ void main() {
   Widget app(int orderId, [MockOrderRepository? repo]) => MaterialApp(
     theme: AppTheme.dark,
     home: AssignedInspectionScreen(
-      store: OrderStore(repo ?? MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
+      store: OrderStore(
+        repo ?? MockOrderRepository(),
+        catalog: MockCarCatalogRepository(),
+        cities: MockCityRepository(),
+      ),
       orderId: orderId,
     ),
   );

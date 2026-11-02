@@ -7,12 +7,12 @@ void main() {
   const f = VinFormatter();
 
   TextEditingValue apply(String input) => f.formatEditUpdate(
-        TextEditingValue.empty,
-        TextEditingValue(
-          text: input,
-          selection: TextSelection.collapsed(offset: input.length),
-        ),
-      );
+    TextEditingValue.empty,
+    TextEditingValue(
+      text: input,
+      selection: TextSelection.collapsed(offset: input.length),
+    ),
+  );
 
   test('обрезает до 17 знаков', () {
     expect(apply('XW8ZZZ61ZKG0KX24PZZZZ').text, 'XW8ZZZ61ZKG0KX24P');
@@ -29,15 +29,17 @@ void main() {
 
   testWidgets('поле VIN принимает форматтер', (tester) async {
     final c = TextEditingController();
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: FieldBoxInput(
-          label: 'VIN',
-          controller: c,
-          inputFormatters: const [VinFormatter()],
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FieldBoxInput(
+            label: 'VIN',
+            controller: c,
+            inputFormatters: const [VinFormatter()],
+          ),
         ),
       ),
-    ));
+    );
     await tester.enterText(find.byType(TextField), 'xw8zzz61zkg0kx24pQQQ');
     expect(c.text, 'XW8ZZZ61ZKG0KX24P');
   });

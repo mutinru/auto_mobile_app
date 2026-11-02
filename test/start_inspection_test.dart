@@ -27,8 +27,15 @@ class _CountingRepository extends MockOrderRepository {
     String? licensePlate,
   }) {
     added++;
-    return super.addCar(orderId,
-        brand: brand, model: model, year: year, vin: vin, mileageKm: mileageKm, licensePlate: licensePlate);
+    return super.addCar(
+      orderId,
+      brand: brand,
+      model: model,
+      year: year,
+      vin: vin,
+      mileageKm: mileageKm,
+      licensePlate: licensePlate,
+    );
   }
 }
 
@@ -46,14 +53,16 @@ void main() {
 
   Future<_CountingRepository> open(WidgetTester tester) async {
     final repo = _CountingRepository();
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: StartInspectionScreen(
-        repository: repo,
-        catalog: MockCarCatalogRepository(),
-        order: order,
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: StartInspectionScreen(
+          repository: repo,
+          catalog: MockCarCatalogRepository(),
+          order: order,
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     return repo;
   }
@@ -63,7 +72,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('пустая форма — все ошибки сразу, ничего не отправлено', (tester) async {
+  testWidgets('пустая форма — все ошибки сразу, ничего не отправлено', (
+    tester,
+  ) async {
     final repo = await open(tester);
     await start(tester);
 
@@ -96,15 +107,20 @@ void main() {
     expect(find.textContaining('Год — от 1990'), findsOneWidget);
   });
 
-  testWidgets('без черновика; госномер необязателен; тип — только полный', (tester) async {
+  testWidgets('без черновика; госномер необязателен; тип — только полный', (
+    tester,
+  ) async {
     await open(tester);
 
     expect(find.text('Сохранить как черновик'), findsNothing);
     expect(find.text('необязательно'), findsOneWidget);
 
     // «Экспресс» виден, но не выбирается
-    await tester.scrollUntilVisible(find.text('Экспресс'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Экспресс'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Экспресс'));
     await tester.pump();
     final full = tester.widget<Text>(find.text('Полный · 17 пунктов'));

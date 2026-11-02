@@ -65,7 +65,10 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   // стор живёт в State: экран переживает смену темы вместе с ним
-  late final _feed = NotificationStore(widget.repository, unread: widget.unread);
+  late final _feed = NotificationStore(
+    widget.repository,
+    unread: widget.unread,
+  );
 
   @override
   void initState() {
@@ -125,7 +128,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   trailing: unread > 0
                       ? TextButton(
                           onPressed: _readAll,
-                          child: Text('Прочитать все', style: context.text.ctaGhost),
+                          child: Text(
+                            'Прочитать все',
+                            style: context.text.ctaGhost,
+                          ),
                         )
                       : null,
                 ),
@@ -260,7 +266,9 @@ class _NotificationCard extends StatelessWidget {
         color: c.bg1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: n.isRead ? c.line : c.statusInfo.withValues(alpha: 0.45)),
+          side: BorderSide(
+            color: n.isRead ? c.line : c.statusInfo.withValues(alpha: 0.45),
+          ),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -291,7 +299,9 @@ class _NotificationCard extends StatelessWidget {
                               n.title,
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: n.isRead ? FontWeight.w500 : FontWeight.w600,
+                                fontWeight: n.isRead
+                                    ? FontWeight.w500
+                                    : FontWeight.w600,
                                 color: n.isRead ? c.text2 : c.text1,
                               ),
                             ),
@@ -322,7 +332,11 @@ class _NotificationCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         n.body,
-                        style: TextStyle(fontSize: 12.5, height: 1.4, color: c.text2),
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          color: c.text2,
+                        ),
                       ),
                     ],
                   ),
@@ -336,44 +350,41 @@ class _NotificationCard extends StatelessWidget {
   }
 
   static IconData _icon(NotificationType type) => switch (type) {
-        NotificationType.responseReceived => Icons.person_add_alt,
-        NotificationType.executorReleased => Icons.person_off_outlined,
-        NotificationType.reportReady => Icons.description_outlined,
-        NotificationType.reportOpened => Icons.lock_open,
-        NotificationType.inspectionDatePassed => Icons.event_busy_outlined,
-        NotificationType.candidateInspected => Icons.fact_check_outlined,
-        NotificationType.executorAssigned => Icons.check_circle_outline,
-        NotificationType.responseRejected => Icons.do_not_disturb_alt,
-        NotificationType.deadlineSoon => Icons.timer_outlined,
-        NotificationType.deadlineMissed => Icons.timer_off_outlined,
-        NotificationType.orderRescheduled => Icons.event_repeat_outlined,
-        NotificationType.paymentSent => Icons.payments_outlined,
-        NotificationType.orderCompleted => Icons.flag_outlined,
-        NotificationType.orderCancelled => Icons.cancel_outlined,
-        NotificationType.reviewReceived => Icons.star_outline,
-        NotificationType.disputeOpened => Icons.gavel,
-        NotificationType.disputeResolved => Icons.handshake_outlined,
-        NotificationType.unknown => Icons.notifications_none,
-      };
+    NotificationType.responseReceived => Icons.person_add_alt,
+    NotificationType.executorReleased => Icons.person_off_outlined,
+    NotificationType.reportReady => Icons.description_outlined,
+    NotificationType.reportOpened => Icons.lock_open,
+    NotificationType.inspectionDatePassed => Icons.event_busy_outlined,
+    NotificationType.candidateInspected => Icons.fact_check_outlined,
+    NotificationType.executorAssigned => Icons.check_circle_outline,
+    NotificationType.responseRejected => Icons.do_not_disturb_alt,
+    NotificationType.deadlineSoon => Icons.timer_outlined,
+    NotificationType.deadlineMissed => Icons.timer_off_outlined,
+    NotificationType.orderRescheduled => Icons.event_repeat_outlined,
+    NotificationType.paymentSent => Icons.payments_outlined,
+    NotificationType.orderCompleted => Icons.flag_outlined,
+    NotificationType.orderCancelled => Icons.cancel_outlined,
+    NotificationType.reviewReceived => Icons.star_outline,
+    NotificationType.disputeOpened => Icons.gavel,
+    NotificationType.disputeResolved => Icons.handshake_outlined,
+    NotificationType.unknown => Icons.notifications_none,
+  };
 
   /// Тон иконки: хорошее — done, ждёт действия — progress, плохое — defect.
   static Color _tone(AppColors c, NotificationType type) => switch (type) {
-        NotificationType.executorAssigned ||
-        NotificationType.reportOpened ||
-        NotificationType.orderCompleted ||
-        NotificationType.disputeResolved =>
-          c.statusDone,
-        NotificationType.executorReleased ||
-        NotificationType.inspectionDatePassed ||
-        NotificationType.deadlineSoon ||
-        NotificationType.orderRescheduled ||
-        NotificationType.paymentSent =>
-          c.statusProgress,
-        NotificationType.orderCancelled ||
-        NotificationType.deadlineMissed ||
-        NotificationType.disputeOpened =>
-          c.statusDefect,
-        NotificationType.responseRejected || NotificationType.unknown => c.text3,
-        _ => c.statusInfo,
-      };
+    NotificationType.executorAssigned ||
+    NotificationType.reportOpened ||
+    NotificationType.orderCompleted ||
+    NotificationType.disputeResolved => c.statusDone,
+    NotificationType.executorReleased ||
+    NotificationType.inspectionDatePassed ||
+    NotificationType.deadlineSoon ||
+    NotificationType.orderRescheduled ||
+    NotificationType.paymentSent => c.statusProgress,
+    NotificationType.orderCancelled ||
+    NotificationType.deadlineMissed ||
+    NotificationType.disputeOpened => c.statusDefect,
+    NotificationType.responseRejected || NotificationType.unknown => c.text3,
+    _ => c.statusInfo,
+  };
 }

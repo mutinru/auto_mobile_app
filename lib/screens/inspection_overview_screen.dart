@@ -95,20 +95,29 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                   children: [
                     Text(
                       'Не удалось открыть осмотр',
-                      style: TextStyle(fontSize: 14, color: context.colors.text1),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: context.colors.text1,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       store.loadError!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: context.colors.text3,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     CtaGhost(
                       label: 'Повторить',
                       onPressed: store.load,
                     ),
-                    CtaGhost(label: 'Назад', onPressed: () => Navigator.of(context).pop()),
+                    CtaGhost(
+                      label: 'Назад',
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
                   ],
                 ),
               ),
@@ -218,7 +227,10 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                     child: Text(
                       'Только просмотр — оценки ставит исполнитель',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12, color: context.colors.text3),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.text3,
+                      ),
                     ),
                   )
                 else

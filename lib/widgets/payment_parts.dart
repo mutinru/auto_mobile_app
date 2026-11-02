@@ -62,10 +62,18 @@ class PayoutBlock extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Переведите напрямую исполнителю — платформа деньги не принимает.',
-            style: TextStyle(fontSize: 11.5, color: context.colors.text2, height: 1.4),
+            style: TextStyle(
+              fontSize: 11.5,
+              color: context.colors.text2,
+              height: 1.4,
+            ),
           ),
           if (payout.hasCard)
-            _CopyRow(label: 'Карта', value: payout.cardFormatted!, copy: payout.card!),
+            _CopyRow(
+              label: 'Карта',
+              value: payout.cardFormatted!,
+              copy: payout.card!,
+            ),
           if (payout.hasSbp)
             _CopyRow(
               label: payout.bank == null ? 'СБП' : 'СБП · ${payout.bank}',
@@ -79,7 +87,11 @@ class PayoutBlock extends StatelessWidget {
 }
 
 class _CopyRow extends StatelessWidget {
-  const _CopyRow({required this.label, required this.value, required this.copy});
+  const _CopyRow({
+    required this.label,
+    required this.value,
+    required this.copy,
+  });
 
   final String label;
   final String value;
@@ -106,7 +118,11 @@ class _CopyRow extends StatelessWidget {
             onTap: () {
               Clipboard.setData(ClipboardData(text: copy));
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$label скопирован${label == 'Карта' ? 'а' : ''}')),
+                SnackBar(
+                  content: Text(
+                    '$label скопирован${label == 'Карта' ? 'а' : ''}',
+                  ),
+                ),
               );
             },
           ),
@@ -129,7 +145,11 @@ class ReportSummaryBox extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline_rounded, size: 18, color: context.colors.text2),
+          Icon(
+            Icons.lock_outline_rounded,
+            size: 18,
+            color: context.colors.text2,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -149,7 +169,11 @@ class ReportSummaryBox extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Полный отчёт и вердикт откроются, когда исполнитель подтвердит оплату.',
-                  style: TextStyle(fontSize: 11.5, color: context.colors.text2, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: context.colors.text2,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -173,10 +197,10 @@ class DisputeBox extends StatelessWidget {
     final who = dispute == null
         ? null
         : dispute.openedBy == viewerId
-            ? 'Вы открыли спор'
-            : dispute.openedBy == order.customer.id
-                ? 'Заказчик открыл спор'
-                : 'Исполнитель открыл спор';
+        ? 'Вы открыли спор'
+        : dispute.openedBy == order.customer.id
+        ? 'Заказчик открыл спор'
+        : 'Исполнитель открыл спор';
 
     return _Box(
       accent: context.colors.statusDefect,
@@ -195,14 +219,22 @@ class DisputeBox extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               dispute.reason,
-              style: TextStyle(fontSize: 12, color: context.colors.text1, height: 1.4),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.colors.text1,
+                height: 1.4,
+              ),
             ),
           ],
           const SizedBox(height: 6),
           Text(
             'Поддержка разберётся с обеими сторонами. Отчёт откроется, если '
             'оплата подтвердится.',
-            style: TextStyle(fontSize: 11.5, color: context.colors.text2, height: 1.4),
+            style: TextStyle(
+              fontSize: 11.5,
+              color: context.colors.text2,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 8),
           CtaFlat(
@@ -218,7 +250,11 @@ class DisputeBox extends StatelessWidget {
 
 /// Плашка-подсказка в тон статуса: «Ждём, пока исполнитель подтвердит оплату».
 class StatusNote extends StatelessWidget {
-  const StatusNote({super.key, required this.text, this.icon = Icons.hourglass_empty_rounded});
+  const StatusNote({
+    super.key,
+    required this.text,
+    this.icon = Icons.hourglass_empty_rounded,
+  });
 
   final String text;
   final IconData icon;
@@ -234,7 +270,11 @@ class StatusNote extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 12.5, color: context.colors.text1, height: 1.4),
+              style: TextStyle(
+                fontSize: 12.5,
+                color: context.colors.text1,
+                height: 1.4,
+              ),
             ),
           ),
         ],

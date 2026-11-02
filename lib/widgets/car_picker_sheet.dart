@@ -103,7 +103,9 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
       setState(() => _makes = makes);
       if (openInitial && widget.initialBrand.isNotEmpty) {
         final initial = widget.initialBrand.toLowerCase();
-        final match = makes.where((m) => m.name.toLowerCase() == initial).firstOrNull;
+        final match = makes
+            .where((m) => m.name.toLowerCase() == initial)
+            .firstOrNull;
         if (match != null) await _openMake(match);
       }
     } catch (_) {
@@ -207,7 +209,9 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
         if (showBack) ...[
           SquareIconButton(
             icon: Icons.arrow_back,
-            onTap: _step == _Step.model || _make == null ? _back : () => _openMake(_make!),
+            onTap: _step == _Step.model || _make == null
+                ? _back
+                : () => _openMake(_make!),
           ),
           const SizedBox(width: 12),
         ],
@@ -262,7 +266,9 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
           rows.add(const SectionHead('Популярные'));
           rows.addAll(popular.map(_makeRow));
         }
-        final all = [...makes]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        final all = [
+          ...makes,
+        ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         rows.add(const _Gap());
         rows.add(const SectionHead('Все марки'));
         rows.addAll(all.map(_makeRow));
@@ -297,19 +303,24 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
 
     return _Row(
       title: label,
-      leading: Icon(Icons.edit_outlined, size: 16, color: context.colors.doneText),
+      leading: Icon(
+        Icons.edit_outlined,
+        size: 16,
+        color: context.colors.doneText,
+      ),
       accent: true,
       onTap: onTap,
     );
   }
 
-  Widget _makeRow(CarMake make) => _Row(title: make.name, onTap: () => _openMake(make));
+  Widget _makeRow(CarMake make) =>
+      _Row(title: make.name, onTap: () => _openMake(make));
 
   Widget _modelRow(CarModel model) => _Row(
-        title: model.name,
-        trailing: model.years,
-        onTap: () => _done(_make!.name, model.name),
-      );
+    title: model.name,
+    trailing: model.years,
+    onTap: () => _done(_make!.name, model.name),
+  );
 
   Widget _error() {
     return Column(
@@ -324,7 +335,8 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
         const SizedBox(height: 14),
         CtaFlat(
           label: 'Повторить',
-          onPressed: () => _step == _Step.model ? _openMake(_make!) : _loadMakes(),
+          onPressed: () =>
+              _step == _Step.model ? _openMake(_make!) : _loadMakes(),
         ),
         CtaGhost(
           label: 'Ввести вручную',
@@ -335,11 +347,18 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
   }
 
   Widget _manualForm() {
-    final canSave = _manualBrand.text.trim().isNotEmpty && _manualModel.text.trim().isNotEmpty;
+    final canSave =
+        _manualBrand.text.trim().isNotEmpty &&
+        _manualModel.text.trim().isNotEmpty;
 
     return ListView(
       children: [
-        FieldBoxInput(label: 'Марка', controller: _manualBrand, hint: 'Toyota', maxLength: 100),
+        FieldBoxInput(
+          label: 'Марка',
+          controller: _manualBrand,
+          hint: 'Toyota',
+          maxLength: 100,
+        ),
         FieldBoxInput(
           label: 'Модель',
           controller: _manualModel,
@@ -350,7 +369,9 @@ class _CarPickerSheetState extends State<_CarPickerSheet> {
         const SizedBox(height: 6),
         CtaPrimary(
           label: 'Готово',
-          onPressed: canSave ? () => _done(_manualBrand.text, _manualModel.text) : null,
+          onPressed: canSave
+              ? () => _done(_manualBrand.text, _manualModel.text)
+              : null,
         ),
       ],
     );
@@ -396,7 +417,9 @@ class _Row extends StatelessWidget {
               child: Text(
                 title,
                 style: accent
-                    ? context.text.fieldValue.copyWith(color: context.colors.doneText)
+                    ? context.text.fieldValue.copyWith(
+                        color: context.colors.doneText,
+                      )
                     : context.text.fieldValue,
               ),
             ),

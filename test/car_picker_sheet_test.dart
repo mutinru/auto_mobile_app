@@ -13,21 +13,25 @@ void main() {
     String initialBrand = '',
   }) async {
     final result = <CarChoice?>[];
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () async => result.add(await showCarPickerSheet(
-              context,
-              catalog: catalog ?? MockCarCatalogRepository(),
-              initialBrand: initialBrand,
-            )),
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async => result.add(
+                await showCarPickerSheet(
+                  context,
+                  catalog: catalog ?? MockCarCatalogRepository(),
+                  initialBrand: initialBrand,
+                ),
+              ),
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     return result;
@@ -76,7 +80,9 @@ void main() {
     expect(result.single?.model, 'Гаражный');
   });
 
-  testWidgets('модели нет в списке — марка остаётся из справочника', (tester) async {
+  testWidgets('модели нет в списке — марка остаётся из справочника', (
+    tester,
+  ) async {
     final result = await pumpPicker(tester);
 
     await tester.tap(find.text('Kia').first);

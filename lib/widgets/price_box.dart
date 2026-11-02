@@ -64,7 +64,9 @@ class _PriceBoxState extends State<PriceBox> {
     super.initState();
     _focus.addListener(() {
       // набор закончен — прижимаем к границам и переписываем красиво
-      if (!_focus.hasFocus) _set(_value.clamp(PriceBox.minPrice, PriceBox.maxPrice));
+      if (!_focus.hasFocus) {
+        _set(_value.clamp(PriceBox.minPrice, PriceBox.maxPrice));
+      }
     });
   }
 
@@ -193,7 +195,10 @@ class MoneyInputFormatter extends TextInputFormatter {
   const MoneyInputFormatter();
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     var digits = newValue.text.replaceAll(RegExp(r'\D'), '');
     digits = digits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
     if (digits.length > 7) digits = digits.substring(0, 7);

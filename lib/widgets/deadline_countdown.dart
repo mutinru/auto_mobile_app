@@ -7,7 +7,11 @@ import '../theme/app_colors.dart';
 /// «Осталось 5 ч 12 мин» до [deadline] — 24 часа исполнителя разового
 /// осмотра. Сам срок отрабатывает сервер: по нулю тут только надпись.
 class DeadlineCountdown extends StatefulWidget {
-  const DeadlineCountdown({super.key, required this.deadline, this.prefix = 'Осталось'});
+  const DeadlineCountdown({
+    super.key,
+    required this.deadline,
+    this.prefix = 'Осталось',
+  });
 
   final DateTime deadline;
   final String prefix;
@@ -33,7 +37,10 @@ class _DeadlineCountdownState extends State<DeadlineCountdown> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
+    _timer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => setState(() {}),
+    );
   }
 
   @override
@@ -44,11 +51,18 @@ class _DeadlineCountdownState extends State<DeadlineCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final label = DeadlineCountdown.remainingLabel(widget.deadline, DateTime.now());
-    final urgent = widget.deadline.difference(DateTime.now()) < const Duration(hours: 3);
-    final color = label == null || urgent ? context.colors.statusDefect : context.colors.statusProgress;
+    final label = DeadlineCountdown.remainingLabel(
+      widget.deadline,
+      DateTime.now(),
+    );
+    final urgent =
+        widget.deadline.difference(DateTime.now()) < const Duration(hours: 3);
+    final color = label == null || urgent
+        ? context.colors.statusDefect
+        : context.colors.statusProgress;
     final at = widget.deadline;
-    final time = '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+    final time =
+        '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -59,12 +73,22 @@ class _DeadlineCountdownState extends State<DeadlineCountdown> {
       ),
       child: Row(
         children: [
-          Icon(Icons.timer_outlined, size: 16, color: context.colors.textFor(color)),
+          Icon(
+            Icons.timer_outlined,
+            size: 16,
+            color: context.colors.textFor(color),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              label == null ? 'Срок осмотра вышел' : '${widget.prefix} $label · до $time',
-              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: context.colors.textFor(color)),
+              label == null
+                  ? 'Срок осмотра вышел'
+                  : '${widget.prefix} $label · до $time',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: context.colors.textFor(color),
+              ),
             ),
           ),
         ],

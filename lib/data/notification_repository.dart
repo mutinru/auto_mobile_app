@@ -3,7 +3,11 @@ import '../models/app_notification.dart';
 /// Страница ленты: курсор следующей (null — дальше пусто) и число
 /// непрочитанных на сервере.
 class NotificationPage {
-  const NotificationPage({required this.items, this.nextCursor, this.unreadCount = 0});
+  const NotificationPage({
+    required this.items,
+    this.nextCursor,
+    this.unreadCount = 0,
+  });
 
   final List<AppNotification> items;
   final String? nextCursor;

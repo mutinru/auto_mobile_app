@@ -29,23 +29,46 @@ class _FailingRepository extends MockOrderRepository {
 }
 
 void main() {
-  OrderStore store(Object error) =>
-      OrderStore(_FailingRepository(error), catalog: MockCarCatalogRepository(), cities: MockCityRepository());
+  OrderStore store(Object error) => OrderStore(
+    _FailingRepository(error),
+    catalog: MockCarCatalogRepository(),
+    cities: MockCityRepository(),
+  );
 
   group('apiErrorText', () {
     test('причина от сервера — из message или первой ошибки поля', () {
-      expect(apiErrorText(ApiException(422, '{"message":"Срок осмотра истёк"}')), 'Срок осмотра истёк');
       expect(
-        apiErrorText(ApiException(422, '{"message":"x","errors":{"price":["Укажите цену"]}}')),
+        apiErrorText(ApiException(422, '{"message":"Срок осмотра истёк"}')),
+        'Срок осмотра истёк',
+      );
+      expect(
+        apiErrorText(
+          ApiException(
+            422,
+            '{"message":"x","errors":{"price":["Укажите цену"]}}',
+          ),
+        ),
         'Укажите цену',
       );
-      expect(apiErrorText(ApiException(403, '{"message":"Нет доступа"}')), 'Нет доступа');
+      expect(
+        apiErrorText(ApiException(403, '{"message":"Нет доступа"}')),
+        'Нет доступа',
+      );
     });
 
     test('служебные ответы и обрыв связи — понятной фразой', () {
-      expect(apiErrorText(ApiException(429, '{"message":"Too Many Attempts."}')), startsWith('Слишком много запросов'));
-      expect(apiErrorText(ApiException(500, '<html>')), 'Ошибка на сервере, попробуйте позже');
-      expect(apiErrorText(Exception('Connection refused')), 'Нет связи с сервером');
+      expect(
+        apiErrorText(ApiException(429, '{"message":"Too Many Attempts."}')),
+        startsWith('Слишком много запросов'),
+      );
+      expect(
+        apiErrorText(ApiException(500, '<html>')),
+        'Ошибка на сервере, попробуйте позже',
+      );
+      expect(
+        apiErrorText(Exception('Connection refused')),
+        'Нет связи с сервером',
+      );
     });
   });
 
@@ -61,10 +84,14 @@ void main() {
   });
 
   testWidgets('«Мои заказы» без связи — без сырого исключения', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: MyOrdersScreen(store: store(Exception('ClientException: Connection refused'))),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: MyOrdersScreen(
+          store: store(Exception('ClientException: Connection refused')),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Нет связи с сервером'), findsOneWidget);

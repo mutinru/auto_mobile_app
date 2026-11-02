@@ -90,8 +90,10 @@ class _InspectionOrderDetailScreenState
   Future<void> _markPaid(Order order) async {
     final ok = await showConfirmSheet(
       context,
-      title: 'Вы перевели ${order.price == null ? 'оплату' : '${money(order.price!)} ₽'}?',
-      text: 'Исполнитель проверит поступление и подтвердит — после этого '
+      title:
+          'Вы перевели ${order.price == null ? 'оплату' : '${money(order.price!)} ₽'}?',
+      text:
+          'Исполнитель проверит поступление и подтвердит — после этого '
           'откроются полный отчёт и вердикт.',
       confirmLabel: 'Да, я оплатил',
     );
@@ -150,7 +152,10 @@ class _InspectionOrderDetailScreenState
     return showDisputeSheet(
       context,
       onSubmit: (reason) async {
-        final updated = await widget.store.openDispute(order.id, reason: reason);
+        final updated = await widget.store.openDispute(
+          order.id,
+          reason: reason,
+        );
         if (mounted) setState(() => _order = updated);
       },
     );
@@ -177,8 +182,16 @@ class _InspectionOrderDetailScreenState
       initial: order.review,
       onSubmit: (rating, text) async {
         final updated = order.review == null
-            ? await widget.store.leaveReview(order.id, rating: rating, text: text)
-            : await widget.store.updateReview(order.id, rating: rating, text: text);
+            ? await widget.store.leaveReview(
+                order.id,
+                rating: rating,
+                text: text,
+              )
+            : await widget.store.updateReview(
+                order.id,
+                rating: rating,
+                text: text,
+              );
         if (mounted) setState(() => _order = updated);
       },
     );
@@ -216,23 +229,27 @@ class _InspectionOrderDetailScreenState
     if (!widget.viewerIsCustomer) return const [];
     return switch (order.status) {
       OrderStatus.reportReady => [
-          BottomCta(children: [
+        BottomCta(
+          children: [
             CtaPrimary(
               label: 'Я оплатил',
               icon: Icons.check_rounded,
               loading: _paying,
               onPressed: () => _markPaid(order),
             ),
-          ]),
-        ],
+          ],
+        ),
+      ],
       OrderStatus.paymentSent => [
-          BottomCta(children: [
+        BottomCta(
+          children: [
             CtaGhost(
               label: 'Исполнитель не подтверждает — открыть спор',
               onPressed: () => _openDispute(order),
             ),
-          ]),
-        ],
+          ],
+        ),
+      ],
       _ => const [],
     };
   }
@@ -281,7 +298,8 @@ class _InspectionOrderDetailScreenState
           priceLabel: 'Ваша цена',
           price: order.askingPrice,
         ),
-        if (widget.viewerIsCustomer && order.status == OrderStatus.awaitingDecision)
+        if (widget.viewerIsCustomer &&
+            order.status == OrderStatus.awaitingDecision)
           ..._decision(order),
         if (widget.viewerIsCustomer && order.status.isAwaitingPayment)
           ..._payment(order),
@@ -328,7 +346,8 @@ class _InspectionOrderDetailScreenState
         ),
         // в ожидании решения старые отклики выбрать нельзя: при повторном
         // размещении сервер их отклонит
-        if (pending.isNotEmpty && order.status != OrderStatus.awaitingDecision) ...[
+        if (pending.isNotEmpty &&
+            order.status != OrderStatus.awaitingDecision) ...[
           const SizedBox(height: 22),
           // исполнителю сервер отдаёт только его собственный отклик
           widget.viewerIsCustomer
@@ -369,38 +388,42 @@ class _InspectionOrderDetailScreenState
   /// Исполнитель сорвал срок или день прошёл без него — заказчик решает.
   /// «Отменить заказ» — общая кнопка внизу (сервер отдаёт can_cancel).
   List<Widget> _decision(Order order) => [
-        const SizedBox(height: 22),
-        const SectionHead('Нужно решение'),
-        StatusNote(
-          icon: Icons.event_busy_outlined,
-          text: order.decisionReason == DecisionReason.missed
-              ? 'Исполнитель не провёл осмотр в назначенный день. '
-                  'Разместите заказ на другую дату или отмените его.'
-              : 'День осмотра прошёл, а исполнитель так и не выбран. '
-                  'Разместите заказ на другую дату или отмените его.',
-        ),
-        const SizedBox(height: 8),
-        CtaPrimary(label: 'Разместить заново', onPressed: () => _repost(order)),
-      ];
+    const SizedBox(height: 22),
+    const SectionHead('Нужно решение'),
+    StatusNote(
+      icon: Icons.event_busy_outlined,
+      text: order.decisionReason == DecisionReason.missed
+          ? 'Исполнитель не провёл осмотр в назначенный день. '
+                'Разместите заказ на другую дату или отмените его.'
+          : 'День осмотра прошёл, а исполнитель так и не выбран. '
+                'Разместите заказ на другую дату или отмените его.',
+    ),
+    const SizedBox(height: 8),
+    CtaPrimary(label: 'Разместить заново', onPressed: () => _repost(order)),
+  ];
 
   /// Отчёт готов, идёт оплата или спор.
   List<Widget> _payment(Order order) => [
-        const SizedBox(height: 22),
-        SectionHead(order.status == OrderStatus.disputed ? 'Спор' : 'Отчёт готов'),
-        if (order.status == OrderStatus.paymentSent) ...[
-          const StatusNote(text: 'Ждём, пока исполнитель подтвердит оплату. Потом откроется полный отчёт.'),
-          const SizedBox(height: 8),
-        ],
-        if (order.status == OrderStatus.disputed) ...[
-          DisputeBox(order: order, viewerId: order.customer.id),
-          const SizedBox(height: 8),
-        ],
-        if (order.reportSummary != null) ...[
-          ReportSummaryBox(summary: order.reportSummary!),
-          const SizedBox(height: 8),
-        ],
-        if (order.payout != null) PayoutBlock(price: order.price, payout: order.payout!),
-      ];
+    const SizedBox(height: 22),
+    SectionHead(order.status == OrderStatus.disputed ? 'Спор' : 'Отчёт готов'),
+    if (order.status == OrderStatus.paymentSent) ...[
+      const StatusNote(
+        text:
+            'Ждём, пока исполнитель подтвердит оплату. Потом откроется полный отчёт.',
+      ),
+      const SizedBox(height: 8),
+    ],
+    if (order.status == OrderStatus.disputed) ...[
+      DisputeBox(order: order, viewerId: order.customer.id),
+      const SizedBox(height: 8),
+    ],
+    if (order.reportSummary != null) ...[
+      ReportSummaryBox(summary: order.reportSummary!),
+      const SizedBox(height: 8),
+    ],
+    if (order.payout != null)
+      PayoutBlock(price: order.price, payout: order.payout!),
+  ];
 }
 
 /// Исполнитель и телефон продавца — телефон бекенд отдаёт только

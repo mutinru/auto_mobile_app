@@ -233,15 +233,22 @@ class OrderStore extends ChangeNotifier {
     int carId, {
     required InspectionVerdict verdict,
     String? comment,
-  }) =>
-      _mutate(_repository.completeCandidate(orderId, carId, verdict: verdict, comment: comment));
+  }) => _mutate(
+    _repository.completeCandidate(
+      orderId,
+      carId,
+      verdict: verdict,
+      comment: comment,
+    ),
+  );
 
   /// Исход кандидатов и can_review — из ответа сервера.
   Future<Order> completeSelection(int orderId, {required int carId}) =>
       _mutate(_repository.completeSelection(orderId, carId: carId));
 
   /// Отменённый заказ уезжает в архив списка — статус из ответа сервера.
-  Future<Order> cancelOrder(int orderId) => _mutate(_repository.cancelOrder(orderId));
+  Future<Order> cancelOrder(int orderId) =>
+      _mutate(_repository.cancelOrder(orderId));
 
   /// Осмотр размещён заново на новую дату — заказ из ответа сервера.
   Future<Order> repostInspection(
@@ -250,25 +257,42 @@ class OrderStore extends ChangeNotifier {
     required TimeSlot timeSlot,
     String? inspectTime,
     int? askingPrice,
-  }) =>
-      _mutate(_repository.repostInspection(
-        orderId,
-        inspectOn: inspectOn,
-        timeSlot: timeSlot,
-        inspectTime: inspectTime,
-        askingPrice: askingPrice,
-      ));
+  }) => _mutate(
+    _repository.repostInspection(
+      orderId,
+      inspectOn: inspectOn,
+      timeSlot: timeSlot,
+      inspectTime: inspectTime,
+      askingPrice: askingPrice,
+    ),
+  );
 
   /// Рейтинг исполнителя и can_review не пересчитываем — берём заказ,
   /// который вернул сервер.
-  Future<Order> leaveReview(int orderId, {required int rating, String? text}) async {
-    final order = await _repository.leaveReview(orderId, rating: rating, text: text);
+  Future<Order> leaveReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
+    final order = await _repository.leaveReview(
+      orderId,
+      rating: rating,
+      text: text,
+    );
     _replaceInLists(order);
     return order;
   }
 
-  Future<Order> updateReview(int orderId, {required int rating, String? text}) async {
-    final order = await _repository.updateReview(orderId, rating: rating, text: text);
+  Future<Order> updateReview(
+    int orderId, {
+    required int rating,
+    String? text,
+  }) async {
+    final order = await _repository.updateReview(
+      orderId,
+      rating: rating,
+      text: text,
+    );
     _replaceInLists(order);
     return order;
   }
@@ -282,9 +306,11 @@ class OrderStore extends ChangeNotifier {
     return order;
   }
 
-  Future<Order> markPaymentSent(int orderId) => _mutate(_repository.markPaymentSent(orderId));
+  Future<Order> markPaymentSent(int orderId) =>
+      _mutate(_repository.markPaymentSent(orderId));
 
-  Future<Order> confirmPayment(int orderId) => _mutate(_repository.confirmPayment(orderId));
+  Future<Order> confirmPayment(int orderId) =>
+      _mutate(_repository.confirmPayment(orderId));
 
   Future<Order> openDispute(int orderId, {required String reason}) =>
       _mutate(_repository.openDispute(orderId, reason: reason));
@@ -300,7 +326,9 @@ class OrderStore extends ChangeNotifier {
     final mine = _myOrders.indexWhere((o) => o.id == order.id);
     if (mine != -1) _myOrders = [..._myOrders]..[mine] = order;
     final assigned = _assignedOrders.indexWhere((o) => o.id == order.id);
-    if (assigned != -1) _assignedOrders = [..._assignedOrders]..[assigned] = order;
+    if (assigned != -1) {
+      _assignedOrders = [..._assignedOrders]..[assigned] = order;
+    }
     if (mine != -1 || assigned != -1) notifyListeners();
   }
 }

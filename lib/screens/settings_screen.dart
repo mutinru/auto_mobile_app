@@ -150,9 +150,13 @@ class _CategoryRow extends StatelessWidget {
                   trackOutlineColor: WidgetStatePropertyAll(c.line),
                   // заблокированный — с замком, чтобы не путать с обычным «вкл»
                   thumbIcon: onChanged == null
-                      ? WidgetStatePropertyAll(Icon(Icons.lock, size: 14, color: c.text2))
+                      ? WidgetStatePropertyAll(
+                          Icon(Icons.lock, size: 14, color: c.text2),
+                        )
                       : null,
-                  thumbColor: onChanged == null ? WidgetStatePropertyAll(c.bg1) : null,
+                  thumbColor: onChanged == null
+                      ? WidgetStatePropertyAll(c.bg1)
+                      : null,
                 ),
               ],
             ),

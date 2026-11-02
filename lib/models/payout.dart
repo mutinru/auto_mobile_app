@@ -26,16 +26,16 @@ class Payout {
 
   /// Поля запроса: отклик на осмотр и PATCH /me/payout.
   Map<String, dynamic> toJson() => {
-        if (hasCard) 'payout_card': card,
-        if (hasSbp) 'payout_phone': phone,
-        if (hasSbp) 'payout_bank': bank,
-      };
+    if (hasCard) 'payout_card': card,
+    if (hasSbp) 'payout_phone': phone,
+    if (hasSbp) 'payout_bank': bank,
+  };
 
   factory Payout.fromJson(Map<String, dynamic> json) => Payout(
-        card: json['card'] as String?,
-        phone: json['phone'] as String?,
-        bank: json['bank'] as String?,
-      );
+    card: json['card'] as String?,
+    phone: json['phone'] as String?,
+    bank: json['bank'] as String?,
+  );
 }
 
 /// Цифры карты группами по 4.

@@ -117,47 +117,47 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(22),
-                            child: Text(
-                              'Не удалось загрузить ленту:\n$_error',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: context.colors.text3,
-                                fontSize: 12,
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Text(
+                          'Не удалось загрузить ленту:\n$_error',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: context.colors.text3,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    )
+                  : visible.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Пока ничего не происходит',
+                        style: TextStyle(
+                          color: context.colors.text3,
+                          fontSize: 12,
+                        ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
+                        itemCount: visible.length,
+                        itemBuilder: (context, i) => _FeedCardView(
+                          card: visible[i],
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PublicOrderScreen(
+                                orderId: visible[i].id,
+                                onRepeatSelection: widget.onRepeatSelection,
                               ),
                             ),
                           ),
-                        )
-                      : visible.isEmpty
-                          ? Center(
-                              child: Text(
-                                'Пока ничего не происходит',
-                                style: TextStyle(
-                                  color: context.colors.text3,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _load,
-                              child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
-                                itemCount: visible.length,
-                                itemBuilder: (context, i) => _FeedCardView(
-                                  card: visible[i],
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => PublicOrderScreen(
-                                        orderId: visible[i].id,
-                                        onRepeatSelection: widget.onRepeatSelection,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                        ),
+                      ),
+                    ),
             ),
             // .join-bar
             Container(
@@ -167,7 +167,10 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
               ),
               child: Column(
                 children: [
-                  CtaPrimary(label: 'Разместить заказ', onPressed: widget.onPlaceOrder),
+                  CtaPrimary(
+                    label: 'Разместить заказ',
+                    onPressed: widget.onPlaceOrder,
+                  ),
                   const SizedBox(height: 9),
                   Text(
                     'Вход по номеру телефона · бесплатно, оплата только за результат',
@@ -214,7 +217,9 @@ class _FStat extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.34,
-                color: color == null ? context.colors.text1 : context.colors.textFor(color!),
+                color: color == null
+                    ? context.colors.text1
+                    : context.colors.textFor(color!),
               ),
             ),
             const SizedBox(height: 2),
@@ -245,94 +250,100 @@ class _FeedCardView extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.colors.bg1,
-        border: Border.all(color: context.colors.line),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Pill(
-                card.status.label,
-                color: done ? context.colors.statusDone : card.status.pillColor(context.colors),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(card.car, style: context.text.orderCar),
-          const SizedBox(height: 5),
-          Text(
-            [
-              if (card.city != null) card.city!,
-              ?budgetShort(card.budgetMin, card.budgetMax),
-            ].join(' · '),
-            style: context.text.orderMeta,
-          ),
-          // .feed-progress
-          if (card.hasProgress) ...[
-            const SizedBox(height: 11),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: card.progressFraction,
-                minHeight: 4,
-                backgroundColor: context.colors.bg0,
-                valueColor: AlwaysStoppedAnimation(context.colors.statusProgress),
-              ),
-            ),
-            const SizedBox(height: 7),
+        margin: const EdgeInsets.only(bottom: 9),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.colors.bg1,
+          border: Border.all(color: context.colors.line),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Проверено ${card.assessed} из ${card.total} деталей',
-                  style: TextStyle(fontSize: 11, color: context.colors.text3),
-                ),
-                Text(
-                  '${card.carIndex}-й вариант',
-                  style: TextStyle(fontSize: 11, color: context.colors.text3),
+                Pill(
+                  card.status.label,
+                  color: done
+                      ? context.colors.statusDone
+                      : card.status.pillColor(context.colors),
                 ),
               ],
             ),
-          ],
-          // .feed-foot
-          if (card.executorName != null) ...[
-            const SizedBox(height: 12),
-            Container(height: 1, color: context.colors.line),
-            const SizedBox(height: 11),
-            Row(
-              children: [
-                Avatar(initialsOf(card.executorName!)),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: card.executorName,
-                          style: TextStyle(
-                            color: context.colors.text1,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if ((card.executorCompleted ?? 0) > 0)
-                          TextSpan(text: ' · ${card.executorCompleted} заказов'),
-                      ],
-                    ),
-                    style: context.text.orderExec,
+            const SizedBox(height: 10),
+            Text(card.car, style: context.text.orderCar),
+            const SizedBox(height: 5),
+            Text(
+              [
+                if (card.city != null) card.city!,
+                ?budgetShort(card.budgetMin, card.budgetMax),
+              ].join(' · '),
+              style: context.text.orderMeta,
+            ),
+            // .feed-progress
+            if (card.hasProgress) ...[
+              const SizedBox(height: 11),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: card.progressFraction,
+                  minHeight: 4,
+                  backgroundColor: context.colors.bg0,
+                  valueColor: AlwaysStoppedAnimation(
+                    context.colors.statusProgress,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 7),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Проверено ${card.assessed} из ${card.total} деталей',
+                    style: TextStyle(fontSize: 11, color: context.colors.text3),
+                  ),
+                  Text(
+                    '${card.carIndex}-й вариант',
+                    style: TextStyle(fontSize: 11, color: context.colors.text3),
+                  ),
+                ],
+              ),
+            ],
+            // .feed-foot
+            if (card.executorName != null) ...[
+              const SizedBox(height: 12),
+              Container(height: 1, color: context.colors.line),
+              const SizedBox(height: 11),
+              Row(
+                children: [
+                  Avatar(initialsOf(card.executorName!)),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: card.executorName,
+                            style: TextStyle(
+                              color: context.colors.text1,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if ((card.executorCompleted ?? 0) > 0)
+                            TextSpan(
+                              text: ' · ${card.executorCompleted} заказов',
+                            ),
+                        ],
+                      ),
+                      style: context.text.orderExec,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }

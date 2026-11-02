@@ -9,10 +9,18 @@ abstract class ChatRepository {
 
   /// Страница до 50 сообщений, всегда по возрастанию id. Без курсора —
   /// последние; [beforeId] — история выше; [afterId] — новые (опрос).
-  Future<List<ChatMessage>> fetchMessages(int conversationId, {int? afterId, int? beforeId});
+  Future<List<ChatMessage>> fetchMessages(
+    int conversationId, {
+    int? afterId,
+    int? beforeId,
+  });
 
   /// Текст и/или до 5 фото (пути к файлам).
-  Future<ChatMessage> send(int conversationId, {String? body, List<String> photoPaths = const []});
+  Future<ChatMessage> send(
+    int conversationId, {
+    String? body,
+    List<String> photoPaths = const [],
+  });
 
   /// Непрочитанные в чате поддержки — для бейджа. Разговор не заводит:
   /// нет его — 0.

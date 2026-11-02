@@ -10,7 +10,8 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
 /// Подсказка «Похоже, это …» под ссылкой на объявление в форме осмотра.
 void main() {
-  const avito = 'https://www.avito.ru/moskva/avtomobili/toyota_camry_2019_3456789012';
+  const avito =
+      'https://www.avito.ru/moskva/avtomobili/toyota_camry_2019_3456789012';
 
   Future<void> openForm(WidgetTester tester) async {
     final store = OrderStore(
@@ -18,10 +19,12 @@ void main() {
       catalog: MockCarCatalogRepository(),
       cities: MockCityRepository(),
     );
-    await tester.pumpWidget(MaterialApp(
-      theme: AppTheme.dark,
-      home: NewInspectionScreen(store: store),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NewInspectionScreen(store: store),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -34,11 +37,16 @@ void main() {
 
   final hint = find.textContaining('Похоже, это', findRichText: true);
 
-  testWidgets('узнанная ссылка: подсказка, «Заполнить» заполняет поля', (tester) async {
+  testWidgets('узнанная ссылка: подсказка, «Заполнить» заполняет поля', (
+    tester,
+  ) async {
     await openForm(tester);
     await pasteLink(tester, avito);
 
-    expect(find.textContaining('Toyota Camry, 2019', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining('Toyota Camry, 2019', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.text('Заполнить'), findsOneWidget);
     // без согласия поля не трогаем
     expect(find.text('Выбрать марку и модель'), findsOneWidget);
@@ -59,7 +67,10 @@ void main() {
 
     await pasteLink(tester, 'https://auto.drom.ru/moskva/vaz/granta/1.html');
 
-    expect(find.textContaining('Lada (ВАЗ) Granta', findRichText: true), findsOneWidget);
+    expect(
+      find.textContaining('Lada (ВАЗ) Granta', findRichText: true),
+      findsOneWidget,
+    );
     expect(find.text('Заменить'), findsOneWidget);
   });
 
@@ -70,7 +81,9 @@ void main() {
     expect(hint, findsNothing);
   });
 
-  testWidgets('✕ скрывает подсказку и для этой ссылки она не возвращается', (tester) async {
+  testWidgets('✕ скрывает подсказку и для этой ссылки она не возвращается', (
+    tester,
+  ) async {
     await openForm(tester);
     await pasteLink(tester, avito);
 
@@ -83,7 +96,9 @@ void main() {
     expect(find.text('Выбрать марку и модель'), findsOneWidget);
   });
 
-  testWidgets('пустое поле — строка помощи, не-ссылка — предупреждение', (tester) async {
+  testWidgets('пустое поле — строка помощи, не-ссылка — предупреждение', (
+    tester,
+  ) async {
     await openForm(tester);
     expect(find.text('Подставим марку, модель и год'), findsOneWidget);
 

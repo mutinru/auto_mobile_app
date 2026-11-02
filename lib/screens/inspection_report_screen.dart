@@ -340,14 +340,21 @@ class _PanelReportSheet extends StatelessWidget {
               ),
             if (audioUrl != null && audioSeconds != null) ...[
               const SizedBox(height: 20),
-              SectionHead('Голосовая заметка', extra: formatAudioTime(Duration(seconds: audioSeconds))),
+              SectionHead(
+                'Голосовая заметка',
+                extra: formatAudioTime(Duration(seconds: audioSeconds)),
+              ),
               Container(
                 padding: const EdgeInsets.fromLTRB(12, 14, 14, 14),
                 decoration: BoxDecoration(
                   color: context.colors.bg1,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: AudioNotePlayer(url: audioUrl, seconds: audioSeconds, seed: panel.id),
+                child: AudioNotePlayer(
+                  url: audioUrl,
+                  seconds: audioSeconds,
+                  seed: panel.id,
+                ),
               ),
             ],
           ],

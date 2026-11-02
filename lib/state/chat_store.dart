@@ -71,11 +71,19 @@ class ChatStore extends ChangeNotifier {
 
   Future<void> loadOlder() async {
     final conversation = _conversation;
-    if (conversation == null || _loadingOlder || !_hasMore || _messages.isEmpty) return;
+    if (conversation == null ||
+        _loadingOlder ||
+        !_hasMore ||
+        _messages.isEmpty) {
+      return;
+    }
     _loadingOlder = true;
     _notify();
     try {
-      final page = await repository.fetchMessages(conversation.id, beforeId: _messages.first.id);
+      final page = await repository.fetchMessages(
+        conversation.id,
+        beforeId: _messages.first.id,
+      );
       _merge(page);
       _hasMore = page.length == pageSize;
     } catch (_) {
@@ -90,7 +98,11 @@ class ChatStore extends ChangeNotifier {
   Future<bool> send(String text, List<String> photoPaths) async {
     final conversation = _conversation;
     final body = text.trim();
-    if (conversation == null || _sending || (body.isEmpty && photoPaths.isEmpty)) return false;
+    if (conversation == null ||
+        _sending ||
+        (body.isEmpty && photoPaths.isEmpty)) {
+      return false;
+    }
 
     _sending = true;
     _sendError = null;
@@ -161,7 +173,10 @@ class ChatStore extends ChangeNotifier {
   }
 
   void _merge(List<ChatMessage> incoming) {
-    final byId = {for (final m in _messages) m.id: m, for (final m in incoming) m.id: m};
+    final byId = {
+      for (final m in _messages) m.id: m,
+      for (final m in incoming) m.id: m,
+    };
     _messages = byId.values.toList()..sort((a, b) => a.id.compareTo(b.id));
   }
 
@@ -170,7 +185,11 @@ class ChatStore extends ChangeNotifier {
   void _markRead() {
     final conversation = _conversation;
     final last = _messages.lastWhere((m) => !m.isMine, orElse: () => _none);
-    if (conversation == null || identical(last, _none) || last.id == _readSent) return;
+    if (conversation == null ||
+        identical(last, _none) ||
+        last.id == _readSent) {
+      return;
+    }
     _readSent = last.id;
     repository.markRead(conversation.id, last.id).catchError((_) {});
   }

@@ -48,9 +48,13 @@ Future<void> main() async {
   await theme.load();
   final auth = AuthService();
   // бейджи непрочитанных поддержки: одна сессия — один счётчик
-  final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))..start();
+  final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))
+    ..start();
   // бейдж колокольчика в шапках разделов — тоже один на сессию
-  final notifications = NotificationUnread(auth, ApiNotificationRepository(ApiClient(auth)))..start();
+  final notifications = NotificationUnread(
+    auth,
+    ApiNotificationRepository(ApiClient(auth)),
+  )..start();
   // пуши: Firebase поднимается в фоне, первый кадр его не ждёт
   final push = PushService(
     auth: auth,
@@ -60,7 +64,15 @@ Future<void> main() async {
     support: unread,
   );
   unawaited(push.start());
-  runApp(AutoPodborApp(theme: theme, auth: auth, unread: unread, notifications: notifications, push: push));
+  runApp(
+    AutoPodborApp(
+      theme: theme,
+      auth: auth,
+      unread: unread,
+      notifications: notifications,
+      push: push,
+    ),
+  );
 }
 
 class AutoPodborApp extends StatelessWidget {
@@ -155,7 +167,10 @@ class _RootGateState extends State<_RootGate> {
   /// заказов создаются заново на каждый раздел.
   late final _carCatalog = ApiCarCatalogRepository(ApiClient(_auth));
   late final _cities = ApiCityRepository(ApiClient(_auth));
-  late final _cityLocator = CityLocator(_cities, const GeolocatorLocationService());
+  late final _cityLocator = CityLocator(
+    _cities,
+    const GeolocatorLocationService(),
+  );
   late final _addresses = ApiAddressRepository(ApiClient(_auth));
 
   @override
@@ -218,7 +233,12 @@ class _RootGateState extends State<_RootGate> {
         final id = target.notificationId;
         if (feed != null && id != null) {
           // прочитано — как тап в ленте; не вышло — не повод не открывать
-          unawaited(feed.repository().markRead(id).then((_) => feed.unread?.refresh(), onError: (_) {}));
+          unawaited(
+            feed
+                .repository()
+                .markRead(id)
+                .then((_) => feed.unread?.refresh(), onError: (_) {}),
+          );
         }
         if (target.opensOrder) {
           await openOrderScreen(
@@ -358,14 +378,13 @@ class _RootGateState extends State<_RootGate> {
     );
   }
 
-  OrderStore _orderStore() =>
-      OrderStore(
-        ApiOrderRepository(ApiClient(_auth)),
-        catalog: _carCatalog,
-        cities: _cities,
-        locator: _cityLocator,
-        addresses: _addresses,
-      );
+  OrderStore _orderStore() => OrderStore(
+    ApiOrderRepository(ApiClient(_auth)),
+    catalog: _carCatalog,
+    cities: _cities,
+    locator: _cityLocator,
+    addresses: _addresses,
+  );
 
   /// Открытый раздел. null — показываем вопрос о намерении.
   Widget? _root;

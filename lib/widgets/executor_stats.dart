@@ -19,15 +19,15 @@ class ExecutorStats extends StatelessWidget {
 
   /// Подпись без звезды — для тестов и семантики.
   static String summary(UserSummary user) => [
-        if (user.isNewcomer)
-          'Новый исполнитель'
-        else
-          counted(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов'),
-        if (user.completedOrdersCount > 0)
-          counted(user.completedOrdersCount, 'заказ', 'заказа', 'заказов'),
-        if (user.missedOrdersCount case final missed?)
-          counted(missed, 'срыв', 'срыва', 'срывов'),
-      ].join(' · ');
+    if (user.isNewcomer)
+      'Новый исполнитель'
+    else
+      counted(user.reviewsCount, 'отзыв', 'отзыва', 'отзывов'),
+    if (user.completedOrdersCount > 0)
+      counted(user.completedOrdersCount, 'заказ', 'заказа', 'заказов'),
+    if (user.missedOrdersCount case final missed?)
+      counted(missed, 'срыв', 'срыва', 'срывов'),
+  ].join(' · ');
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +57,10 @@ class ExecutorStats extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: text),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: text,
+      ),
     );
   }
 }
@@ -78,7 +81,9 @@ class RatingStars extends StatelessWidget {
           Icon(
             i <= rating ? Icons.star_rounded : Icons.star_outline_rounded,
             size: size,
-            color: i <= rating ? context.colors.statusProgress : context.colors.text3,
+            color: i <= rating
+                ? context.colors.statusProgress
+                : context.colors.text3,
           ),
       ],
     );

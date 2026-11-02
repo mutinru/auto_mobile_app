@@ -38,7 +38,9 @@ class ApiCarCatalogRepository implements CarCatalogRepository {
   Future<List<CarModel>> fetchModels(String makeId) async {
     final cached = _models[makeId];
     if (cached != null) return cached;
-    final json = await _client.get('/car-makes/${Uri.encodeComponent(makeId)}/models');
+    final json = await _client.get(
+      '/car-makes/${Uri.encodeComponent(makeId)}/models',
+    );
     return _models[makeId] = (json['data'] as List)
         .map((e) => CarModel.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
@@ -46,7 +48,9 @@ class ApiCarCatalogRepository implements CarCatalogRepository {
 
   @override
   Future<ListingGuess?> guessFromListing(String url) async {
-    final json = await _client.get('/listing/guess?url=${Uri.encodeQueryComponent(url)}');
+    final json = await _client.get(
+      '/listing/guess?url=${Uri.encodeQueryComponent(url)}',
+    );
     final data = json['data'] as Map<String, dynamic>?;
     return data == null ? null : ListingGuess.fromJson(data);
   }

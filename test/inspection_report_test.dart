@@ -80,7 +80,11 @@ void main() {
     Widget detail(AuthService? auth) => MaterialApp(
       theme: AppTheme.dark,
       home: InspectionOrderDetailScreen(
-        store: OrderStore(MockOrderRepository(), catalog: MockCarCatalogRepository(), cities: MockCityRepository()),
+        store: OrderStore(
+          MockOrderRepository(),
+          catalog: MockCarCatalogRepository(),
+          cities: MockCityRepository(),
+        ),
         orderId: 2047,
         auth: auth,
       ),

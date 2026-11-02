@@ -8,7 +8,12 @@ import 'app_ui.dart';
 /// Лист завершения разового осмотра: вердикт и комментарий. Возвращает через
 /// Navigator.pop пару (вердикт, комментарий?) или null, если лист закрыли.
 class VerdictSheet extends StatefulWidget {
-  const VerdictSheet({super.key, required this.order, this.subject, this.submitLabel = 'Отправить отчёт'});
+  const VerdictSheet({
+    super.key,
+    required this.order,
+    this.subject,
+    this.submitLabel = 'Отправить отчёт',
+  });
   final Order order;
 
   /// Какую машину итожим; null — машина заказа (разовый осмотр). У подбора —
@@ -134,7 +139,11 @@ class _VerdictOption extends StatelessWidget {
                   color: color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(verdict.icon, size: 15, color: context.colors.textFor(color)),
+                child: Icon(
+                  verdict.icon,
+                  size: 15,
+                  color: context.colors.textFor(color),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -143,11 +152,18 @@ class _VerdictOption extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: selected ? context.colors.textFor(color) : context.colors.text1,
+                    color: selected
+                        ? context.colors.textFor(color)
+                        : context.colors.text1,
                   ),
                 ),
               ),
-              if (selected) Icon(Icons.check, size: 16, color: context.colors.textFor(color)),
+              if (selected)
+                Icon(
+                  Icons.check,
+                  size: 16,
+                  color: context.colors.textFor(color),
+                ),
             ],
           ),
         ),
