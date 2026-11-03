@@ -38,6 +38,14 @@ class VinCaptureController extends ChangeNotifier {
     });
   }
 
+  /// Исполнитель сам переключил вид: введённое под прежний вид не
+  /// подходит — текст очищаем, фото оставляем (на нём может быть и то и то).
+  void switchKind(VinKind kind) {
+    if (kind == _kind) return;
+    text.clear();
+    setKind(kind);
+  }
+
   void setKind(VinKind kind) {
     if (kind == _kind) return;
     _kind = kind;
@@ -108,22 +116,14 @@ class VinCapture extends StatelessWidget {
               c.kind.label,
               extra: ok && c.photoPath != null ? 'снят' : 'нужен снимок',
             ),
-            Wrap(
-              spacing: 6,
-              children: [
-                for (final k in VinKind.values)
-                  AppChip(
-                    label: k.label,
-                    on: c.kind == k,
-                    onTap: () => c.setKind(k),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
             VinScanner(
               vin: c.scanning
                   ? 'распознаём…'
-                  : (value.isEmpty ? 'нажмите, чтобы снять табличку' : value),
+                  : (value.isNotEmpty
+                        ? value
+                        : c.kind == VinKind.vin
+                        ? 'нажмите, чтобы снять табличку'
+                        : 'нажмите, чтобы снять номер кузова'),
               onTap: c.scanning ? null : () => _tapped(context),
               error: c.error != null,
             ),
@@ -132,6 +132,7 @@ class VinCapture extends StatelessWidget {
                 path: c.photoPath!,
                 label: 'Фото таблички сохранено',
               ),
+            _KindSwitch(controller: c),
             FieldError(c.error),
           ],
         );
@@ -272,6 +273,52 @@ class VinCapture extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Номер кузова — исключение, а не равный выбор: без VIN бывают японские
+/// праворульные и часть старых машин. Ссылка под видоискателем вместо
+/// чипов, чтобы не казалось, что снимать надо и то и другое.
+class _KindSwitch extends StatelessWidget {
+  const _KindSwitch({required this.controller});
+
+  final VinCaptureController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final toBody = controller.kind == VinKind.vin;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextButton(
+            onPressed: () => controller.switchKind(
+              toBody ? VinKind.bodyNumber : VinKind.vin,
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: context.colors.text1,
+            ),
+            child: Text(
+              toBody ? 'Нет VIN? Указать номер кузова' : '← Вернуться к VIN',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          if (toBody)
+            Text(
+              'у японских праворульных и части старых машин',
+              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+            ),
+        ],
       ),
     );
   }

@@ -180,6 +180,35 @@ void main() {
     expect(repo.lastOdometer, isNull);
   });
 
+  testWidgets('номер кузова — по ссылке «Нет VIN?», а не равным чипом', (
+    tester,
+  ) async {
+    final vin = VinCaptureController();
+    await open(tester, MockOrderRepository(), vin);
+
+    expect(find.text('Номер кузова'), findsNothing);
+    expect(find.text('Нет VIN? Указать номер кузова'), findsOneWidget);
+    expect(
+      find.text('у японских праворульных и части старых машин'),
+      findsOneWidget,
+    );
+
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    await tester.tap(find.text('Нет VIN? Указать номер кузова'));
+    await tester.pumpAndSettle();
+
+    expect(vin.kind, VinKind.bodyNumber);
+    expect(find.text('НОМЕР КУЗОВА'), findsOneWidget);
+    expect(find.text('нажмите, чтобы снять номер кузова'), findsOneWidget);
+    // VIN под номер кузова не подходит — поле очищено
+    expect(vin.value, isEmpty);
+
+    await tester.tap(find.text('← Вернуться к VIN'));
+    await tester.pumpAndSettle();
+    expect(vin.kind, VinKind.vin);
+    expect(find.text('Нет VIN? Указать номер кузова'), findsOneWidget);
+  });
+
   testWidgets('ошибка сервера по фото — под блоком VIN', (tester) async {
     final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
     vin.text.text = 'XW8ZZZ61ZKG100111';
