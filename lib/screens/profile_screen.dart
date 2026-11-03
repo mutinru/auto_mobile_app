@@ -164,9 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   eyebrow: 'аккаунт',
                   // профиль открывается с витрины — без этого с него
                   // некуда вернуться
-                  onBack: Navigator.of(context).canPop()
-                      ? () => Navigator.of(context).pop()
-                      : null,
+                  onBack: backIfCanPop(context),
                   trailing: SquareIconButton(
                     icon: Icons.settings_outlined,
                     onTap: () {

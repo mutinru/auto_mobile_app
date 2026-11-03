@@ -225,9 +225,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                 DetailHead(
                   title: 'Заказы рядом',
                   eyebrow: 'свободные · $all',
-                  onBack: Navigator.of(context).canPop()
-                      ? () => Navigator.of(context).pop()
-                      : null,
+                  onBack: backIfCanPop(context),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

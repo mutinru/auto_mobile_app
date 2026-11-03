@@ -8,6 +8,15 @@ import '../theme/app_theme.dart';
 /// Каждый виджет соответствует CSS-классу, значения взяты из стилей,
 /// а не подобраны на глаз — см. комментарии с именами классов.
 
+/// «Назад» для [DetailHead.onBack] — только если под этим экраном есть
+/// маршрут. Не Navigator.canPop(): тот true и тогда, когда поверх открыт
+/// другой экран, — экран-раздел, перерисованный из-под него (общий стор),
+/// получал ложную стрелку, а её pop() снимал корневой маршрут → чёрный экран.
+VoidCallback? backIfCanPop(BuildContext context) =>
+    (ModalRoute.of(context)?.canPop ?? false)
+    ? () => Navigator.of(context).maybePop()
+    : null;
+
 /// .detail-head — шапка экрана: кнопка назад, надстрочник + заголовок,
 /// справа либо .detail-pos (счётчик), либо .head-action (иконка).
 class DetailHead extends StatelessWidget {

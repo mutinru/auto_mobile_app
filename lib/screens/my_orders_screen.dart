@@ -233,9 +233,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                 DetailHead(
                   title: widget.asExecutor ? 'Взятые заказы' : 'Мои заказы',
                   eyebrow: eyebrow,
-                  onBack: Navigator.of(context).canPop()
-                      ? () => Navigator.of(context).pop()
-                      : null,
+                  onBack: backIfCanPop(context),
                   trailing: _headActions(),
                 ),
                 AppToggle(

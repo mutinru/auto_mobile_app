@@ -82,9 +82,7 @@ class _PublicFeedScreenState extends State<PublicFeedScreen> {
               eyebrow: 'без регистрации',
               // витрина открывается поверх вопроса о намерении — стрелка
               // возвращает к нему
-              onBack: Navigator.of(context).canPop()
-                  ? () => Navigator.of(context).pop()
-                  : null,
+              onBack: backIfCanPop(context),
             ),
             // .feed-stats
             if (_stats != null)
