@@ -86,7 +86,11 @@ class PanelListView extends StatelessWidget {
             ),
           ),
           for (final panel in items)
-            _PanelRow(panel: panel, onTap: () => onTap(panel)),
+            _PanelRow(
+              panel: panel,
+              showMissing: !forCustomer,
+              onTap: () => onTap(panel),
+            ),
         ],
       ],
     );
@@ -95,9 +99,14 @@ class PanelListView extends StatelessWidget {
 
 /// .list-item
 class _PanelRow extends StatelessWidget {
-  const _PanelRow({required this.panel, required this.onTap});
+  const _PanelRow({
+    required this.panel,
+    required this.showMissing,
+    required this.onTap,
+  });
 
   final InspectionPanel panel;
+  final bool showMissing;
   final VoidCallback onTap;
 
   @override
@@ -141,6 +150,10 @@ class _PanelRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (showMissing && panel.isIncomplete) ...[
+              _MissingTag(panel: panel),
+              const SizedBox(width: 6),
+            ],
             _Trailing(panel: panel),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, size: 14, color: context.colors.text3),
@@ -204,5 +217,36 @@ class _Trailing extends StatelessWidget {
     }
 
     return const SizedBox.shrink();
+  }
+}
+
+/// Чего не хватает оценённой детали для отчёта — видно исполнителю в списке.
+class _MissingTag extends StatelessWidget {
+  const _MissingTag({required this.panel});
+
+  final InspectionPanel panel;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = switch ((panel.needsPhoto, panel.needsDefect)) {
+      (true, true) => 'нужны фото и дефект',
+      (true, false) => 'нужно фото',
+      _ => 'нужен дефект',
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.error_outline,
+          size: 13,
+          color: context.colors.progressText,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(fontSize: 11, color: context.colors.progressText),
+        ),
+      ],
+    );
   }
 }

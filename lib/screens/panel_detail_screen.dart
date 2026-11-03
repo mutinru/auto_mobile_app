@@ -217,6 +217,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           ),
                         ],
                       ),
+                      if (panel.needsDefect && !store.readOnly)
+                        const _Requirement('«К ремонту» — отметьте дефект'),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 6,
@@ -249,6 +251,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           ),
                         ],
                       ),
+                      if (panel.needsPhoto && !store.readOnly)
+                        const _Requirement('Нужно хотя бы одно фото'),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 72,
@@ -361,6 +365,39 @@ class _SectionTitle extends StatelessWidget {
         letterSpacing: 1.2,
         color: context.colors.text3,
         fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+/// Подсказка, чего не хватает детали для отчёта. Не блокирует «Дальше»:
+/// жёстко это проверит отправка отчёта (сервер, InspectionPanel::missing()).
+class _Requirement extends StatelessWidget {
+  const _Requirement(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 14,
+            color: context.colors.progressText,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: context.colors.progressText,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

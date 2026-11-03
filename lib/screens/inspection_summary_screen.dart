@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../models/inspection_panel.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/inspection_report_parts.dart';
+import 'panel_detail_screen.dart';
 
 /// Экран 09 макета — «сводка и отчёт».
 class InspectionSummaryScreen extends StatelessWidget {
@@ -31,6 +33,9 @@ class InspectionSummaryScreen extends StatelessWidget {
       builder: (context, _) {
         final panels = store.panels;
         final defective = defectivePanels(panels);
+        final incomplete = store.readOnly
+            ? const <InspectionPanel>[]
+            : store.incompletePanels;
 
         return Scaffold(
           body: SafeArea(
@@ -48,6 +53,25 @@ class InspectionSummaryScreen extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(22, 6, 22, 18),
                     children: [
+                      if (incomplete.isNotEmpty) ...[
+                        SectionHead(
+                          'Не хватает',
+                          extra: '${incomplete.length}',
+                        ),
+                        for (final p in incomplete)
+                          _IncompleteItem(
+                            panel: p,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => PanelDetailScreen(
+                                  store: store,
+                                  panelId: p.id,
+                                ),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 22),
+                      ],
                       ReportScoreCard(panels: panels),
                       const SizedBox(height: 12),
                       ReportStats(panels: panels),
@@ -102,7 +126,8 @@ class InspectionSummaryScreen extends StatelessWidget {
                     CtaPrimary(
                       label: sendLabel,
                       icon: Icons.send,
-                      onPressed: store.remainingCount == 0
+                      // то же правило проверит сервер при отправке
+                      onPressed: store.isReportComplete
                           ? (onSendReport ?? () {})
                           : null,
                     ),
@@ -114,6 +139,63 @@ class InspectionSummaryScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Деталь, которой для отчёта не хватает фото или дефекта; тап — к ней.
+class _IncompleteItem extends StatelessWidget {
+  const _IncompleteItem({required this.panel, required this.onTap});
+
+  final InspectionPanel panel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final need = [
+      if (panel.needsPhoto) 'фото',
+      if (panel.needsDefect) 'дефект',
+    ].join(' и ');
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: context.colors.bg1,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 16,
+              color: context.colors.progressText,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                panel.name,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: context.colors.text1,
+                ),
+              ),
+            ),
+            Text(
+              'нужно $need',
+              style: TextStyle(
+                fontSize: 11,
+                color: context.colors.progressText,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, size: 14, color: context.colors.text3),
+          ],
+        ),
+      ),
     );
   }
 }

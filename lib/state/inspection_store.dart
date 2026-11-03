@@ -64,6 +64,24 @@ class InspectionStore extends ChangeNotifier {
     return null;
   }
 
+  /// Оценённые пункты, которым для отчёта не хватает фото или дефекта.
+  List<InspectionPanel> get incompletePanels =>
+      _panels.where((p) => p.isIncomplete).toList();
+
+  /// Куда вести исполнителя дальше: сначала неоценённые, потом недоделанные.
+  InspectionPanel? get firstIncomplete {
+    final unrated = firstUnrated;
+    if (unrated != null) return unrated;
+    for (final p in _panels) {
+      if (p.isIncomplete) return p;
+    }
+    return null;
+  }
+
+  /// Отчёт можно отправлять: всё оценено и дозаполнено (то же проверит сервер).
+  bool get isReportComplete =>
+      remainingCount == 0 && !_panels.any((p) => p.isIncomplete);
+
   /// Ошибка не пробрасывается — она в [loadError], экран рисует её с
   /// «Повторить» вместо вечного спиннера.
   Future<void> load() async {

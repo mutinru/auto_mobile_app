@@ -55,12 +55,17 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
 
   /// Главная кнопка ведёт по осмотру: пока есть неоценённые пункты, она
   /// открывает первый из них (дальше по цепочке — «Дальше» в карточке),
-  /// после — сводка и отчёт.
+  /// затем — пункты без обязательного фото или дефекта, после — сводка.
   Widget _primaryAction(InspectionStore store) {
-    final next = store.firstUnrated;
+    final next = store.firstIncomplete;
     if (next != null) {
+      final caption = next.condition != null
+          ? 'Дозаполнить'
+          : store.evaluatedCount == 0
+          ? 'Начать осмотр'
+          : 'Продолжить';
       return NextStepButton(
-        caption: store.evaluatedCount == 0 ? 'Начать осмотр' : 'Продолжить',
+        caption: caption,
         title: next.name,
         onPressed: () => _openPanel(next.id),
       );

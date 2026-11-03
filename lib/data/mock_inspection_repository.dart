@@ -72,9 +72,26 @@ class MockInspectionRepository implements InspectionRepository {
 
   List<InspectionPanel>? _panels;
 
-  List<InspectionPanel> get _loadedPanels => _panels ??= _blank
-      ? [for (final p in _buildPanels()) _unrated(p)]
-      : _buildPanels();
+  List<InspectionPanel> get _loadedPanels => _panels ??= [
+    for (final p in _blank ? _buildPanels().map(_unrated) : _buildPanels())
+      _withMissing(p),
+  ];
+
+  /// Мок сам считает поле missing — повтор InspectionPanel::missing() с
+  /// бекенда: «Удовлетв.» — фото, «К ремонту» — фото и дефект.
+  static InspectionPanel _withMissing(InspectionPanel p) {
+    final c = p.condition;
+    p.missing = {
+      if (c == null) InspectionPanel.missingCondition,
+      if ((c == PanelCondition.satisfactory ||
+              c == PanelCondition.needsRepair) &&
+          p.photoCount == 0)
+        InspectionPanel.missingPhoto,
+      if (c == PanelCondition.needsRepair && p.defects.isEmpty)
+        InspectionPanel.missingDefect,
+    };
+    return p;
+  }
 
   static InspectionPanel _unrated(InspectionPanel p) => InspectionPanel(
     id: p.id,
@@ -109,7 +126,7 @@ class MockInspectionRepository implements InspectionRepository {
   ) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     panel.applyCondition(condition);
-    return panel;
+    return _withMissing(panel);
   }
 
   @override
@@ -117,7 +134,7 @@ class MockInspectionRepository implements InspectionRepository {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     final label = _mockDefects.firstWhere((d) => d.id == defectId).label;
     panel.toggleDefect(label);
-    return panel;
+    return _withMissing(panel);
   }
 
   List<InspectionPanel> _buildPanels() => [
@@ -245,7 +262,7 @@ class MockInspectionRepository implements InspectionRepository {
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     panel.photoCount++;
-    return panel;
+    return _withMissing(panel);
   }
 
   @override

@@ -7,7 +7,7 @@ import 'panel_status.dart';
 ///
 /// Поля зеркалят InspectionPanelResource на бекенде
 /// (app/Http/Resources/InspectionPanelResource.php):
-/// id, name, zone, kind, status, condition, defects, photoCount, audio*.
+/// id, name, zone, kind, status, condition, defects, photoCount, missing, audio*.
 class InspectionPanel {
   InspectionPanel({
     required this.id,
@@ -21,8 +21,10 @@ class InspectionPanel {
     List<String>? photoUrls,
     this.audioNoteSeconds,
     this.audioNoteUrl,
+    Set<String>? missing,
   }) : defects = defects ?? <String>{},
-       photoUrls = photoUrls ?? <String>[];
+       photoUrls = photoUrls ?? <String>[],
+       missing = missing ?? <String>{};
 
   final String id;
   final String name;
@@ -47,6 +49,21 @@ class InspectionPanel {
   /// Абсолютная подписанная ссылка на запись: открывается без токена,
   /// но живёт около часа — после этого осмотр надо перезагрузить.
   String? audioNoteUrl;
+
+  /// Чего не хватает для отчёта: [missingCondition], [missingPhoto],
+  /// [missingDefect]. Правило считает бекенд (InspectionPanel::missing()),
+  /// клиент только показывает; старый бекенд поле не шлёт — пусто.
+  Set<String> missing;
+
+  static const missingCondition = 'condition';
+  static const missingPhoto = 'photo';
+  static const missingDefect = 'defect';
+
+  bool get needsPhoto => missing.contains(missingPhoto);
+  bool get needsDefect => missing.contains(missingDefect);
+
+  /// Оценена, но для отчёта не хватает фото или дефекта.
+  bool get isIncomplete => condition != null && (needsPhoto || needsDefect);
 
   void applyCondition(PanelCondition condition) {
     this.condition = condition;
@@ -81,6 +98,9 @@ class InspectionPanel {
       audioNoteUrl: audioNote == null
           ? null
           : _absolute(audioNote['url'] as String),
+      missing: {
+        for (final m in (json['missing'] as List? ?? const [])) m as String,
+      },
     );
   }
 }
