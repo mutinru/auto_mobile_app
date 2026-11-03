@@ -359,7 +359,7 @@ class _RootGateState extends State<_RootGate> {
     final navigator = Navigator.of(context);
     final route = MaterialPageRoute<Order>(
       builder: (_) => kind.isInspection
-          ? NewInspectionScreen(store: store)
+          ? NewInspectionScreen(store: store, auth: _auth)
           : NewOrderScreen(store: store),
     );
     final created = replace

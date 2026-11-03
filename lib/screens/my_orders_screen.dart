@@ -107,7 +107,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => kind.isInspection
-            ? NewInspectionScreen(store: widget.store)
+            ? NewInspectionScreen(store: widget.store, auth: widget.auth)
             : NewOrderScreen(store: widget.store),
       ),
     );
@@ -118,8 +118,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   Future<void> _repeatInspection(Order order) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            NewInspectionScreen(store: widget.store, basedOn: order),
+        builder: (_) => NewInspectionScreen(
+          store: widget.store,
+          basedOn: order,
+          auth: widget.auth,
+        ),
       ),
     );
     _reload();

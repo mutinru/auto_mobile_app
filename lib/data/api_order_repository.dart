@@ -13,6 +13,7 @@ import '../models/payout.dart';
 import '../models/review.dart';
 import '../models/time_slot.dart';
 import '../models/vin_kind.dart';
+import '../models/vin_report.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
 
@@ -358,6 +359,35 @@ class ApiOrderRepository implements OrderRepository {
       throw _client.failure(streamed.statusCode, body);
     }
     return jsonDecode(body) as Map<String, dynamic>;
+  }
+
+  @override
+  Future<VinReportCheck> checkVinReports(String vin) async {
+    final json = await _client.get(
+      '/vin-reports/check?vin=${Uri.encodeQueryComponent(vin)}',
+    );
+    return VinReportCheck.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<VinReportPurchase> purchaseVinReport(String vin) async {
+    final json = await _client.post('/vin-reports/purchases', {'vin': vin});
+    return VinReportPurchase.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<VinReportPurchase>> fetchVinReportPurchases() async {
+    final json = await _client.get('/vin-reports/purchases');
+    return [
+      for (final p in json['data'] as List)
+        VinReportPurchase.fromJson(p as Map<String, dynamic>),
+    ];
+  }
+
+  @override
+  Future<VinReportPurchase> fetchVinReportPurchase(int id) async {
+    final json = await _client.get('/vin-reports/purchases/$id');
+    return VinReportPurchase.fromJson(json['data'] as Map<String, dynamic>);
   }
 
   /// Бекенд ждёт дату без времени — иначе валидация after_or_equal

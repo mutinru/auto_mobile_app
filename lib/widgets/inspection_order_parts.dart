@@ -335,14 +335,19 @@ class _LockedListingRow extends StatelessWidget {
 
 /// Вердикт с комментарием — то, ради чего заказ и делался.
 class InspectionVerdictBox extends StatelessWidget {
-  const InspectionVerdictBox({super.key, required this.order});
+  const InspectionVerdictBox({super.key, required this.verdict, this.comment});
 
-  final Order order;
+  /// Вердикт разового осмотра из заказа — у него всегда одна машина.
+  InspectionVerdictBox.forOrder(Order order, {super.key})
+    : verdict = order.verdict!,
+      comment = order.cars.first.verdictComment;
+
+  final InspectionVerdict verdict;
+  final String? comment;
 
   @override
   Widget build(BuildContext context) {
-    final verdict = order.verdict!;
-    final comment = order.cars.first.verdictComment;
+    final comment = this.comment;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),

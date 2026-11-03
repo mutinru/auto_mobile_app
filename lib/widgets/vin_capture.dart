@@ -197,24 +197,17 @@ class VinCapture extends StatelessWidget {
 
     controller.setPhoto(shot.path);
     controller._setScanning(true);
-    final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     String? found;
-    try {
-      final result = await recognizer.processImage(
-        InputImage.fromFilePath(shot.path),
-      );
-      final vin = extractVin(result.text);
+    final text = await recognizeText(shot.path);
+    controller._setScanning(false);
+    if (text != null) {
+      final vin = extractVin(text);
       if (vin != null) {
         controller.setKind(VinKind.vin);
         found = vin;
       } else if (controller.kind == VinKind.bodyNumber) {
-        found = extractBodyNumber(result.text);
+        found = extractBodyNumber(text);
       }
-    } catch (_) {
-      // не распознали — снимок остаётся, текст введут руками
-    } finally {
-      await recognizer.close();
-      controller._setScanning(false);
     }
     if (!context.mounted) return;
     if (found != null) {
@@ -278,6 +271,35 @@ class VinCapture extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Текст со снимка — ML Kit на устройстве, офлайн. null — не удалось
+/// распознать: снимок остаётся, текст вводят руками.
+Future<String?> recognizeText(String imagePath) async {
+  final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  try {
+    final result = await recognizer.processImage(
+      InputImage.fromFilePath(imagePath),
+    );
+    return result.text;
+  } catch (_) {
+    return null;
+  } finally {
+    await recognizer.close();
+  }
+}
+
+/// VIN или номер кузова с камеры — без сохранения снимка (поле заказчика).
+/// null — отказались от съёмки или ничего не нашли.
+Future<String?> scanVinOrBodyNumber() async {
+  final shot = await ImagePicker().pickImage(
+    source: ImageSource.camera,
+    maxWidth: 2000,
+  );
+  if (shot == null) return null;
+  final text = await recognizeText(shot.path);
+  if (text == null) return null;
+  return extractVin(text) ?? extractBodyNumber(text);
 }
 
 /// Снятая табличка — миниатюра под видоискателем.

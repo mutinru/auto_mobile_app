@@ -7,6 +7,7 @@ import '../models/order_car.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
 import '../models/vin_kind.dart';
+import '../models/vin_report.dart';
 import '../models/time_slot.dart';
 
 /// Источник данных маркетплейса заказов. Как и InspectionRepository —
@@ -157,4 +158,18 @@ abstract class OrderRepository {
     InspectionType type = InspectionType.full,
     CapturedVin? vin,
   });
+
+  /// Готовые отчёты по VIN (или номеру кузова): тизер без вердикта и цена.
+  /// Сервер считает разные VIN — не больше 15 в сутки, сверх — 429.
+  Future<VinReportCheck> checkVinReports(String vin);
+
+  /// Купить пакет готовых отчётов по VIN. Пока эквайринга нет, оплата
+  /// проходит сразу; позже ответ может прийти неоплаченным со ссылкой
+  /// подтверждения ([VinReportPurchase.confirmationUrl]).
+  Future<VinReportPurchase> purchaseVinReport(String vin);
+
+  /// Оплаченные пакеты заказчика, свежие сверху.
+  Future<List<VinReportPurchase>> fetchVinReportPurchases();
+
+  Future<VinReportPurchase> fetchVinReportPurchase(int id);
 }

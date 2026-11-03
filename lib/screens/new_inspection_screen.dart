@@ -2,10 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../data/address_repository.dart';
+import '../data/api_exception.dart';
+import '../data/auth_service.dart';
 import '../models/car_catalog.dart';
 import '../models/order.dart';
 import '../models/time_slot.dart';
+import '../models/vin_kind.dart';
+import '../models/vin_report.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../util/listing_url.dart';
@@ -17,6 +23,9 @@ import '../widgets/city_picker_sheet.dart';
 import '../widgets/inspection_when_picker.dart';
 import '../widgets/phone_input.dart';
 import '../widgets/price_box.dart';
+import '../widgets/vin_capture.dart';
+import '../widgets/vin_report_offer.dart';
+import 'vin_report_screen.dart';
 
 /// Кадр 03 макета order-types.html — «новый осмотр». Вместо бюджета и
 /// городов поиска: ссылка или VIN, город и адрес, дата и цена заказчика.
@@ -24,10 +33,19 @@ import '../widgets/price_box.dart';
 /// [basedOn] заполняет город, адрес, время и цену из прошлого осмотра — это
 /// «Осмотреть другую машину» из кадра 05; машина всегда новая.
 class NewInspectionScreen extends StatefulWidget {
-  const NewInspectionScreen({super.key, required this.store, this.basedOn});
+  const NewInspectionScreen({
+    super.key,
+    required this.store,
+    this.basedOn,
+    this.auth,
+  });
 
   final OrderStore store;
   final Order? basedOn;
+
+  /// Нужен, чтобы открыть купленный отчёт по VIN; без него (в тестах)
+  /// покупка открывает только список осмотров.
+  final AuthService? auth;
 
   @override
   State<NewInspectionScreen> createState() => _NewInspectionScreenState();
@@ -64,6 +82,16 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   final _dismissedUrls = <String>{};
   Timer? _guessDebounce;
 
+  /// Готовые отчёты по введённому VIN: ответ сервера, идёт ли запрос,
+  /// лимит проверок. [_vinGeneration] отбрасывает ответ на прежний VIN.
+  VinReportCheck? _vinCheck;
+  bool _vinChecking = false;
+  String? _vinLimit;
+  bool _buying = false;
+  int _vinGeneration = 0;
+  String _vinAsked = '';
+  Timer? _vinDebounce;
+
   /// Пустое поле — строка «Подставим марку…»; не-ссылка — предупреждение.
   bool _listingEmpty = true;
   bool _listingInvalid = false;
@@ -72,6 +100,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   void initState() {
     super.initState();
     _listingController.addListener(_onListingChanged);
+    _vinController.addListener(_onVinChanged);
     final based = widget.basedOn;
     final now = DateTime.now();
     _when = InspectionWhen(
@@ -116,6 +145,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   @override
   void dispose() {
     _guessDebounce?.cancel();
+    _vinDebounce?.cancel();
     _listingController.dispose();
     _vinController.dispose();
     _brandController.dispose();
@@ -126,6 +156,109 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     _phoneController.dispose();
     super.dispose();
   }
+
+  String get _vin => _vinController.text.trim().toUpperCase();
+
+  /// VIN или номер кузова — что угодно из двух, вид заказчик не выбирает.
+  static bool _isVinOrBody(String v) =>
+      VinKind.vin.problem(v) == null || VinKind.bodyNumber.problem(v) == null;
+
+  /// Как ссылка: спрашиваем сервер, когда ввод замер на полсекунды.
+  void _onVinChanged() {
+    final vin = _vin;
+    if (vin == _vinAsked) return;
+    _vinAsked = vin;
+    _vinDebounce?.cancel();
+    final generation = ++_vinGeneration;
+    if (_vinCheck != null || _vinLimit != null || _vinChecking) {
+      setState(() {
+        _vinCheck = null;
+        _vinLimit = null;
+        _vinChecking = false;
+      });
+    }
+    if (!_isVinOrBody(vin)) return;
+    _vinDebounce = Timer(
+      const Duration(milliseconds: 500),
+      () => _checkVin(vin, generation),
+    );
+  }
+
+  Future<void> _checkVin(String vin, int generation) async {
+    setState(() => _vinChecking = true);
+    try {
+      final check = await widget.store.repository.checkVinReports(vin);
+      if (!mounted || generation != _vinGeneration) return;
+      setState(() => _vinCheck = check.available ? check : null);
+    } on ApiException catch (e) {
+      if (!mounted || generation != _vinGeneration) return;
+      // лимит проверок — строкой; прочие сбои молча: форма работает и так
+      // (лимит проверок VIN — своим текстом, общий лимитер API — общим)
+      if (e.statusCode == 429) {
+        final text = e.userMessage;
+        setState(
+          () => _vinLimit = text.contains('VIN') ? text : apiErrorText(e),
+        );
+      }
+    } catch (_) {
+      // нет связи — предложения просто нет
+    } finally {
+      if (mounted && generation == _vinGeneration) {
+        setState(() => _vinChecking = false);
+      }
+    }
+  }
+
+  Future<void> _scanVin() async {
+    final found = await scanVinOrBodyNumber();
+    if (!mounted) return;
+    if (found == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('VIN не распознан — введите вручную')),
+      );
+      return;
+    }
+    _vinController.text = found;
+  }
+
+  Future<void> _buyReport(VinReportCheck check) async {
+    if (!await confirmVinReportPurchase(context, check) || !mounted) return;
+    setState(() => _buying = true);
+    try {
+      final purchase = await widget.store.repository.purchaseVinReport(
+        check.vin,
+      );
+      if (!mounted) return;
+      if (purchase.paid) {
+        setState(
+          () => _vinCheck = VinReportCheck(
+            vin: check.vin,
+            items: check.items,
+            price: check.price,
+            purchaseId: purchase.id,
+          ),
+        );
+        await _openReport(purchase.id);
+      } else if (purchase.confirmationUrl case final url?) {
+        // задел под эквайринг: оплата у провайдера, отчёт появится в профиле
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _buying = false);
+    }
+  }
+
+  Future<void> _openReport(int purchaseId) => Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => VinReportScreen(
+        repository: widget.store.repository,
+        purchaseId: purchaseId,
+        auth: widget.auth,
+      ),
+    ),
+  );
 
   /// Спрашиваем сервер, когда ввод замер на полсекунды: вставка ссылки —
   /// одно событие, а печать руками не должна слать запрос на каждую букву.
@@ -233,7 +366,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     final mileageText = _mileageController.text.replaceAll(' ', '');
     final mileage = int.tryParse(mileageText);
     final address = _addressController.text.trim();
-    final vin = _vinController.text.trim();
+    final vin = _vin;
     final listing = _listingController.text.trim();
     // поле с маской «+7 | 900 123 45 67» — здесь 10 цифр без кода страны
     final phoneDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
@@ -246,7 +379,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         'Пробег — числом, в км',
       _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
-      _ when vin.isNotEmpty && vin.length != 17 => 'VIN — ровно 17 символов',
+      _ when vin.isNotEmpty && !_isVinOrBody(vin) =>
+        'Проверьте VIN или номер кузова',
       _ when listing.isNotEmpty && normalizeListingUrl(listing) == null =>
         'Похоже, это не ссылка на объявление',
       _ when phoneDigits.isNotEmpty && phoneDigits.length != 10 =>
@@ -333,12 +467,45 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                   // .or — разделитель «или»
                   const _OrDivider(),
                   FieldBoxInput(
-                    label: 'VIN',
+                    label: 'VIN или номер кузова',
                     controller: _vinController,
-                    hint: '17 символов',
+                    hint: '17 символов или номер кузова',
                     mono: true,
-                    inputFormatters: const [VinFormatter()],
+                    inputFormatters: const [BodyNumberFormatter()],
                   ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _FieldNote(
+                          _vinLimit ??
+                              (_vinChecking
+                                  ? 'Ищем готовые отчёты…'
+                                  : 'Укажите VIN — проверим, нет ли готового '
+                                        'отчёта по этой машине'),
+                        ),
+                      ),
+                      Transform.translate(
+                        offset: const Offset(0, -10),
+                        child: IconButton(
+                          tooltip: 'Снять VIN камерой',
+                          onPressed: _scanVin,
+                          icon: Icon(
+                            Icons.photo_camera_outlined,
+                            size: 19,
+                            color: context.colors.text2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_vinCheck case final check?)
+                    VinReportOffer(
+                      check: check,
+                      buying: _buying,
+                      onBuy: () => _buyReport(check),
+                      onOpen: () => _openReport(check.purchaseId!),
+                    ),
 
                   const SizedBox(height: 22),
                   const SectionHead('Автомобиль'),

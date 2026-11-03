@@ -13,6 +13,8 @@ import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../models/review.dart';
 import '../models/vin_kind.dart';
+import '../models/vin_report.dart';
+import 'api_exception.dart';
 import '../models/time_slot.dart';
 import '../models/user_summary.dart';
 import '../util/listing_url.dart';
@@ -622,6 +624,81 @@ class MockOrderRepository implements OrderRepository {
 
   /// Последний VIN, снятый исполнителем, — для тестов экранов начала осмотра.
   CapturedVin? lastVin;
+
+  /// VIN, по которому в моке есть готовые отчёты: два осмотра.
+  static const reportVin = 'XW8ZZZ61ZKG100111';
+
+  /// Разные VIN, проверенные за «сутки», — лимит как у сервера.
+  final _checkedVins = <String>{};
+  final _purchases = <VinReportPurchase>[];
+
+  static final _reportItems = [
+    VinReportItem(
+      date: DateTime(2026, 10, 20),
+      city: 'Москва',
+      mileageKm: 112000,
+    ),
+    VinReportItem(date: DateTime(2026, 9, 2), city: 'Химки', mileageKm: 98000),
+  ];
+
+  @override
+  Future<VinReportCheck> checkVinReports(String vin) async {
+    if (!_checkedVins.contains(vin) && _checkedVins.length >= 15) {
+      throw ApiException(
+        429,
+        '{"message":"Можно проверить 15 VIN в сутки — попробуйте завтра"}',
+      );
+    }
+    _checkedVins.add(vin);
+    final has = vin == reportVin;
+    return VinReportCheck(
+      vin: vin,
+      items: has ? _reportItems : const [],
+      price: 299,
+      purchaseId: has ? _purchases.firstOrNull?.id : null,
+    );
+  }
+
+  @override
+  Future<VinReportPurchase> purchaseVinReport(String vin) async {
+    if (vin != reportVin) {
+      throw ApiException(422, '{"message":"Готовых отчётов по этому VIN нет"}');
+    }
+    if (_purchases.firstOrNull case final p?) return p;
+    final purchase = VinReportPurchase(
+      id: 701,
+      vinMasked: '··· ${vin.substring(vin.length - 6)}',
+      paid: true,
+      price: 299,
+      paidAt: DateTime(2026, 11, 3),
+      items: [
+        for (final (i, item) in _reportItems.indexed)
+          VinReportItem(
+            date: item.date,
+            city: item.city,
+            mileageKm: item.mileageKm,
+            inspectionId: 9001 + i,
+            brand: 'Volkswagen',
+            model: 'Tiguan',
+            year: 2019,
+            verdict: i == 0
+                ? InspectionVerdict.withReservations
+                : InspectionVerdict.recommended,
+            verdictComment: i == 0 ? 'Перекрашено крыло' : null,
+          ),
+      ],
+    );
+    _purchases.add(purchase);
+    return purchase;
+  }
+
+  @override
+  Future<List<VinReportPurchase>> fetchVinReportPurchases() async =>
+      List.of(_purchases);
+
+  @override
+  Future<VinReportPurchase> fetchVinReportPurchase(int id) async =>
+      _purchases.firstWhere((p) => p.id == id);
 
   @override
   Future<int> startInspection(

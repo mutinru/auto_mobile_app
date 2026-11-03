@@ -20,6 +20,7 @@ import '../widgets/unread_badge.dart';
 import 'executor_reviews_screen.dart';
 import 'settings_screen.dart';
 import 'verification_screen.dart';
+import 'vin_report_screen.dart';
 import 'my_orders_screen.dart';
 
 /// Экран 03 из car-marketplace-experiment.html — «профиль · две роли».
@@ -394,6 +395,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           context,
                           initial: user?.payout,
                           onSave: widget.auth.updatePayout,
+                        ),
+                      ),
+                      // готовые отчёты по VIN, купленные при заказе осмотра
+                      _SettingsRow(
+                        icon: Icons.fact_check_outlined,
+                        label: 'Купленные отчёты',
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: context.colors.text3,
+                        ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => VinReportsScreen(
+                              repository: widget.store.repository,
+                              auth: widget.auth,
+                            ),
+                          ),
                         ),
                       ),
 

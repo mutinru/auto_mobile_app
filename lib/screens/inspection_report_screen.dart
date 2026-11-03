@@ -4,6 +4,7 @@ import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
 import '../models/inspection_panel.dart';
+import '../models/inspection_verdict.dart';
 import '../models/order.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
@@ -50,14 +51,30 @@ bool hasInspectionReport(Order order) =>
 /// вердикт, балл, схема, дефекты, оценка и фото каждой детали.
 /// Ничего не меняет: ни оценок, ни дефектов, ни фото.
 class InspectionReportScreen extends StatefulWidget {
-  const InspectionReportScreen({
+  InspectionReportScreen({
     super.key,
     required this.store,
-    required this.order,
+    required Order order,
+  }) : title = order.carTitle,
+       verdict = order.verdict,
+       verdictComment = order.cars.firstOrNull?.verdictComment;
+
+  /// Отчёт из купленного пакета по VIN: заказа у покупателя нет, вердикт
+  /// пришёл с покупкой. Голосовых заметок сервер ему не отдаёт.
+  const InspectionReportScreen.purchased({
+    super.key,
+    required this.store,
+    required this.title,
+    this.verdict,
+    this.verdictComment,
   });
 
   final InspectionStore store;
-  final Order order;
+
+  /// Машина — подпись над заголовком.
+  final String title;
+  final InspectionVerdict? verdict;
+  final String? verdictComment;
 
   @override
   State<InspectionReportScreen> createState() => _InspectionReportScreenState();
@@ -91,7 +108,7 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
           children: [
             DetailHead(
               title: 'Отчёт',
-              eyebrow: widget.order.carTitle,
+              eyebrow: widget.title,
               onBack: () => Navigator.of(context).pop(),
             ),
             Expanded(
@@ -142,9 +159,12 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
       children: [
-        if (widget.order.verdict != null) ...[
+        if (widget.verdict case final verdict?) ...[
           const SectionHead('Итог осмотра'),
-          InspectionVerdictBox(order: widget.order),
+          InspectionVerdictBox(
+            verdict: verdict,
+            comment: widget.verdictComment,
+          ),
           const SizedBox(height: 22),
         ],
         ReportScoreCard(panels: panels),

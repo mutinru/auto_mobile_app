@@ -311,7 +311,7 @@ class _InspectionOrderDetailScreenState
         if (order.verdict != null && !order.status.isAwaitingPayment) ...[
           const SizedBox(height: 22),
           const SectionHead('Итог осмотра'),
-          InspectionVerdictBox(order: order),
+          InspectionVerdictBox.forOrder(order),
           if (widget.auth != null && hasInspectionReport(order)) ...[
             const SizedBox(height: 8),
             CtaGhost(
