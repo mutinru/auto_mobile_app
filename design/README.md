@@ -6,7 +6,7 @@
 
 | Файл | Что показывает |
 | --- | --- |
-| `app_auto_podbor.html` | Осмотр по пунктам — базовый макет, из него взяты палитра и схема кузова (`lib/widgets/car_schematic.dart`). Кадр 06а — новый осмотр: подсказка над схемой и «Начать осмотр»; в 06 главная кнопка — «Продолжить» к первому неоценённому пункту (`NextStepButton`), боковые колонки — `lib/widgets/inspection_schematic.dart` |
+| `app_auto_podbor.html` | Осмотр по пунктам — базовый макет, из него взяты палитра и схема кузова (`lib/widgets/car_schematic.dart`). Кадр 06а — новый осмотр: подсказка над схемой и «Начать осмотр»; в 06 главная кнопка — «Продолжить» к первому неоценённому пункту (`NextStepButton`), боковые колонки — `lib/widgets/inspection_schematic.dart`. В шапке 06 вместо иконки авто — стрелка «Назад» (экран открыт поверх заказа) |
 | `car-marketplace-experiment.html` | Витрина/маркетплейс, две роли |
 | `car-storefront-challenge.html` | Вариант В входа в витрину — через действие |
 | `car-storefront-modes.html` | Вариант Б входа — два режима. Кадр 01 → `IntentScreen`, кадр 03 → `NearbyOrdersScreen` |

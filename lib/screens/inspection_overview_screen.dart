@@ -141,24 +141,32 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // .head — иконка авто, название, VIN и пробег
+                // .head — «Назад» (в макете тут иконка авто), название, VIN и пробег.
+                // Экран открывается поверх заказа: без стрелки он выглядел
+                // отдельным разделом, а не шагом внутри заказа.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(22, 20, 22, 14),
                   child: Row(
                     children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: context.colors.bg1,
-                          borderRadius: BorderRadius.circular(11),
+                      if (Navigator.of(context).canPop())
+                        SquareIconButton(
+                          icon: Icons.arrow_back,
+                          onTap: () => Navigator.of(context).pop(),
+                        )
+                      else
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: context.colors.bg1,
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: Icon(
+                            Icons.directions_car_filled_outlined,
+                            size: 20,
+                            color: context.colors.text2,
+                          ),
                         ),
-                        child: Icon(
-                          Icons.directions_car_filled_outlined,
-                          size: 20,
-                          color: context.colors.text2,
-                        ),
-                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(

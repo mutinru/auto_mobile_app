@@ -132,4 +132,39 @@ void main() {
       expect(find.text('НАЧАТЬ ОСМОТР'), findsNothing);
     });
   });
+
+  testWidgets('открытый поверх заказа осмотр возвращается стрелкой «Назад»', (
+    tester,
+  ) async {
+    final store = InspectionStore(MockInspectionRepository());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => InspectionOverviewScreen(store: store),
+                  ),
+                ),
+                child: const Text('Заказ'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Заказ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Toyota Camry 2019'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('Toyota Camry 2019'), findsNothing);
+    expect(find.text('Заказ'), findsOneWidget);
+  });
 }
