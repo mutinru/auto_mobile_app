@@ -301,6 +301,8 @@ class _InspectionOrderDetailScreenState
         if (widget.viewerIsCustomer &&
             (order.cars.firstOrNull?.vinMismatch ?? false))
           const VinMismatchNote(),
+        if (widget.viewerIsCustomer)
+          ?mileageMismatchNoteFor(order.cars.firstOrNull),
         if (widget.viewerIsCustomer &&
             order.status == OrderStatus.awaitingDecision)
           ..._decision(order),

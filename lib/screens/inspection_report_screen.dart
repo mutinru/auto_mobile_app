@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
+import '../models/car.dart';
 import '../models/inspection_panel.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
@@ -175,6 +176,7 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
           const SectionHead('Табличка VIN', extra: 'сняли на осмотре'),
           VinPlateRow(vinMasked: store.car!.vinMasked, photoUrl: url),
         ],
+        ..._mileage(store.car!),
 
         const SizedBox(height: 22),
         const SectionHead('Схема', extra: 'нажмите на пункт'),
@@ -211,6 +213,28 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
       ],
     );
   }
+}
+
+/// Пробег по одометру с фото приборки и, если указывали, заявленный
+/// продавцом. Расхождение — по флагу сервера.
+List<Widget> _mileage(Car car) {
+  final km = car.mileageKm;
+  if (km == null) return const [];
+  final claimed = car.customerMileageKm;
+  return [
+    const SizedBox(height: 22),
+    SectionHead(
+      'Пробег',
+      extra: claimed == null ? 'по одометру' : 'заявлено ${kmLabel(claimed)}',
+    ),
+    PhotoFactRow(
+      value: kmLabel(km)!,
+      caption: 'фото одометра',
+      photoUrl: car.odometerPhotoUrl,
+    ),
+    if (car.mileageMismatch && claimed != null)
+      MileageMismatchNote(km: km, claimedKm: claimed),
+  ];
 }
 
 /// Одна деталь в отчёте: оценка, отмеченные дефекты, фото и голосовая

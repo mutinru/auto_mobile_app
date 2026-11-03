@@ -304,14 +304,13 @@ class ApiOrderRepository implements OrderRepository {
     required String model,
     required int year,
     required CapturedVin vin,
-    required int mileageKm,
+    required CapturedOdometer odometer,
     String? licensePlate,
   }) async {
-    final json = await _withVin('/orders/$orderId/cars', vin, {
+    final json = await _withCapture('/orders/$orderId/cars', vin, odometer, {
       'brand': brand,
       'model': model,
       'year': '$year',
-      'mileage_km': '$mileageKm',
       'license_plate': ?licensePlate,
     });
     return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
@@ -323,21 +322,23 @@ class ApiOrderRepository implements OrderRepository {
     int carId, {
     InspectionType type = InspectionType.full,
     CapturedVin? vin,
+    CapturedOdometer? odometer,
   }) async {
     final path = '/orders/$orderId/cars/$carId/inspections';
     final fields = {'inspection_type': type.apiValue};
-    final json = vin == null
+    final json = vin == null || odometer == null
         ? await _client.post(path, fields)
-        : await _withVin(path, vin, fields);
+        : await _withCapture(path, vin, odometer, fields);
     return (json['data'] as Map<String, dynamic>)['id'] as int;
   }
 
-  /// VIN с фото таблички — multipart мимо ApiClient (тот умеет только
-  /// JSON); ошибки всё равно через [ApiClient.failure], чтобы 401 стёр
-  /// сессию, а 422 легли на поля.
-  Future<Map<String, dynamic>> _withVin(
+  /// VIN с фото таблички и пробег с фото одометра — multipart мимо
+  /// ApiClient (тот умеет только JSON); ошибки всё равно через
+  /// [ApiClient.failure], чтобы 401 стёр сессию, а 422 легли на поля.
+  Future<Map<String, dynamic>> _withCapture(
     String path,
     CapturedVin vin,
+    CapturedOdometer odometer,
     Map<String, String> fields,
   ) async {
     final request =
@@ -348,10 +349,15 @@ class ApiOrderRepository implements OrderRepository {
             ...fields,
             'vin': vin.value,
             'vin_kind': vin.kind.apiValue,
+            'mileage_km': '${odometer.km}',
           })
-          ..files.add(
+          ..files.addAll([
             await http.MultipartFile.fromPath('vin_photo', vin.photoPath),
-          );
+            await http.MultipartFile.fromPath(
+              'odometer_photo',
+              odometer.photoPath,
+            ),
+          ]);
 
     final streamed = await request.send();
     final body = await streamed.stream.bytesToString();

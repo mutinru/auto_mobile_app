@@ -14,6 +14,7 @@ import 'package:auto_podbor_mobile/screens/car_vin_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 
 /// Сервер отклоняет фото таблички — ошибка должна лечь под блок VIN.
@@ -24,6 +25,7 @@ class _RejectingPhoto extends MockOrderRepository {
     int carId, {
     InspectionType type = InspectionType.full,
     CapturedVin? vin,
+    CapturedOdometer? odometer,
   }) async => throw ApiException(
     422,
     '{"message":"x","errors":{"vin_photo":["Нужна фотография таблички"]}}',
@@ -61,11 +63,22 @@ void main() {
 
   Future<Order> order2051() => MockOrderRepository().fetchOrder(2051);
 
+  /// Одометр по умолчанию снят — тесты VIN проверяют свой блок.
+  OdometerCaptureController shotOdometer() => OdometerCaptureController()
+    ..setPhoto('/tmp/odo.jpg')
+    ..text.text = '148000';
+
   Future<int?> open(
     WidgetTester tester,
     MockOrderRepository repo,
-    VinCaptureController vin,
-  ) async {
+    VinCaptureController vin, [
+    OdometerCaptureController? odometer,
+  ]) async {
+    // экран телефона: два блока съёмки не влезают в 800×600
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final odo = odometer ?? shotOdometer();
     final order = await order2051();
     int? result;
     await tester.pumpWidget(
@@ -76,8 +89,12 @@ void main() {
             onPressed: () async {
               result = await Navigator.of(context).push<int>(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      CarVinScreen(repository: repo, order: order, vin: vin),
+                  builder: (_) => CarVinScreen(
+                    repository: repo,
+                    order: order,
+                    vin: vin,
+                    odometer: odo,
+                  ),
                 ),
               );
             },
@@ -110,7 +127,7 @@ void main() {
       await tester.tap(find.text('Начать осмотр'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Табличка VIN'), findsOneWidget);
+      expect(find.text('VIN и пробег'), findsOneWidget);
       expect(find.text('нажмите, чтобы снять табличку'), findsOneWidget);
       expect(find.text('Kia Rio 2019'), findsOneWidget);
     },
@@ -141,9 +158,26 @@ void main() {
     await tester.tap(find.text('Начать осмотр'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Табличка VIN'), findsNothing);
+    expect(find.text('VIN и пробег'), findsNothing);
     expect(repo.lastVin?.value, 'XW8ZZZ61ZKG100111');
     expect(repo.lastVin?.kind, VinKind.vin);
+    expect(repo.lastOdometer?.km, 148000);
+    expect(repo.lastOdometer?.photoPath, '/tmp/odo.jpg');
+  });
+
+  testWidgets('без фото одометра осмотр не начинается', (tester) async {
+    final repo = MockOrderRepository();
+    final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    final odometer = OdometerCaptureController()..text.text = '148000';
+    await open(tester, repo, vin, odometer);
+
+    await tester.tap(find.text('Начать осмотр'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Сфотографируйте одометр'), findsOneWidget);
+    expect(repo.lastVin, isNull);
+    expect(repo.lastOdometer, isNull);
   });
 
   testWidgets('ошибка сервера по фото — под блоком VIN', (tester) async {
@@ -155,7 +189,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Нужна фотография таблички'), findsOneWidget);
-    expect(find.text('Табличка VIN'), findsOneWidget);
+    expect(find.text('VIN и пробег'), findsOneWidget);
   });
 
   testWidgets('заказчик видит, что VIN на машине другой', (tester) async {

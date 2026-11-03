@@ -17,6 +17,9 @@ class OrderCar {
     this.vinPhotoUrl,
     this.vinMismatch = false,
     this.mileageKm,
+    this.customerMileageKm,
+    this.mileageMismatch = false,
+    this.odometerPhotoUrl,
     this.inspectionId,
     this.inspectionStatus,
     this.inspectionOutcome,
@@ -39,8 +42,17 @@ class OrderCar {
   /// Заказчик указал один VIN, а исполнитель снял с машины другой.
   final bool vinMismatch;
 
-  /// У разового осмотра может быть null: заказчик не обязан знать пробег.
+  /// Пробег по одометру — снял исполнитель. null, пока осмотр не начат.
   final int? mileageKm;
+
+  /// Пробег со слов продавца — указал заказчик разового осмотра.
+  final int? customerMileageKm;
+
+  /// Одометр и слова продавца расходятся заметно — порог считает сервер.
+  final bool mileageMismatch;
+
+  /// Фото приборки — подписанная ссылка, живёт около часа.
+  final String? odometerPhotoUrl;
 
   final int? inspectionId;
   final String? inspectionStatus;
@@ -78,6 +90,9 @@ class OrderCar {
       vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
       vinMismatch: json['vin_mismatch'] as bool? ?? false,
       mileageKm: json['mileage_km'] as int?,
+      customerMileageKm: json['customer_mileage_km'] as int?,
+      mileageMismatch: json['mileage_mismatch'] as bool? ?? false,
+      odometerPhotoUrl: mediaUrl(json['odometer_photo_url'] as String?),
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
       inspectionOutcome: inspectionOutcomeFromApi(

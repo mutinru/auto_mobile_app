@@ -92,6 +92,9 @@ class MockInspectionRepository implements InspectionRepository {
       year: 2019,
       vinMasked: '··· KX24P',
       mileageKm: 127450,
+      // продавец указал меньше — в отчёте плашка расхождения
+      customerMileageKm: 120000,
+      mileageMismatch: true,
     );
     return (car: car, panels: _loadedPanels);
   }

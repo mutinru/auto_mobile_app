@@ -88,7 +88,8 @@ class MockOrderRepository implements OrderRepository {
           model: 'Rio',
           year: 2019,
           vinMasked: '—',
-          mileageKm: 64000,
+          // осмотр не начат: пробег пока только со слов продавца
+          customerMileageKm: 64000,
         ),
       ],
     ),
@@ -156,7 +157,10 @@ class MockOrderRepository implements OrderRepository {
           model: 'Creta',
           year: 2020,
           vinMasked: '··· 100077',
-          mileageKm: 71000,
+          // по одометру больше, чем в объявлении, — плашка расхождения
+          mileageKm: 98000,
+          customerMileageKm: 71000,
+          mileageMismatch: true,
           inspectionId: 90,
           inspectionStatus: 'completed',
           verdict: InspectionVerdict.notRecommended,
@@ -375,7 +379,8 @@ class MockOrderRepository implements OrderRepository {
           vinMasked: vin == null || vin.isEmpty
               ? '\u2014'
               : '\u00b7\u00b7\u00b7 ${vin.substring(vin.length - 6)}',
-          mileageKm: mileageKm,
+          // как сервер: пробег заказчика — со слов продавца, не одометр
+          customerMileageKm: mileageKm,
         ),
       ],
     );
@@ -409,6 +414,9 @@ class MockOrderRepository implements OrderRepository {
           year: car.year,
           vinMasked: car.vinMasked,
           mileageKm: car.mileageKm,
+          customerMileageKm: car.customerMileageKm,
+          mileageMismatch: car.mileageMismatch,
+          odometerPhotoUrl: car.odometerPhotoUrl,
           inspectionId: car.inspectionId,
           inspectionStatus: 'completed',
           verdict: verdict,
@@ -606,10 +614,11 @@ class MockOrderRepository implements OrderRepository {
     required String model,
     required int year,
     required CapturedVin vin,
-    required int mileageKm,
+    required CapturedOdometer odometer,
     String? licensePlate,
   }) async {
     lastVin = vin;
+    lastOdometer = odometer;
     final v = vin.value;
     return OrderCar(
       id: DateTime.now().millisecondsSinceEpoch,
@@ -618,12 +627,15 @@ class MockOrderRepository implements OrderRepository {
       year: year,
       vinMasked: '\u00b7\u00b7\u00b7 ${v.substring(v.length - 6)}',
       vinKind: vin.kind,
-      mileageKm: mileageKm,
+      mileageKm: odometer.km,
     );
   }
 
   /// Последний VIN, снятый исполнителем, — для тестов экранов начала осмотра.
   CapturedVin? lastVin;
+
+  /// Последний пробег по одометру — для тех же тестов.
+  CapturedOdometer? lastOdometer;
 
   /// VIN, по которому в моке есть готовые отчёты: два осмотра.
   static const reportVin = 'XW8ZZZ61ZKG100111';
@@ -706,8 +718,10 @@ class MockOrderRepository implements OrderRepository {
     int carId, {
     InspectionType type = InspectionType.full,
     CapturedVin? vin,
+    CapturedOdometer? odometer,
   }) async {
     if (vin != null) lastVin = vin;
+    if (odometer != null) lastOdometer = odometer;
     return carId;
   }
 

@@ -3,10 +3,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
+import '../models/order_car.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_date.dart';
 import 'app_ui.dart';
+import 'photo_viewer.dart';
 
 /// Общие куски детали разового осмотра — у заказчика
 /// ([InspectionOrderDetailScreen]) и у исполнителя ([AssignedInspectionScreen]).
@@ -47,11 +49,7 @@ class InspectionOrderSummary extends StatelessWidget {
           // улицу сервер отдаёт только сторонам заказа — остальным город
           if (order.fullAddress ?? order.cities.firstOrNull case final place?)
             _SummaryRow(icon: Icons.location_on_outlined, text: place),
-          if (order.mileageTo != null)
-            _SummaryRow(
-              icon: Icons.speed_outlined,
-              text: '${money(order.mileageTo!)} км',
-            ),
+          ?_MileageRow.of(order),
           if (listing != null && listing.isNotEmpty)
             order.listingHost == null
                 // старый заказ с не-ссылкой — как раньше, просто текст
@@ -104,6 +102,63 @@ class VinMismatchNote extends StatelessWidget {
   const VinMismatchNote({super.key});
 
   @override
+  Widget build(BuildContext context) => const _MismatchNote(
+    title: 'VIN на машине отличается от указанного вами. ',
+    body:
+        'Исполнитель снял его с таблички — в отчёте именно он. Сверьте с объявлением.',
+  );
+}
+
+/// Пробег по одометру расходится со словами продавца на порог и больше
+/// (`mileage_mismatch` считает сервер). Больше заявленного — продавец
+/// занизил пробег; меньше — повод заподозрить скрутку.
+class MileageMismatchNote extends StatelessWidget {
+  const MileageMismatchNote({
+    super.key,
+    required this.km,
+    required this.claimedKm,
+  });
+
+  final int km;
+  final int claimedKm;
+
+  @override
+  Widget build(BuildContext context) {
+    final diff = money((km - claimedKm).abs());
+    return km > claimedKm
+        ? _MismatchNote(
+            title: 'Пробег по одометру на $diff км больше заявленного. ',
+            body:
+                'Продавец мог ошибиться или занизить пробег в объявлении — '
+                'учитывайте это в цене.',
+          )
+        : _MismatchNote(
+            title: 'Пробег по одометру на $diff км меньше заявленного. ',
+            body:
+                'Так бывает после скрутки одометра — сверьте износ салона '
+                'и руля с пробегом в отчёте.',
+          );
+  }
+}
+
+/// Плашка расхождения пробега для машины заказа или null, если её не
+/// нужно: показ — только по флагу сервера, на клиенте порог не считаем.
+Widget? mileageMismatchNoteFor(OrderCar? car) {
+  if (car == null || !car.mileageMismatch) return null;
+  final km = car.mileageKm;
+  final claimed = car.customerMileageKm;
+  if (km == null || claimed == null) return null;
+  return MileageMismatchNote(km: km, claimedKm: claimed);
+}
+
+/// Каркас плашки расхождения: жирная первая фраза и пояснение.
+class _MismatchNote extends StatelessWidget {
+  const _MismatchNote({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 10),
@@ -129,16 +184,14 @@ class VinMismatchNote extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: 'VIN на машине отличается от указанного вами. ',
+                    text: title,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: context.colors.text1,
                     ),
                   ),
                   TextSpan(
-                    text:
-                        'Исполнитель снял его с таблички — в отчёте именно '
-                        'он. Сверьте с объявлением.',
+                    text: body,
                     style: TextStyle(color: context.colors.text2),
                   ),
                 ],
@@ -152,17 +205,75 @@ class VinMismatchNote extends StatelessWidget {
   }
 }
 
+/// Строка пробега в сводке. До старта осмотра — то, что указал заказчик
+/// («со слов продавца»); после — по одометру, рядом заявленное. Тап по
+/// строке с одометром открывает фото приборки.
+class _MileageRow extends StatelessWidget {
+  const _MileageRow({required this.text, this.photoUrl, this.alert = false});
+
+  final String text;
+  final String? photoUrl;
+  final bool alert;
+
+  static _MileageRow? of(Order order) {
+    final car = order.cars.firstOrNull;
+    final claimed = car?.customerMileageKm ?? order.mileageTo;
+    final km = car?.mileageKm;
+    if (km != null) {
+      return _MileageRow(
+        text: [
+          '${money(km)} км по одометру',
+          if (claimed != null) 'заявлено ${money(claimed)}',
+        ].join(' · '),
+        photoUrl: car!.odometerPhotoUrl,
+        alert: car.mileageMismatch,
+      );
+    }
+    if (claimed == null) return null;
+    return _MileageRow(text: '${money(claimed)} км · со слов продавца');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = photoUrl;
+    final row = _SummaryRow(
+      icon: Icons.speed_outlined,
+      text: text,
+      color: alert ? context.colors.progressText : null,
+      trailing: url == null
+          ? null
+          : Icon(
+              Icons.photo_camera_outlined,
+              size: 14,
+              color: context.colors.text3,
+            ),
+    );
+    if (url == null) return row;
+    return InkWell(
+      onTap: () => openPhotoViewer(context, url),
+      borderRadius: BorderRadius.circular(6),
+      child: row,
+    );
+  }
+}
+
 /// .summary-row
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.icon,
     required this.text,
     this.strong = false,
+    this.color,
+    this.trailing,
   });
 
   final IconData icon;
   final String text;
   final bool strong;
+
+  /// Цвет текста вместо обычного — для подсвеченной строки.
+  final Color? color;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -183,10 +294,13 @@ class _SummaryRow extends StatelessWidget {
                 fontSize: 12.5,
                 height: 1.4,
                 fontWeight: strong ? FontWeight.w600 : FontWeight.w400,
-                color: strong ? context.colors.text1 : context.colors.text2,
+                color:
+                    color ??
+                    (strong ? context.colors.text1 : context.colors.text2),
               ),
             ),
           ),
+          if (trailing != null) ...[const SizedBox(width: 6), trailing!],
         ],
       ),
     );

@@ -8,6 +8,9 @@ class Car {
     required this.vinMasked,
     this.vinPhotoUrl,
     this.mileageKm,
+    this.customerMileageKm,
+    this.mileageMismatch = false,
+    this.odometerPhotoUrl,
   });
 
   final String brand;
@@ -20,23 +23,22 @@ class Car {
   /// Фото таблички VIN — подписанная ссылка, Bearer не нужен.
   final String? vinPhotoUrl;
 
-  /// null — заказчик разового осмотра пробег не указал.
+  /// Пробег по одометру — снял исполнитель; null у старых осмотров.
   final int? mileageKm;
+
+  /// Пробег со слов продавца (указал заказчик разового осмотра).
+  final int? customerMileageKm;
+
+  /// Одометр и слова продавца расходятся заметно — порог считает сервер.
+  final bool mileageMismatch;
+
+  /// Фото приборки — подписанная ссылка, Bearer не нужен.
+  final String? odometerPhotoUrl;
 
   String get title => '$brand $model $year';
 
   /// «127 450 км» или null без пробега.
-  String? get mileageLabel {
-    final km = mileageKm;
-    if (km == null) return null;
-    final s = km.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
-      buf.write(s[i]);
-    }
-    return '${buf.toString()} км';
-  }
+  String? get mileageLabel => kmLabel(mileageKm);
 
   factory Car.fromJson(Map<String, dynamic> json) => Car(
     brand: json['brand'] as String,
@@ -45,5 +47,20 @@ class Car {
     vinMasked: json['vin_masked'] as String,
     vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
     mileageKm: json['mileage_km'] as int?,
+    customerMileageKm: json['customer_mileage_km'] as int?,
+    mileageMismatch: json['mileage_mismatch'] as bool? ?? false,
+    odometerPhotoUrl: mediaUrl(json['odometer_photo_url'] as String?),
   );
+}
+
+/// «127 450 км» или null без пробега.
+String? kmLabel(int? km) {
+  if (km == null) return null;
+  final s = km.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+    buf.write(s[i]);
+  }
+  return '${buf.toString()} км';
 }

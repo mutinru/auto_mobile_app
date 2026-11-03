@@ -127,7 +127,11 @@ class VinCapture extends StatelessWidget {
               onTap: c.scanning ? null : () => _tapped(context),
               error: c.error != null,
             ),
-            if (c.photoPath != null) _PhotoRow(path: c.photoPath!),
+            if (c.photoPath != null)
+              CapturedPhotoRow(
+                path: c.photoPath!,
+                label: 'Фото таблички сохранено',
+              ),
             FieldError(c.error),
           ],
         );
@@ -302,11 +306,12 @@ Future<String?> scanVinOrBodyNumber() async {
   return extractVin(text) ?? extractBodyNumber(text);
 }
 
-/// Снятая табличка — миниатюра под видоискателем.
-class _PhotoRow extends StatelessWidget {
-  const _PhotoRow({required this.path});
+/// Снятое фото (табличка, одометр) — миниатюра и отметка «сохранено».
+class CapturedPhotoRow extends StatelessWidget {
+  const CapturedPhotoRow({super.key, required this.path, required this.label});
 
   final String path;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +342,7 @@ class _PhotoRow extends StatelessWidget {
           Icon(Icons.check_circle, size: 14, color: context.colors.statusDone),
           const SizedBox(width: 5),
           Text(
-            'Фото таблички сохранено',
+            label,
             style: TextStyle(fontSize: 12, color: context.colors.text2),
           ),
         ],

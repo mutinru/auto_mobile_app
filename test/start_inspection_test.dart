@@ -11,6 +11,7 @@ import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/models/vin_kind.dart';
 import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 
 /// Мок, который считает добавленные машины: форма с ошибками не должна
@@ -25,7 +26,7 @@ class _CountingRepository extends MockOrderRepository {
     required String model,
     required int year,
     required CapturedVin vin,
-    required int mileageKm,
+    required CapturedOdometer odometer,
     String? licensePlate,
   }) {
     added++;
@@ -35,7 +36,7 @@ class _CountingRepository extends MockOrderRepository {
       model: model,
       year: year,
       vin: vin,
-      mileageKm: mileageKm,
+      odometer: odometer,
       licensePlate: licensePlate,
     );
   }
@@ -56,6 +57,7 @@ void main() {
   Future<_CountingRepository> open(
     WidgetTester tester, [
     VinCaptureController? vin,
+    OdometerCaptureController? odometer,
   ]) async {
     // экран телефона: блок VIN высокий, в 800×600 год уезжает за край
     tester.view.physicalSize = const Size(1080, 2400);
@@ -70,6 +72,7 @@ void main() {
           catalog: MockCarCatalogRepository(),
           order: order,
           vin: vin,
+          odometer: odometer,
         ),
       ),
     );
@@ -89,7 +92,7 @@ void main() {
     await start(tester);
 
     expect(find.text('Укажите VIN'), findsOneWidget);
-    expect(find.text('Укажите пробег'), findsOneWidget);
+    expect(find.text('Укажите пробег по одометру'), findsOneWidget);
     expect(find.text('Укажите год выпуска'), findsOneWidget);
     // марка и модель подставлены из заказа — к ним претензий нет
     expect(find.text('Выберите марку и модель'), findsNothing);
@@ -100,11 +103,11 @@ void main() {
     await open(tester);
     await start(tester);
 
-    // поля ввода по порядку: госномер, пробег, год
-    await tester.enterText(find.byType(TextField).at(1), '64000');
+    // поля ввода по порядку: пробег по одометру, госномер, год
+    await tester.enterText(find.byType(TextField).at(0), '64000');
     await tester.pump();
 
-    expect(find.text('Укажите пробег'), findsNothing);
+    expect(find.text('Укажите пробег по одометру'), findsNothing);
     expect(find.text('Укажите год выпуска'), findsOneWidget);
     expect(find.text('Укажите VIN'), findsOneWidget);
   });
@@ -144,7 +147,7 @@ void main() {
     final vin = VinCaptureController();
     final repo = await open(tester, vin);
     vin.text.text = 'XW8ZZZ61ZKG100111';
-    await tester.enterText(find.byType(TextField).at(1), '64000');
+    await tester.enterText(find.byType(TextField).at(0), '64000');
     await tester.enterText(find.byType(TextField).at(2), '2020');
     await start(tester);
 
@@ -157,8 +160,9 @@ void main() {
       ..setKind(VinKind.bodyNumber)
       ..setPhoto('/tmp/plate.jpg');
     vin.text.text = 'gx110-6012345';
-    final repo = await open(tester, vin);
-    await tester.enterText(find.byType(TextField).at(1), '64000');
+    final odometer = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    final repo = await open(tester, vin, odometer);
+    await tester.enterText(find.byType(TextField).at(0), '64000');
     await tester.enterText(find.byType(TextField).at(2), '2020');
     await start(tester);
     await tester.pumpAndSettle();
@@ -167,5 +171,21 @@ void main() {
     expect(repo.lastVin?.value, 'GX110-6012345');
     expect(repo.lastVin?.kind, VinKind.bodyNumber);
     expect(repo.lastVin?.photoPath, '/tmp/plate.jpg');
+    expect(repo.lastOdometer?.km, 64000);
+    expect(repo.lastOdometer?.photoPath, '/tmp/odo.jpg');
+  });
+
+  testWidgets('пробег без фото одометра — ошибка, кандидат не заводится', (
+    tester,
+  ) async {
+    final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    final repo = await open(tester, vin);
+    await tester.enterText(find.byType(TextField).at(0), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await start(tester);
+
+    expect(find.text('Сфотографируйте одометр'), findsOneWidget);
+    expect(repo.added, 0);
   });
 }

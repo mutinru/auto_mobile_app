@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';
+import '../widgets/odometer_capture.dart';
 import '../widgets/vin_capture.dart';
 
 /// Экран 05 макета — «новый осмотр · автомобиль».
@@ -20,6 +21,7 @@ class StartInspectionScreen extends StatefulWidget {
     required this.catalog,
     required this.order,
     this.vin,
+    this.odometer,
   });
 
   final OrderRepository repository;
@@ -30,6 +32,10 @@ class StartInspectionScreen extends StatefulWidget {
   @visibleForTesting
   final VinCaptureController? vin;
 
+  /// Блок пробега снаружи — по той же причине.
+  @visibleForTesting
+  final OdometerCaptureController? odometer;
+
   @override
   State<StartInspectionScreen> createState() => _StartInspectionScreenState();
 }
@@ -39,9 +45,9 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   late final _modelController = TextEditingController(text: widget.order.model);
   final _yearController = TextEditingController();
   final _plateController = TextEditingController();
-  final _mileageController = TextEditingController();
 
   late final _vin = widget.vin ?? VinCaptureController();
+  late final _odometer = widget.odometer ?? OdometerCaptureController();
   bool _submitting = false;
 
   /// Ошибки по полям — ключи как у бекенда (`OrderCarController::store`),
@@ -49,11 +55,11 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   Map<String, String> _errors = {};
 
   /// Поля, у которых экран умеет показать ошибку; прочие — строкой.
-  /// Ошибки VIN (`vin`, `vin_kind`, `vin_photo`) уходят в блок VIN.
+  /// Ошибки VIN (`vin`, `vin_kind`, `vin_photo`) уходят в блок VIN,
+  /// пробега (`mileage_km`, `odometer_photo`) — в блок одометра.
   static const _fieldKeys = {
     'brand',
     'model',
-    'mileage_km',
     'year',
     'license_plate',
   };
@@ -74,7 +80,6 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         });
     clearOnEdit(_brandController, ['brand', 'model']);
     clearOnEdit(_modelController, ['brand', 'model']);
-    clearOnEdit(_mileageController, ['mileage_km']);
     clearOnEdit(_yearController, ['year']);
     clearOnEdit(_plateController, ['license_plate']);
   }
@@ -85,8 +90,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     _modelController.dispose();
     _yearController.dispose();
     _plateController.dispose();
-    _mileageController.dispose();
     if (widget.vin == null) _vin.dispose();
+    if (widget.odometer == null) _odometer.dispose();
     super.dispose();
   }
 
@@ -108,7 +113,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
 
   Future<void> _start() async {
     final vin = _vin.validate();
-    final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
+    final odometer = _odometer.validate();
     // год не подставляем молча: машина в отчёте должна быть с настоящим годом
     final year = int.tryParse(_yearController.text);
 
@@ -117,14 +122,13 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
       if (_brandController.text.trim().isEmpty ||
           _modelController.text.trim().isEmpty)
         'brand': 'Выберите марку и модель',
-      if (mileage == null) 'mileage_km': 'Укажите пробег',
       if (year == null)
         'year': 'Укажите год выпуска'
       else if (yearProblem(year) != null)
         'year': yearProblem(year)!,
     };
     setState(() => _errors = errors);
-    if (errors.isNotEmpty || vin == null) return;
+    if (errors.isNotEmpty || vin == null || odometer == null) return;
 
     setState(() => _submitting = true);
     try {
@@ -137,7 +141,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         licensePlate: _plateController.text.trim().isEmpty
             ? null
             : _plateController.text.trim(),
-        mileageKm: mileage!,
+        odometer: odometer,
       );
       // другие типы пока не реализованы: набор пунктов у осмотра один
       await widget.repository.startInspection(
@@ -156,10 +160,12 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         for (final f in errors.entries)
           if (_fieldKeys.contains(f.key)) f.key: f.value,
       };
+      final odometerError = errors['mileage_km'] ?? errors['odometer_photo'];
       if (vinError != null) _vin.setError(vinError);
+      if (odometerError != null) _odometer.setError(odometerError);
       if (mounted && fields.isNotEmpty) {
         setState(() => _errors = fields);
-      } else if (mounted && vinError == null) {
+      } else if (mounted && vinError == null && odometerError == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorText(e))),
         );
@@ -193,6 +199,8 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                 padding: const EdgeInsets.fromLTRB(22, 6, 22, 18),
                 children: [
                   VinCapture(controller: _vin),
+                  const SizedBox(height: 22),
+                  OdometerCapture(controller: _odometer),
 
                   const SizedBox(height: 22),
                   const SectionHead('Данные', extra: 'из заказа'),
@@ -224,28 +232,17 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: FieldBoxInput(
-                          label: 'Пробег',
-                          controller: _mileageController,
-                          hint: '127450',
+                          label: 'Год выпуска',
+                          controller: _yearController,
+                          hint: '${widget.order.yearFrom ?? 2019}',
                           mono: true,
-                          unit: 'км',
                           keyboardType: TextInputType.number,
                           inputFormatters: digitsOnly,
-                          maxLength: 7,
-                          error: _errors['mileage_km'],
+                          maxLength: 4,
+                          error: _errors['year'],
                         ),
                       ),
                     ],
-                  ),
-                  FieldBoxInput(
-                    label: 'Год выпуска',
-                    controller: _yearController,
-                    hint: '${widget.order.yearFrom ?? 2019}',
-                    mono: true,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: digitsOnly,
-                    maxLength: 4,
-                    error: _errors['year'],
                   ),
                   // «Клиент» из макета не нужен: осмотр всегда идёт внутри
                   // заказа, заказчик уже известен

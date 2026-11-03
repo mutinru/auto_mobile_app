@@ -291,6 +291,9 @@ void main() {
         find.byType(ListView),
         const Offset(0, -150),
       );
+      // край списка может быть под нижней кнопкой — докручиваем целиком
+      await tester.ensureVisible(find.text('Оставить отзыв'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Оставить отзыв'));
       await tester.pumpAndSettle();
 

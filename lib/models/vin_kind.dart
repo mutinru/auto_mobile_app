@@ -47,6 +47,15 @@ class CapturedVin {
   final String photoPath;
 }
 
+/// Пробег по одометру, снятый исполнителем, и фото приборки (путь к файлу
+/// на устройстве). Цифры вводит исполнитель, снимок — доказательство.
+class CapturedOdometer {
+  const CapturedOdometer({required this.km, required this.photoPath});
+
+  final int km;
+  final String photoPath;
+}
+
 /// Ищем в распознанном тексте 17 допустимых для VIN знаков. I, O и Q в VIN
 /// не встречаются — это отсеивает ложные срабатывания на обычных словах.
 /// Сначала — отдельное слово ровно из 17 знаков; не нашлось (OCR разбил

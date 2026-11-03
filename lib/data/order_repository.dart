@@ -138,25 +138,27 @@ abstract class OrderRepository {
 
   /// Завести кандидата в рамках заказа (исполнитель нашёл вариант).
   /// [vin] — снят с таблички вместе с фото; в одном подборе не повторяется.
+  /// [odometer] — пробег по приборке с её фото.
   Future<OrderCar> addCar(
     int orderId, {
     required String brand,
     required String model,
     required int year,
     required CapturedVin vin,
-    required int mileageKm,
+    required CapturedOdometer odometer,
     String? licensePlate,
   });
 
   /// Начать осмотр кандидата — бекенд сам создаёт все пункты (кузов и extra).
-  /// Разовому осмотру нужен [vin] с фото таблички: он заменяет то, что
-  /// указал заказчик. У подбора VIN уже записан в [addCar].
-  /// Возвращает id созданного осмотра.
+  /// Разовому осмотру нужны [vin] с фото таблички и [odometer] с фото
+  /// приборки: они заменяют то, что указал заказчик. У подбора оба уже
+  /// записаны в [addCar]. Возвращает id созданного осмотра.
   Future<int> startInspection(
     int orderId,
     int carId, {
     InspectionType type = InspectionType.full,
     CapturedVin? vin,
+    CapturedOdometer? odometer,
   });
 
   /// Готовые отчёты по VIN (или номеру кузова): тизер без вердикта и цена.

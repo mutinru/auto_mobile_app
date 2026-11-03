@@ -70,9 +70,32 @@ class VinPlateRow extends StatelessWidget {
   final String photoUrl;
 
   @override
+  Widget build(BuildContext context) => PhotoFactRow(
+    value: 'VIN $vinMasked',
+    caption: 'фото таблички',
+    photoUrl: photoUrl,
+  );
+}
+
+/// Факт, снятый на осмотре, и его фото: «148 000 км · фото одометра».
+/// По тапу снимок на весь экран; без фото (старые осмотры) — просто факт.
+class PhotoFactRow extends StatelessWidget {
+  const PhotoFactRow({
+    super.key,
+    required this.value,
+    required this.caption,
+    required this.photoUrl,
+  });
+
+  final String value;
+  final String caption;
+  final String? photoUrl;
+
+  @override
   Widget build(BuildContext context) {
+    final url = photoUrl;
     return InkWell(
-      onTap: () => openPhotoViewer(context, photoUrl),
+      onTap: url == null ? null : () => openPhotoViewer(context, url),
       borderRadius: BorderRadius.circular(13),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
@@ -84,14 +107,14 @@ class VinPlateRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              Icons.photo_camera_outlined,
+              url == null ? Icons.speed_outlined : Icons.photo_camera_outlined,
               size: 17,
               color: context.colors.text2,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'VIN $vinMasked',
+                value,
                 style: TextStyle(
                   fontFamily: AppTheme.monoFamily,
                   fontSize: 12.5,
@@ -99,11 +122,13 @@ class VinPlateRow extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              'фото таблички',
-              style: TextStyle(fontSize: 12, color: context.colors.text3),
-            ),
-            Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
+            if (url != null) ...[
+              Text(
+                caption,
+                style: TextStyle(fontSize: 12, color: context.colors.text3),
+              ),
+              Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
+            ],
           ],
         ),
       ),
