@@ -60,7 +60,8 @@ void main() {
 
     expect(find.text('Написать в чат'), findsOneWidget);
     expect(find.text('Telegram'), findsOneWidget);
-    expect(find.text('Позвонить'), findsOneWidget);
+    // телефона у поддержки нет (QA №25)
+    expect(find.text('Позвонить'), findsNothing);
     expect(find.text('Частые вопросы'), findsOneWidget);
 
     await tester.tap(find.text('Частые вопросы'));

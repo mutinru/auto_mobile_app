@@ -178,7 +178,7 @@ void main() {
         find.text('После входа — в приложении, пока откроем Telegram'),
         findsOneWidget,
       );
-      expect(find.text('Без аккаунта — Telegram или звонок.'), findsOneWidget);
+      expect(find.text('Без аккаунта — через Telegram.'), findsOneWidget);
     });
   });
 }

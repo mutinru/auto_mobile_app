@@ -7,7 +7,6 @@ import '../screens/support_chat_screen.dart';
 import '../state/chat_store.dart';
 import '../state/support_chat_scope.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
 import '../util/ru_plural.dart';
 import 'unread_badge.dart';
 
@@ -181,20 +180,6 @@ class _SupportSheet extends StatelessWidget {
               onTap: () => _open(context, SupportConfig.telegramUri),
             ),
             _SupportItem(
-              icon: Icons.phone_outlined,
-              name: 'Позвонить',
-              descSpan: TextSpan(
-                children: [
-                  TextSpan(
-                    text: SupportConfig.phoneDisplay,
-                    style: const TextStyle(fontFamily: AppTheme.monoFamily),
-                  ),
-                  TextSpan(text: ' · бесплатно, ${SupportConfig.phoneHours}'),
-                ],
-              ),
-              onTap: () => _open(context, SupportConfig.phoneUri),
-            ),
-            _SupportItem(
               icon: Icons.help_outline,
               name: 'Частые вопросы',
               desc: 'Как работает подбор, оплата, гарантии',
@@ -209,7 +194,7 @@ class _SupportSheet extends StatelessWidget {
             if (!canChat) ...[
               const SizedBox(height: 2),
               Text(
-                'Без аккаунта — Telegram или звонок.',
+                'Без аккаунта — через Telegram.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 10.5, color: c.text3, height: 1.45),
               ),
@@ -226,8 +211,7 @@ class _SupportItem extends StatelessWidget {
   const _SupportItem({
     required this.icon,
     required this.name,
-    this.desc,
-    this.descSpan,
+    required this.desc,
     required this.onTap,
     this.primary = false,
     this.unread = 0,
@@ -235,8 +219,7 @@ class _SupportItem extends StatelessWidget {
 
   final IconData icon;
   final String name;
-  final String? desc;
-  final InlineSpan? descSpan;
+  final String desc;
   final VoidCallback onTap;
 
   /// .sup-item.primary — выделенный синим первый пункт.
@@ -291,8 +274,8 @@ class _SupportItem extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text.rich(
-                        descSpan ?? TextSpan(text: desc),
+                      Text(
+                        desc,
                         style: TextStyle(
                           fontSize: 11,
                           color: c.text2,
