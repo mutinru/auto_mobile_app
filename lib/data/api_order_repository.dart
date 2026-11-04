@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/available_page.dart';
-import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
@@ -320,15 +319,15 @@ class ApiOrderRepository implements OrderRepository {
   Future<int> startInspection(
     int orderId,
     int carId, {
-    InspectionType type = InspectionType.full,
-    CapturedVin? vin,
-    CapturedOdometer? odometer,
+    required CapturedVin vin,
+    required CapturedOdometer odometer,
   }) async {
-    final path = '/orders/$orderId/cars/$carId/inspections';
-    final fields = {'inspection_type': type.apiValue};
-    final json = vin == null || odometer == null
-        ? await _client.post(path, fields)
-        : await _withCapture(path, vin, odometer, fields);
+    final json = await _withCapture(
+      '/orders/$orderId/cars/$carId/inspections',
+      vin,
+      odometer,
+      const {},
+    );
     return (json['data'] as Map<String, dynamic>)['id'] as int;
   }
 

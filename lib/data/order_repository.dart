@@ -1,5 +1,4 @@
 import '../models/available_page.dart';
-import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
@@ -136,7 +135,9 @@ abstract class OrderRepository {
   /// Отзывы об исполнителе, свежие сверху; [page] с 1.
   Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1});
 
-  /// Завести кандидата в рамках заказа (исполнитель нашёл вариант).
+  /// Завести кандидата подбора — исполнитель нашёл вариант и начинает его
+  /// осмотр. Сервер создаёт машину и осмотр со всеми пунктами одной
+  /// транзакцией: у вернувшейся машины уже есть [OrderCar.inspectionId].
   /// [vin] — снят с таблички вместе с фото; в одном подборе не повторяется.
   /// [odometer] — пробег по приборке с её фото.
   Future<OrderCar> addCar(
@@ -149,16 +150,15 @@ abstract class OrderRepository {
     String? licensePlate,
   });
 
-  /// Начать осмотр кандидата — бекенд сам создаёт все пункты (кузов и extra).
-  /// Разовому осмотру нужны [vin] с фото таблички и [odometer] с фото
-  /// приборки: они заменяют то, что указал заказчик. У подбора оба уже
-  /// записаны в [addCar]. Возвращает id созданного осмотра.
+  /// Начать разовый осмотр — бекенд сам создаёт все пункты (кузов и extra).
+  /// [vin] с фото таблички и [odometer] с фото приборки заменяют то, что
+  /// указал заказчик. У подбора отдельного старта нет — осмотр кандидата
+  /// создаёт [addCar]. Возвращает id созданного осмотра.
   Future<int> startInspection(
     int orderId,
     int carId, {
-    InspectionType type = InspectionType.full,
-    CapturedVin? vin,
-    CapturedOdometer? odometer,
+    required CapturedVin vin,
+    required CapturedOdometer odometer,
   });
 
   /// Готовые отчёты по VIN (или номеру кузова): тизер без вердикта и цена.

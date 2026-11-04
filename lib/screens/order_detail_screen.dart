@@ -149,8 +149,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  /// Новый кандидат приходит с начатым осмотром — открываем его сразу,
+  /// как разовый осмотр после «VIN и пробег», а не ищем в списке.
   Future<void> _startInspection(Order order) async {
-    final created = await Navigator.of(context).push<bool>(
+    final car = await Navigator.of(context).push<OrderCar>(
       MaterialPageRoute(
         builder: (_) => StartInspectionScreen(
           repository: widget.store.repository,
@@ -159,7 +161,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
     );
-    if (created == true) await _load();
+    if (car == null || !mounted) return;
+    await _load();
+    if (mounted && widget.auth != null && car.inspectionId != null) {
+      await _openInspection(car);
+    }
   }
 
   Future<void> _accept(int responseId) async {

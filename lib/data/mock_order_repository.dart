@@ -1,6 +1,5 @@
 import '../models/available_page.dart';
 import '../models/inspection_outcome.dart';
-import '../models/inspection_type.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
@@ -620,14 +619,18 @@ class MockOrderRepository implements OrderRepository {
     lastVin = vin;
     lastOdometer = odometer;
     final v = vin.value;
+    final id = DateTime.now().millisecondsSinceEpoch;
+    // как сервер: кандидат приходит уже с начатым осмотром
     return OrderCar(
-      id: DateTime.now().millisecondsSinceEpoch,
+      id: id,
       brand: brand,
       model: model,
       year: year,
       vinMasked: '\u00b7\u00b7\u00b7 ${v.substring(v.length - 6)}',
       vinKind: vin.kind,
       mileageKm: odometer.km,
+      inspectionId: id,
+      inspectionStatus: 'in_progress',
     );
   }
 
@@ -716,12 +719,11 @@ class MockOrderRepository implements OrderRepository {
   Future<int> startInspection(
     int orderId,
     int carId, {
-    InspectionType type = InspectionType.full,
-    CapturedVin? vin,
-    CapturedOdometer? odometer,
+    required CapturedVin vin,
+    required CapturedOdometer odometer,
   }) async {
-    if (vin != null) lastVin = vin;
-    if (odometer != null) lastOdometer = odometer;
+    lastVin = vin;
+    lastOdometer = odometer;
     return carId;
   }
 

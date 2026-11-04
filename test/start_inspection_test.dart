@@ -19,6 +19,20 @@ import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 class _CountingRepository extends MockOrderRepository {
   int added = 0;
 
+  /// У подбора отдельного старта нет — экран не должен его звать.
+  int started = 0;
+
+  @override
+  Future<int> startInspection(
+    int orderId,
+    int carId, {
+    required CapturedVin vin,
+    required CapturedOdometer odometer,
+  }) {
+    started++;
+    return super.startInspection(orderId, carId, vin: vin, odometer: odometer);
+  }
+
   @override
   Future<OrderCar> addCar(
     int orderId, {
@@ -173,6 +187,58 @@ void main() {
     expect(repo.lastVin?.photoPath, '/tmp/plate.jpg');
     expect(repo.lastOdometer?.km, 64000);
     expect(repo.lastOdometer?.photoPath, '/tmp/odo.jpg');
+  });
+
+  testWidgets('кандидат — одним запросом, экран отдаёт машину с осмотром', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
+    final repo = _CountingRepository();
+    final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    final odometer = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    OrderCar? result;
+
+    // экран открыт поверх карточки — проверяем, с чем он закрылся
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              result = await Navigator.of(context).push<OrderCar>(
+                MaterialPageRoute(
+                  builder: (_) => StartInspectionScreen(
+                    repository: repo,
+                    catalog: MockCarCatalogRepository(),
+                    order: order,
+                    vin: vin,
+                    odometer: odometer,
+                  ),
+                ),
+              );
+            },
+            child: const Text('открыть'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('открыть'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await start(tester);
+    await tester.pumpAndSettle();
+
+    expect(repo.added, 1);
+    expect(repo.started, 0);
+    expect(find.byType(StartInspectionScreen), findsNothing);
+    expect(result, isNotNull);
+    expect(result!.inspectionId, isNotNull);
+    expect(result!.inspectionStatus, 'in_progress');
   });
 
   testWidgets('пробег без фото одометра — ошибка, кандидат не заводится', (

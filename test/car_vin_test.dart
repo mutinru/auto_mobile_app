@@ -5,7 +5,6 @@ import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
-import 'package:auto_podbor_mobile/models/inspection_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/vin_kind.dart';
@@ -23,9 +22,8 @@ class _RejectingPhoto extends MockOrderRepository {
   Future<int> startInspection(
     int orderId,
     int carId, {
-    InspectionType type = InspectionType.full,
-    CapturedVin? vin,
-    CapturedOdometer? odometer,
+    required CapturedVin vin,
+    required CapturedOdometer odometer,
   }) async => throw ApiException(
     422,
     '{"message":"x","errors":{"vin_photo":["Нужна фотография таблички"]}}',

@@ -13,7 +13,9 @@ import '../widgets/odometer_capture.dart';
 import '../widgets/vin_capture.dart';
 
 /// Экран 05 макета — «новый осмотр · автомобиль».
-/// Заводит кандидата в рамках заказа и стартует по нему осмотр.
+/// Заводит кандидата подбора: сервер создаёт машину вместе с осмотром.
+/// Закрывается с созданной машиной ([OrderCar.inspectionId] уже есть) —
+/// карточка заказа сразу открывает осмотр.
 class StartInspectionScreen extends StatefulWidget {
   const StartInspectionScreen({
     super.key,
@@ -143,13 +145,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
             : _plateController.text.trim(),
         odometer: odometer,
       );
-      // другие типы пока не реализованы: набор пунктов у осмотра один
-      await widget.repository.startInspection(
-        widget.order.id,
-        car.id,
-        type: InspectionType.full,
-      );
-      if (mounted) Navigator.of(context).pop(true);
+      if (mounted) Navigator.of(context).pop(car);
     } on ApiException catch (e) {
       // 422 по полям (машина уже в подборе и т. п.) — к своим полям,
       // остальное строкой
