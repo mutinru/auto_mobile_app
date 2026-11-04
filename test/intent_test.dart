@@ -29,6 +29,20 @@ void main() {
     expect(find.text('Просто посмотрю'), findsOneWidget);
   });
 
+  testWidgets('карточка исполнителя без выдуманных цифр из макета', (
+    tester,
+  ) async {
+    final (app, _) = build();
+    await tester.pumpWidget(app);
+
+    expect(
+      find.text('Подборы и разовые осмотры — заказчики платят за работу'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('свободных заказов'), findsNothing);
+    expect(find.textContaining('₽'), findsNothing);
+  });
+
   testWidgets('«Просто посмотрю» отдаёт browse', (tester) async {
     final (app, chosen) = build();
     await tester.pumpWidget(app);
