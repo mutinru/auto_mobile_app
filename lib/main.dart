@@ -14,6 +14,7 @@ import 'data/auth_service.dart';
 import 'data/car_catalog_repository.dart';
 import 'data/city_repository.dart';
 import 'data/location_service.dart';
+import 'l10n/app_locale.dart';
 import 'models/order.dart';
 import 'models/order_kind.dart';
 import 'models/push_target.dart';
@@ -117,6 +118,10 @@ class AutoPodborApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: theme.mode,
+          // язык закреплён — см. app_locale.dart
+          locale: appLocale,
+          supportedLocales: appSupportedLocales,
+          localizationsDelegates: appLocalizationsDelegates,
           // у экранов нет AppBar, поэтому иконки статус-бара красим здесь:
           // тёмные на светлой теме, светлые на тёмной
           builder: (context, child) => SupportChatScope(
