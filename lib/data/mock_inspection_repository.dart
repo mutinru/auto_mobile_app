@@ -72,6 +72,9 @@ class MockInspectionRepository implements InspectionRepository {
 
   List<InspectionPanel>? _panels;
 
+  /// id следующего снимка — как автоинкремент photos на бекенде.
+  int _nextPhotoId = 1;
+
   List<InspectionPanel> get _loadedPanels => _panels ??= [
     for (final p in _blank ? _buildPanels().map(_unrated) : _buildPanels())
       _withMissing(p),
@@ -261,7 +264,21 @@ class MockInspectionRepository implements InspectionRepository {
   @override
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
+    final id = _nextPhotoId++;
+    panel.photos.add(
+      PanelPhoto(id: id, url: 'http://localhost/mock/photo/$id.jpg'),
+    );
     panel.photoCount++;
+    return _withMissing(panel);
+  }
+
+  @override
+  Future<InspectionPanel> deletePhoto(int photoId) async {
+    final panel = _loadedPanels.firstWhere(
+      (p) => p.photos.any((ph) => ph.id == photoId),
+    );
+    panel.photos.removeWhere((ph) => ph.id == photoId);
+    panel.photoCount--;
     return _withMissing(panel);
   }
 

@@ -171,4 +171,9 @@ class InspectionStore extends ChangeNotifier {
     final updated = await _repository.deleteAudioNote(panelId);
     _replacePanel(updated);
   }
+
+  Future<void> deletePhoto(int photoId) async {
+    final updated = await _repository.deletePhoto(photoId);
+    _replacePanel(updated);
+  }
 }

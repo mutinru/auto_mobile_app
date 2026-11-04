@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/audio_note.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/status_dot.dart';
 
 /// Экран 02 из макета: оценка одной детали (состояние, дефекты, фото, аудио).
@@ -259,23 +260,39 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            for (final url in panel.photoUrls)
-                              Container(
-                                width: 72,
-                                height: 72,
-                                margin: const EdgeInsets.only(right: 8),
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  color: context.colors.bg1,
+                            for (final (i, photo) in panel.photos.indexed)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: InkWell(
+                                  // на весь экран; исполнитель там же удаляет
+                                  onTap: () => openPhotoGallery(
+                                    context,
+                                    [for (final p in panel.photos) p.url],
+                                    initialIndex: i,
+                                    onDelete: store.readOnly
+                                        ? null
+                                        : (index) => store.deletePhoto(
+                                            panel.photos[index].id,
+                                          ),
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Image.network(
-                                  url,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Icon(
-                                    Icons.broken_image_outlined,
-                                    size: 20,
-                                    color: context.colors.text3,
+                                  child: Container(
+                                    width: 72,
+                                    height: 72,
+                                    clipBehavior: Clip.antiAlias,
+                                    decoration: BoxDecoration(
+                                      color: context.colors.bg1,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Image.network(
+                                      photo.url,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => Icon(
+                                        Icons.broken_image_outlined,
+                                        size: 20,
+                                        color: context.colors.text3,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

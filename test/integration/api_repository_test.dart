@@ -17,6 +17,7 @@
 @Tags(['integration'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -169,5 +170,35 @@ void main() {
       if (left.audioNoteSeconds != null) await repo.deleteAudioNote(silent.id);
       file.parent.deleteSync(recursive: true);
     }
+
+    // фото детали (QA №26): загрузить PNG 1×1, открыть без токена по
+    // подписанной ссылке, удалить по id — число снимков как было
+    final roomy = after.panels.firstWhere((p) => p.photoCount < 5);
+    final png = File(
+      '${Directory.systemTemp.createTempSync('panel_photo').path}/p.png',
+    )..writeAsBytesSync(base64Decode(_onePixelPng));
+    int? uploadedId;
+    try {
+      final withPhoto = await repo.uploadPhoto(roomy.id, png.path);
+      expect(withPhoto.photoCount, roomy.photoCount + 1);
+      final uploaded = withPhoto.photos.last;
+      uploadedId = uploaded.id;
+      expect((await http.get(Uri.parse(uploaded.url))).statusCode, 200);
+
+      final withoutPhoto = await repo.deletePhoto(uploaded.id);
+      uploadedId = null;
+      expect(withoutPhoto.photoCount, roomy.photoCount);
+      expect(
+        withoutPhoto.photos.map((ph) => ph.id),
+        isNot(contains(uploaded.id)),
+      );
+    } finally {
+      if (uploadedId != null) await repo.deletePhoto(uploadedId);
+      png.parent.deleteSync(recursive: true);
+    }
   });
 }
+
+/// Валидный PNG 1×1 — сервер проверяет, что это изображение.
+const _onePixelPng =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';

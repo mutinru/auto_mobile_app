@@ -372,8 +372,8 @@ class _PanelReportSheet extends StatelessWidget {
               ),
 
             const SizedBox(height: 20),
-            SectionHead('Фото', extra: '${panel.photoUrls.length}'),
-            if (panel.photoUrls.isEmpty)
+            SectionHead('Фото', extra: '${panel.photos.length}'),
+            if (panel.photos.isEmpty)
               Text(
                 'Фото нет',
                 style: TextStyle(fontSize: 12.5, color: context.colors.text2),
@@ -384,9 +384,13 @@ class _PanelReportSheet extends StatelessWidget {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    for (final url in panel.photoUrls)
+                    for (final (i, photo) in panel.photos.indexed)
                       GestureDetector(
-                        onTap: () => _openPhoto(context, url),
+                        onTap: () => openPhotoGallery(
+                          context,
+                          [for (final p in panel.photos) p.url],
+                          initialIndex: i,
+                        ),
                         child: Container(
                           width: 72,
                           height: 72,
@@ -397,7 +401,7 @@ class _PanelReportSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Image.network(
-                            url,
+                            photo.url,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => Icon(
                               Icons.broken_image_outlined,
@@ -434,7 +438,4 @@ class _PanelReportSheet extends StatelessWidget {
       ),
     );
   }
-
-  void _openPhoto(BuildContext context, String url) =>
-      openPhotoViewer(context, url);
 }

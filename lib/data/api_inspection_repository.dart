@@ -102,6 +102,12 @@ class ApiInspectionRepository implements InspectionRepository {
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
   }
 
+  @override
+  Future<InspectionPanel> deletePhoto(int photoId) async {
+    final json = await _client.delete('/photos/$photoId');
+    return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
   /// multipart идёт мимо ApiClient — тот умеет только JSON; ошибки всё равно
   /// через [ApiClient.failure], чтобы 401 стёр сессию.
   Future<InspectionPanel> _multipart(

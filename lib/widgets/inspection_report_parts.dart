@@ -226,7 +226,7 @@ class ReportDefectItem extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Thumb(url: panel.photoUrls.firstOrNull),
+              _Thumb(url: panel.photos.firstOrNull?.url),
               const SizedBox(width: 11),
               Expanded(
                 child: Column(

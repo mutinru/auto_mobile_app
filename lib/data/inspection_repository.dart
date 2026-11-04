@@ -33,4 +33,8 @@ abstract class InspectionRepository {
   );
 
   Future<InspectionPanel> deleteAudioNote(String panelId);
+
+  /// Удалить снимок детали. Возвращает обновлённую деталь (с пересчитанным
+  /// missing). Сервер пускает только исполнителя идущего осмотра.
+  Future<InspectionPanel> deletePhoto(int photoId);
 }

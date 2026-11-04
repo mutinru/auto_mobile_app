@@ -2,6 +2,15 @@ import '../config/api_config.dart';
 import 'panel_condition.dart';
 import 'panel_status.dart';
 
+/// Снимок детали: id — для удаления (DELETE /photos/{id}), url — абсолютная
+/// подписанная ссылка, Bearer не нужен.
+class PanelPhoto {
+  const PanelPhoto({required this.id, required this.url});
+
+  final int id;
+  final String url;
+}
+
 /// Пункт осмотра: деталь кузова на схеме или пункт вне её
 /// (двигатель, пороги, окна, документы) — см. [isExtra].
 ///
@@ -18,12 +27,12 @@ class InspectionPanel {
     this.condition,
     Set<String>? defects,
     this.photoCount = 0,
-    List<String>? photoUrls,
+    List<PanelPhoto>? photos,
     this.audioNoteSeconds,
     this.audioNoteUrl,
     Set<String>? missing,
   }) : defects = defects ?? <String>{},
-       photoUrls = photoUrls ?? <String>[],
+       photos = photos ?? <PanelPhoto>[],
        missing = missing ?? <String>{};
 
   final String id;
@@ -42,8 +51,8 @@ class InspectionPanel {
   final Set<String> defects;
   int photoCount;
 
-  /// Абсолютные ссылки на снимки детали.
-  final List<String> photoUrls;
+  /// Снимки детали в порядке загрузки.
+  final List<PanelPhoto> photos;
   int? audioNoteSeconds;
 
   /// Абсолютная подписанная ссылка на запись: открывается без токена,
@@ -90,9 +99,12 @@ class InspectionPanel {
           (d as Map<String, dynamic>)['label'] as String,
       },
       photoCount: json['photo_count'] as int,
-      photoUrls: [
+      photos: [
         for (final p in (json['photos'] as List? ?? const []))
-          _absolute((p as Map<String, dynamic>)['url'] as String),
+          PanelPhoto(
+            id: (p as Map<String, dynamic>)['id'] as int,
+            url: _absolute(p['url'] as String),
+          ),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,
       audioNoteUrl: audioNote == null
