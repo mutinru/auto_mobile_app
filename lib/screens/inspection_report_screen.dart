@@ -7,6 +7,7 @@ import '../models/car.dart';
 import '../models/inspection_panel.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
+import '../models/order_car.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
@@ -40,6 +41,18 @@ Future<void> openInspectionReport(
   );
 }
 
+/// Открыть отчёт по осмотренному кандидату подбора — тот же экран, что у
+/// разового осмотра: итог с комментарием, балл, VIN, пробег, схема.
+Future<void> openCandidateReport(
+  BuildContext context,
+  InspectionStore store,
+  OrderCar car,
+) => Navigator.of(context).push(
+  MaterialPageRoute(
+    builder: (_) => InspectionReportScreen.candidate(store: store, car: car),
+  ),
+);
+
 /// Есть ли у заказа отчёт, который можно открыть: осмотр завершён
 /// и у машины есть id осмотра.
 bool hasInspectionReport(Order order) =>
@@ -59,6 +72,15 @@ class InspectionReportScreen extends StatefulWidget {
   }) : title = order.carTitle,
        verdict = order.verdict,
        verdictComment = order.cars.firstOrNull?.verdictComment;
+
+  /// Отчёт по кандидату подбора: у заказа машин несколько, итог — у каждой.
+  InspectionReportScreen.candidate({
+    super.key,
+    required this.store,
+    required OrderCar car,
+  }) : title = car.title,
+       verdict = car.verdict,
+       verdictComment = car.verdictComment;
 
   /// Отчёт из купленного пакета по VIN: заказа у покупателя нет, вердикт
   /// пришёл с покупкой. Голосовых заметок сервер ему не отдаёт.

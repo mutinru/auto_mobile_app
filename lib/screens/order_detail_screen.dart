@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
+import '../data/inspection_repository.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
@@ -24,6 +25,7 @@ import '../widgets/review_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'executor_reviews_screen.dart';
 import 'inspection_overview_screen.dart';
+import 'inspection_report_screen.dart';
 import 'start_inspection_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -33,6 +35,7 @@ class OrderDetailScreen extends StatefulWidget {
     required this.orderId,
     required this.viewerIsCustomer,
     this.auth,
+    this.inspectionRepository,
   });
 
   final OrderStore store;
@@ -44,6 +47,10 @@ class OrderDetailScreen extends StatefulWidget {
 
   /// Нужен, чтобы открыть осмотр кандидата (ApiInspectionRepository).
   final AuthService? auth;
+
+  /// Репозиторий осмотра кандидата по его id; по умолчанию — API через
+  /// [auth]. Тесты подставляют мок.
+  final InspectionRepository Function(int inspectionId)? inspectionRepository;
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
@@ -80,16 +87,30 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  /// Открыть осмотр кандидата можно, если есть откуда его грузить.
+  bool get _canOpenInspection =>
+      widget.auth != null || widget.inspectionRepository != null;
+
+  InspectionRepository _inspectionRepo(int inspectionId) =>
+      widget.inspectionRepository?.call(inspectionId) ??
+      ApiInspectionRepository(
+        ApiClient(widget.auth!),
+        inspectionId: inspectionId,
+      );
+
   Future<void> _openInspection(OrderCar car) async {
-    final repo = ApiInspectionRepository(
-      ApiClient(widget.auth!),
-      inspectionId: car.inspectionId!,
-    );
+    final repo = _inspectionRepo(car.inspectionId!);
     // править кандидата может только исполнитель; заказчик смотрит —
     // сервер ему запись всё равно не разрешит (403)
     final isExecutor =
         _order?.executor != null &&
-        _order!.executor!.id == widget.auth!.user?.id;
+        _order!.executor!.id == widget.auth?.user?.id;
+    // осмотренный кандидат у заказчика — отчёт, а не рабочая схема:
+    // итог с комментарием, балл, VIN, пробег по одометру
+    if (!isExecutor && car.verdict != null) {
+      await openCandidateReport(context, InspectionStore(repo), car);
+      return;
+    }
     // завершить можно только начатый осмотр: завершённый правится, но итог уже есть
     final canFinish = isExecutor && car.inspectionStatus == 'in_progress';
     // стор — до маршрута: builder перезапускается при смене темы
@@ -413,6 +434,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           for (final car in order.cars)
             _InfoRow(
               label: car.title,
+              // комментарий к вердикту — то, ради чего заказчик открывает итог
+              subtitle: car.verdictComment,
               trailing: car.inspectionLabel,
               // исход покупки важнее вердикта; вердикт — его цветом
               trailingColor:
@@ -421,7 +444,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   : (car.inspectionOutcome == null
                         ? car.verdict?.color(context.colors)
                         : null),
-              onTap: car.inspectionId != null && widget.auth != null
+              onTap: car.inspectionId != null && _canOpenInspection
                   ? () => _openInspection(car)
                   : null,
             ),
@@ -564,11 +587,13 @@ class _SectionLabel extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.label,
+    this.subtitle,
     this.trailing,
     this.trailingColor,
     this.onTap,
   });
   final String label;
+  final String? subtitle;
   final String? trailing;
   final Color? trailingColor;
   final VoidCallback? onTap;
@@ -588,10 +613,31 @@ class _InfoRow extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: context.colors.text1),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(fontSize: 13, color: context.colors.text1),
+                  ),
+                  if (subtitle case final subtitle? when subtitle.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: context.colors.text2,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             if (trailing != null)
               Text(
                 trailing!,
