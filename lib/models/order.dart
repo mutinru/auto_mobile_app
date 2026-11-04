@@ -220,9 +220,20 @@ class Order {
         : OrderStatus.sourcing;
   }
 
+  /// Подбор закрыт покупкой, а осмотр другого кандидата ещё идёт —
+  /// исполнитель его дозавершает (сервер это пускает). Такой заказ у
+  /// исполнителя остаётся в «Активных».
+  bool get hasUnfinishedInspection =>
+      !isInspection &&
+      status == OrderStatus.completed &&
+      cars.any((c) => c.inspectionStatus == 'in_progress');
+
   /// Подпись статуса: у подбора между осмотрами — «идёт подбор · осмотрено 3».
   /// Осмотренной считается машина с завершённым осмотром, не просто добавленная.
   String get statusLabel {
+    if (hasUnfinishedInspection) {
+      return '${status.labelFor(kind)} · осмотр не завершён';
+    }
     final shown = shownStatus;
     if (isInspection || shown != OrderStatus.sourcing) {
       return shown.labelFor(kind);

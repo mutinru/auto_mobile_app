@@ -215,8 +215,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             ? store.assignedOrders
             : store.myOrders;
         final orders = source.where((o) {
-          // отчёт готов / оплата / спор — ещё активные: заказчик не получил отчёт
-          final finished = o.status.isFinished;
+          // отчёт готов / оплата / спор — ещё активные: заказчик не получил
+          // отчёт; у исполнителя — и закрытый подбор с недоделанным осмотром
+          final finished =
+              o.status.isFinished &&
+              !(widget.asExecutor && o.hasUnfinishedInspection);
           return _tab == 0 ? !finished : finished;
         }).toList();
 

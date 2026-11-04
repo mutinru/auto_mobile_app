@@ -460,9 +460,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
         ],
         // Заводить кандидата и стартовать осмотр может только назначенный
-        // исполнитель — у заказчика этот вызов вернёт 403.
+        // исполнитель — у заказчика этот вызов вернёт 403; в закрытый подбор
+        // нового кандидата не завести (422), начатые — дозавершаются.
         if (widget.auth?.user != null &&
-            order.executor?.id == widget.auth!.user!.id) ...[
+            order.executor?.id == widget.auth!.user!.id &&
+            (order.status == OrderStatus.sourcing ||
+                order.status == OrderStatus.inspecting)) ...[
           const SizedBox(height: 14),
           CtaPrimary(
             label: 'Осмотреть новый вариант',
