@@ -132,9 +132,15 @@ class Order {
 
   final int? _responsesCount;
 
-  /// Сколько всего откликов. Считать по `responses.length` нельзя — у
-  /// исполнителя там максимум один. Без ключа в ответе (моки) — длина списка.
-  int get responsesCount => _responsesCount ?? responses.length;
+  /// Отклики в игре — ждут выбора или приняты. Устаревшие после переноса,
+  /// отказ, срыв и отклонённые выбрать нельзя: в счётчиках и «от X ₽» их нет.
+  List<OrderResponse> get activeResponses =>
+      responses.where((r) => r.status.isActive).toList();
+
+  /// Сколько откликов в игре. Считать по `responses.length` нельзя — у
+  /// исполнителя там максимум один, а у заказчика есть и неактуальные.
+  /// Без ключа в ответе (моки) — по [activeResponses].
+  int get responsesCount => _responsesCount ?? activeResponses.length;
 
   /// Отклик зрителя — сервер отдаёт исполнителю только его (или пусто).
   /// Смысл есть только в ленте исполнителя: заказчик видит все отклики, но

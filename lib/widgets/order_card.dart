@@ -564,7 +564,7 @@ class OrderFoot extends StatelessWidget {
                   style: context.text.orderExec,
                 )
               : Text(
-                  _responsesLabel(order.responses.length, order.isInspection),
+                  _responsesLabel(order.responsesCount, order.isInspection),
                   style: context.text.orderExec,
                 ),
         ),
@@ -579,12 +579,13 @@ class OrderFoot extends StatelessWidget {
     );
   }
 
-  /// Согласованный гонорар, иначе минимум из откликов, иначе — цена,
+  /// Согласованный гонорар, иначе минимум из откликов в игре, иначе — цена,
   /// которую назначил заказчик (она есть только у осмотра).
   String? _price(Order order) {
     if (order.price != null) return '${money(order.price!)} ₽';
-    if (order.responses.isNotEmpty) {
-      final min = order.responses
+    final active = order.activeResponses;
+    if (active.isNotEmpty) {
+      final min = active
           .map((r) => r.proposedPrice)
           .reduce((a, b) => a < b ? a : b);
       return 'от ${money(min)} ₽';

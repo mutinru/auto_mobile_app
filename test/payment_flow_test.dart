@@ -142,8 +142,9 @@ void main() {
         'отказался',
         'не успел',
       ]);
-      // без responses_count — считаем по списку
-      expect(order.responsesCount, 2);
+      // без responses_count — по списку, но только отклики в игре:
+      // отказ и срыв выбрать нельзя (QA №11)
+      expect(order.responsesCount, 0);
       expect(orderStatusFromApi('payment_sent'), OrderStatus.paymentSent);
       expect(orderStatusFromApi('disputed'), OrderStatus.disputed);
     });
