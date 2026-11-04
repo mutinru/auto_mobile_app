@@ -496,7 +496,7 @@ class _JobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: order.hasViewerResponse ? null : onRespond,
+              onPressed: order.canViewerRespond ? onRespond : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: first
                     ? context.colors.statusDone
@@ -513,7 +513,7 @@ class _JobCard extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(
-                order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
+                order.respondLabel,
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,

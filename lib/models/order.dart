@@ -2,6 +2,7 @@ import 'inspection_verdict.dart';
 import 'order_car.dart';
 import 'order_kind.dart';
 import 'order_response.dart';
+import 'order_response_status.dart';
 import 'order_status.dart';
 import 'payout.dart';
 import 'report_summary.dart';
@@ -135,11 +136,27 @@ class Order {
   /// исполнителя там максимум один. Без ключа в ответе (моки) — длина списка.
   int get responsesCount => _responsesCount ?? responses.length;
 
-  /// Исполнитель уже откликался — сервер отдаёт ему только его отклик, и
-  /// второй (в любом статусе) отклонит с 422. Смысл есть только в ленте
-  /// исполнителя: заказчик видит все отклики, но свои заказы в ленту не
-  /// попадают.
-  bool get hasViewerResponse => responses.isNotEmpty;
+  /// Отклик зрителя — сервер отдаёт исполнителю только его (или пусто).
+  /// Смысл есть только в ленте исполнителя: заказчик видит все отклики, но
+  /// свои заказы в ленту не попадают.
+  OrderResponse? get viewerResponse =>
+      responses.isEmpty ? null : responses.first;
+
+  /// Отклик зрителя в игре: ждёт выбора или принят.
+  bool get hasViewerResponse => viewerResponse?.status.isActive ?? false;
+
+  /// Можно ли откликнуться: отклика нет или он устарел после переноса даты.
+  /// Иначе сервер ответит 422 (уже откликался, отказался, сорвал срок).
+  bool get canViewerRespond => viewerResponse?.status.allowsNewResponse ?? true;
+
+  /// Подпись кнопки отклика в ленте — по состоянию отклика зрителя.
+  String get respondLabel => switch (viewerResponse?.status) {
+    null => 'Откликнуться',
+    OrderResponseStatus.outdated => 'Откликнуться снова',
+    OrderResponseStatus.declined => 'Вы отказались',
+    OrderResponseStatus.expired => 'Вы не успели',
+    _ => 'Вы откликнулись',
+  };
 
   final List<OrderCar> cars;
 

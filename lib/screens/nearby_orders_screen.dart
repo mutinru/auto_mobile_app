@@ -607,8 +607,8 @@ class _JobCard extends StatelessWidget {
     if (order.askingPrice != null) {
       return ('Цена заказчика', '${money(order.askingPrice!)} ₽');
     }
-    if (order.responses.isNotEmpty) {
-      return ('Ваш отклик', '${money(order.responses.first.proposedPrice)} ₽');
+    if (order.hasViewerResponse) {
+      return ('Ваш отклик', '${money(order.viewerResponse!.proposedPrice)} ₽');
     }
     return ('Гонорар за заказ', 'предлагаете вы');
   }
@@ -717,7 +717,7 @@ class _JobCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: canRespond && !order.hasViewerResponse
+              onPressed: canRespond && order.canViewerRespond
                   ? onRespond
                   : null,
               style: ElevatedButton.styleFrom(
@@ -732,7 +732,7 @@ class _JobCard extends StatelessWidget {
                 elevation: 0,
               ),
               child: Text(
-                order.hasViewerResponse ? 'Вы откликнулись' : 'Откликнуться',
+                order.respondLabel,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

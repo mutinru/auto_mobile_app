@@ -182,7 +182,7 @@ void main() {
       final updated = await repo.fetchOrder(501);
       expect(updated.status, OrderStatus.awaitingExecutor);
       expect(updated.decisionReason, isNull);
-      expect(updated.responses.single.status, OrderResponseStatus.rejected);
+      expect(updated.responses.single.status, OrderResponseStatus.outdated);
       expect(find.text('НУЖНО РЕШЕНИЕ'), findsNothing);
     },
   );

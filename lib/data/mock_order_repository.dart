@@ -269,10 +269,10 @@ class MockOrderRepository implements OrderRepository {
   ).where((o) => !fewResponses || o.responsesCount <= 2).toList();
 
   /// Как бекенд (OrderResource): не заказчику — только свой отклик,
-  /// общее число — в responsesCount.
+  /// в responsesCount — отклики в игре, без устаревших после переноса.
   static Order _asExecutor(Order o) => o.copyWith(
     responses: o.responses.where((r) => r.executor.id == _me.id).toList(),
-    responsesCount: o.responses.length,
+    responsesCount: o.responses.where((r) => r.status.isActive).length,
   );
 
   @override
@@ -435,11 +435,14 @@ class MockOrderRepository implements OrderRepository {
     Payout? payout,
   }) async {
     final order = await fetchOrder(orderId);
+    // как Order::addResponse(): устаревший после переноса отклик оживает
+    final mine = order.responses.where((r) => r.executor.id == _me.id);
     final updated = order.copyWith(
       responses: [
-        ...order.responses,
+        for (final r in order.responses)
+          if (r.executor.id != _me.id) r,
         OrderResponse(
-          id: order.responses.length + 1,
+          id: mine.isEmpty ? order.responses.length + 1 : mine.first.id,
           status: OrderResponseStatus.pending,
           proposedPrice: proposedPrice,
           message: message,
@@ -531,13 +534,15 @@ class MockOrderRepository implements OrderRepository {
       inspectTime: timeSlot == TimeSlot.exact ? inspectTime : null,
       askingPrice: askingPrice,
       clearDecision: true,
-      // как Order::repost(): прежние отклики были под старую дату
+      // как Order::repost(): прежние отклики были под старую дату —
+      // ждавшие выбора и отказавшиеся могут откликнуться снова
       responses: [
         for (final r in order.responses)
-          r.status == OrderResponseStatus.pending
+          r.status == OrderResponseStatus.pending ||
+                  r.status == OrderResponseStatus.declined
               ? OrderResponse(
                   id: r.id,
-                  status: OrderResponseStatus.rejected,
+                  status: OrderResponseStatus.outdated,
                   proposedPrice: r.proposedPrice,
                   message: r.message,
                   executor: r.executor,
