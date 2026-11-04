@@ -83,8 +83,8 @@ class _ReviewSheetState extends State<ReviewSheet> {
       await widget.onSubmit(_rating, _trimmed.isEmpty ? null : _trimmed);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      // лист не закрываем, чтобы не потерять ввод; без сети apiErrorText
-      // отдаст «Нет связи с сервером»
+      // лист не закрываем, чтобы не потерять ввод; apiErrorText отличит
+      // обрыв связи от отказа сервера и от непонятного ответа
       if (mounted) setState(() => _error = apiErrorText(e));
     } finally {
       if (mounted) setState(() => _saving = false);

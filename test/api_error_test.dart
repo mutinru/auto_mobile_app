@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
@@ -71,10 +75,36 @@ void main() {
         apiErrorText(ApiException(500, '<html>')),
         'Ошибка на сервере, попробуйте позже',
       );
-      expect(
-        apiErrorText(Exception('Connection refused')),
-        'Нет связи с сервером',
-      );
+    });
+
+    test('обрыв связи — «Нет связи», по типу исключения', () {
+      for (final error in <Object>[
+        http.ClientException('Connection refused'),
+        const SocketException('Network is unreachable'),
+        TimeoutException('нет ответа'),
+      ]) {
+        expect(apiErrorText(error), networkErrorText, reason: '$error');
+        expect(isNetworkError(error), isTrue);
+      }
+    });
+
+    test('ответ пришёл, но не разобран — не «Нет связи» (QA №1)', () {
+      Object? typeError;
+      try {
+        // так падал разбор кандидата: год пришёл строкой
+        final year = ('2019' as dynamic) as int;
+        fail('ожидали TypeError, получили $year');
+      } on TypeError catch (e) {
+        typeError = e;
+      }
+      for (final error in <Object>[
+        typeError,
+        const FormatException('Unexpected character'),
+        StateError('Bad state'),
+      ]) {
+        expect(apiErrorText(error), unexpectedErrorText, reason: '$error');
+        expect(isNetworkError(error), isFalse);
+      }
     });
   });
 
@@ -94,13 +124,30 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: MyOrdersScreen(
-          store: store(Exception('ClientException: Connection refused')),
+          store: store(http.ClientException('Connection refused')),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Нет связи с сервером'), findsOneWidget);
+    expect(find.text(networkErrorText), findsOneWidget);
     expect(find.textContaining('Exception'), findsNothing);
+  });
+
+  testWidgets('«Мои заказы»: ответ не разобран — не «Нет связи»', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: MyOrdersScreen(
+          store: store(const FormatException('Unexpected character')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(unexpectedErrorText), findsOneWidget);
+    expect(find.text(networkErrorText), findsNothing);
   });
 }

@@ -64,8 +64,8 @@ class _EditNameSheetState extends State<_EditNameSheet> {
       await widget.onSave(_trimmed);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      // лист не закрываем, чтобы не потерять ввод; без сети apiErrorText
-      // отдаст «Нет связи с сервером»
+      // лист не закрываем, чтобы не потерять ввод; apiErrorText отличит
+      // обрыв связи от отказа сервера и от непонятного ответа
       if (mounted) setState(() => _error = apiErrorText(e));
     } finally {
       if (mounted) setState(() => _saving = false);
