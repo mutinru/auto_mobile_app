@@ -240,7 +240,8 @@ class _InspectionOrderDetailScreenState
           ],
         ),
       ],
-      OrderStatus.paymentSent => [
+      // спор — только когда сервер открыл окно (сутки без подтверждения)
+      OrderStatus.paymentSent when order.canDispute => [
         BottomCta(
           children: [
             CtaGhost(
@@ -416,6 +417,10 @@ class _InspectionOrderDetailScreenState
         text:
             'Ждём, пока исполнитель подтвердит оплату. Потом откроется полный отчёт.',
       ),
+      DisputeWindowNote(
+        order: order,
+        ifSilent: 'исполнитель так и не подтвердит оплату',
+      ),
       const SizedBox(height: 8),
     ],
     if (order.status == OrderStatus.disputed) ...[
@@ -426,7 +431,9 @@ class _InspectionOrderDetailScreenState
       ReportSummaryBox(summary: order.reportSummary!),
       const SizedBox(height: 8),
     ],
-    if (order.payout != null)
+    // в споре реквизиты нужны, только если оплату ещё не отмечали
+    if (order.payout != null &&
+        (order.status != OrderStatus.disputed || order.paymentSentAt == null))
       PayoutBlock(price: order.price, payout: order.payout!),
   ];
 }

@@ -24,7 +24,13 @@ void main() {
   const customer = UserSummary(id: 1, name: 'Андрей С.');
   const executor = UserSummary(id: 10, name: 'Максим К.');
 
-  Order inspection(OrderStatus status, {DateTime? deadline}) => Order(
+  Order inspection(
+    OrderStatus status, {
+    DateTime? deadline,
+    bool canDispute = false,
+    DateTime? disputeAvailableAt,
+    DateTime? paymentSentAt,
+  }) => Order(
     id: 3001,
     kind: OrderKind.inspection,
     status: status,
@@ -37,6 +43,9 @@ void main() {
     askingPrice: 3500,
     address: 'Москва, Профсоюзная ул., 56',
     executorDeadlineAt: deadline,
+    canDispute: canDispute,
+    disputeAvailableAt: disputeAvailableAt,
+    paymentSentAt: paymentSentAt,
     payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,
     reportSummary: status.isAwaitingPayment
         ? const ReportSummary(
@@ -233,11 +242,49 @@ void main() {
     },
   );
 
+  testWidgets('заказчик: до суток без подтверждения — подсказка, без спора', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [
+        inspection(
+          OrderStatus.paymentSent,
+          paymentSentAt: DateTime.now(),
+          disputeAvailableAt: DateTime.now().add(const Duration(hours: 24)),
+        ),
+      ],
+    );
+    await open(
+      tester,
+      () => InspectionOrderDetailScreen(store: store(repo), orderId: 3001),
+    );
+
+    expect(
+      find.textContaining('Спор можно будет открыть завтра в'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('если исполнитель так и не подтвердит оплату'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Исполнитель не подтверждает — открыть спор'),
+      findsNothing,
+    );
+  });
+
   testWidgets('заказчик: спор, если исполнитель не подтверждает', (
     tester,
   ) async {
     final repo = MockOrderRepository(
-      orders: [inspection(OrderStatus.paymentSent)],
+      orders: [
+        inspection(
+          OrderStatus.paymentSent,
+          canDispute: true,
+          paymentSentAt: DateTime.now().subtract(const Duration(hours: 25)),
+          disputeAvailableAt: DateTime.now().subtract(const Duration(hours: 1)),
+        ),
+      ],
     );
     await open(
       tester,
@@ -263,6 +310,9 @@ void main() {
     expect(find.text('СПОР'), findsNWidgets(2));
     expect(find.text('Вы открыли спор'), findsOneWidget);
     expect(find.text('Перевёл вчера, подтверждения нет'), findsOneWidget);
+    expect(find.textContaining('Отчёт откроется, если'), findsOneWidget);
+    // оплату заказчик уже отметил — «переведите» больше не показываем
+    expect(find.text('К ОПЛАТЕ'), findsNothing);
   });
 
   testWidgets('исполнитель: «Оплату получил» открывает отчёт заказчику', (
@@ -332,7 +382,88 @@ void main() {
     expect(find.textContaining('Ждём оплату от заказчика'), findsOneWidget);
     expect(find.textContaining('Изменить отчёт уже нельзя'), findsOneWidget);
     expect(find.text('Поправить отчёт'), findsNothing);
-    expect(find.text('Заказчик не платит — открыть спор'), findsOneWidget);
     expect(find.text('Отказаться от заказа'), findsNothing);
+    // сутки ещё не прошли — спор не предлагаем, только срок
+    expect(find.text('Заказчик не платит — открыть спор'), findsNothing);
+    expect(find.textContaining('Спор можно будет открыть'), findsNothing);
+  });
+
+  testWidgets('исполнитель: до суток без оплаты — подсказка со сроком', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [
+        inspection(
+          OrderStatus.reportReady,
+          disputeAvailableAt: DateTime.now().add(const Duration(hours: 3)),
+        ),
+      ],
+    );
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
+    expect(
+      find.textContaining('если заказчик так и не оплатит'),
+      findsOneWidget,
+    );
+    expect(find.text('Заказчик не платит — открыть спор'), findsNothing);
+  });
+
+  testWidgets('исполнитель: сутки без оплаты — кнопка спора', (tester) async {
+    final ready = MockOrderRepository(
+      orders: [
+        inspection(
+          OrderStatus.reportReady,
+          canDispute: true,
+          disputeAvailableAt: DateTime.now().subtract(const Duration(hours: 1)),
+        ),
+      ],
+    );
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(ready), orderId: 3001),
+    );
+    expect(find.text('Заказчик не платит — открыть спор'), findsOneWidget);
+    expect(find.textContaining('Спор можно будет открыть'), findsNothing);
+  });
+
+  testWidgets('исполнитель: деньги не пришли — поддержка, а не спор', (
+    tester,
+  ) async {
+    final repo = MockOrderRepository(
+      orders: [inspection(OrderStatus.paymentSent)],
+    );
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
+
+    expect(
+      find.text('Деньги не пришли — написать в поддержку'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('открыть спор'), findsNothing);
+  });
+
+  testWidgets('исполнитель в споре: текст о заказе, не об отчёте', (
+    tester,
+  ) async {
+    final disputed = inspection(OrderStatus.disputed).copyWith(
+      dispute: OrderDispute(
+        openedBy: customer.id,
+        reason: 'Перевёл, подтверждения нет',
+        openedAt: DateTime.now(),
+      ),
+    );
+    final repo = MockOrderRepository(orders: [disputed]);
+    await open(
+      tester,
+      () => AssignedInspectionScreen(store: store(repo), orderId: 3001),
+    );
+
+    expect(find.text('Заказчик открыл спор'), findsOneWidget);
+    expect(find.textContaining('заказчик получит отчёт'), findsOneWidget);
+    expect(find.textContaining('Отчёт откроется, если'), findsNothing);
   });
 }

@@ -79,6 +79,18 @@ String chatDay(DateTime date) => switch (_daysFromToday(date)) {
   _ => '${dayMonth(date)} ${date.year}',
 };
 
+/// Момент для подсказки: «сегодня в 15:40», «завтра в 15:40»,
+/// «5 ноября в 15:40».
+String momentLabel(DateTime date) {
+  final local = date.toLocal();
+  final day = switch (_daysFromToday(local)) {
+    0 => 'сегодня',
+    1 => 'завтра',
+    _ => dayMonth(local),
+  };
+  return '$day в ${hhmm(local)}';
+}
+
 /// «09:05»
 String hhmm(DateTime date) =>
     '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';

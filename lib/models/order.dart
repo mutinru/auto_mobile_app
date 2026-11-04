@@ -53,6 +53,8 @@ class Order {
     this.review,
     this.canReview = false,
     this.canCancel = false,
+    this.canDispute = false,
+    this.disputeAvailableAt,
     this.executorDeadlineAt,
     this.decisionReason,
     this.paymentSentAt,
@@ -182,6 +184,15 @@ class Order {
   /// правило меняется на бекенде без новой сборки.
   final bool canCancel;
 
+  /// Сервер разрешает открыть спор прямо сейчас. Правило окна — только на
+  /// бекенде (Order::disputeAvailableAt): исполнителю — через сутки без
+  /// оплаты, заказчику — через сутки без подтверждения. Локально не считаем.
+  final bool canDispute;
+
+  /// С какого момента зрителю откроется спор; null — в этом статусе не
+  /// откроется вовсе. По нему подсказка «сможете открыть спор …».
+  final DateTime? disputeAvailableAt;
+
   /// До какого момента исполнитель разового осмотра должен довести его до
   /// «отчёт готов» — конец дня осмотра по времени города. Истечение
   /// отрабатывает сервер.
@@ -263,6 +274,9 @@ class Order {
     Review? review,
     bool? canReview,
     bool? canCancel,
+    bool? canDispute,
+    DateTime? disputeAvailableAt,
+    bool clearDisputeWindow = false,
     DateTime? executorDeadlineAt,
     DateTime? paymentSentAt,
     OrderDispute? dispute,
@@ -318,6 +332,10 @@ class Order {
     review: review ?? this.review,
     canReview: canReview ?? this.canReview,
     canCancel: canCancel ?? this.canCancel,
+    canDispute: clearDisputeWindow ? false : (canDispute ?? this.canDispute),
+    disputeAvailableAt: clearDisputeWindow
+        ? null
+        : (disputeAvailableAt ?? this.disputeAvailableAt),
     executorDeadlineAt: clearExecutor
         ? null
         : (executorDeadlineAt ?? this.executorDeadlineAt),
@@ -378,6 +396,8 @@ class Order {
         : null,
     canReview: json['can_review'] as bool? ?? false,
     canCancel: json['can_cancel'] as bool? ?? false,
+    canDispute: json['can_dispute'] as bool? ?? false,
+    disputeAvailableAt: _date(json['dispute_available_at']),
     executorDeadlineAt: _date(json['executor_deadline_at']),
     decisionReason: switch (json['decision_reason']) {
       'missed' => DecisionReason.missed,

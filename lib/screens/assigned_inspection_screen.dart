@@ -17,6 +17,7 @@ import '../widgets/deadline_countdown.dart';
 import '../widgets/dispute_sheet.dart';
 import '../widgets/inspection_order_parts.dart';
 import '../widgets/payment_parts.dart';
+import '../widgets/support_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'car_vin_screen.dart';
 import 'inspection_overview_screen.dart';
@@ -317,6 +318,7 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
               'Отчёт отправлен. Ждём оплату от заказчика:$price. Изменить '
               'отчёт уже нельзя — заказчик платит за то, что видел.',
         ),
+        DisputeWindowNote(order: order, ifSilent: 'заказчик так и не оплатит'),
       ],
       OrderStatus.paymentSent => [
         const SizedBox(height: 22),
@@ -381,7 +383,9 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
           ],
         ),
       ],
-      OrderStatus.reportReady => [
+      // спор — только когда сервер открыл окно (сутки без оплаты);
+      // до того срок виден в подсказке над кнопками
+      OrderStatus.reportReady when order.canDispute => [
         BottomCta(
           children: [
             CtaGhost(
@@ -400,9 +404,11 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
               loading: _busy,
               onPressed: () => _confirmPayment(order),
             ),
+            // «деньги не пришли» — не спор: не подтверждаем и пишем в
+            // поддержку, через сутки спор откроется заказчику
             CtaGhost(
-              label: 'Деньги не пришли — открыть спор',
-              onPressed: _busy ? null : () => _openDispute(order),
+              label: 'Деньги не пришли — написать в поддержку',
+              onPressed: _busy ? null : () => showSupportSheet(context),
             ),
           ],
         ),

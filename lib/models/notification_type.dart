@@ -9,6 +9,7 @@ enum NotificationType {
   reportOpened,
   inspectionDatePassed,
   candidateInspected,
+  paymentDue,
   // исполнителю
   executorAssigned,
   responseRejected,
@@ -19,9 +20,12 @@ enum NotificationType {
   orderCompleted,
   orderCancelled,
   reviewReceived,
+  paymentConfirmDue,
   // обеим сторонам
   disputeOpened,
   disputeResolved,
+  // ожидающей стороне — через сутки молчания другой
+  disputeAvailable,
   unknown,
 }
 
@@ -43,6 +47,9 @@ const _apiValues = {
   'review_received': NotificationType.reviewReceived,
   'dispute_opened': NotificationType.disputeOpened,
   'dispute_resolved': NotificationType.disputeResolved,
+  'payment_due': NotificationType.paymentDue,
+  'payment_confirm_due': NotificationType.paymentConfirmDue,
+  'dispute_available': NotificationType.disputeAvailable,
 };
 
 NotificationType notificationTypeFromApi(String? value) =>
@@ -61,7 +68,8 @@ extension NotificationTypeX on NotificationType {
     NotificationType.paymentSent ||
     NotificationType.orderCompleted ||
     NotificationType.orderCancelled ||
-    NotificationType.reviewReceived => false,
+    NotificationType.reviewReceived ||
+    NotificationType.paymentConfirmDue => false,
     _ => true,
   };
 

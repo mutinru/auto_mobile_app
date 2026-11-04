@@ -5,6 +5,7 @@ import '../models/order.dart';
 import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../theme/app_colors.dart';
+import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
 import 'app_ui.dart';
 import 'support_sheet.dart';
@@ -228,8 +229,13 @@ class DisputeBox extends StatelessWidget {
           ],
           const SizedBox(height: 6),
           Text(
-            'Поддержка разберётся с обеими сторонами. Отчёт откроется, если '
-            'оплата подтвердится.',
+            // исполнителю отчёт и так открыт — ему важно, чем кончится заказ
+            viewerId == order.customer.id
+                ? 'Поддержка разберётся с обеими сторонами. Отчёт откроется, '
+                      'если оплата подтвердится.'
+                : 'Поддержка разберётся с обеими сторонами. Подтвердится '
+                      'оплата — заказ закроется и заказчик получит отчёт, нет — '
+                      'заказ отменят.',
             style: TextStyle(
               fontSize: 11.5,
               color: context.colors.text2,
@@ -243,6 +249,36 @@ class DisputeBox extends StatelessWidget {
             onPressed: () => showSupportSheet(context),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Когда ожидающей стороне откроется спор, если другая так и не ответит.
+/// Ничего не рисует, если спор уже можно открыть (тогда внизу кнопка) или
+/// в этом статусе он зрителю не откроется вовсе. Правило — на сервере
+/// ([Order.disputeAvailableAt]).
+class DisputeWindowNote extends StatelessWidget {
+  const DisputeWindowNote({
+    super.key,
+    required this.order,
+    required this.ifSilent,
+  });
+
+  final Order order;
+
+  /// Чего ждём от другой стороны: «заказчик так и не оплатит».
+  final String ifSilent;
+
+  @override
+  Widget build(BuildContext context) {
+    final at = order.disputeAvailableAt;
+    if (order.canDispute || at == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: StatusNote(
+        icon: Icons.gavel_outlined,
+        text: 'Спор можно будет открыть ${momentLabel(at)}, если $ifSilent.',
       ),
     );
   }

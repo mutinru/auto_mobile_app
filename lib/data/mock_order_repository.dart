@@ -850,6 +850,9 @@ class MockOrderRepository implements OrderRepository {
     final updated = order.copyWith(
       status: OrderStatus.paymentSent,
       paymentSentAt: DateTime.now(),
+      // как сервер: новое ожидание — спор заказчику только через сутки
+      canDispute: false,
+      disputeAvailableAt: DateTime.now().add(const Duration(hours: 24)),
     );
     _replace(updated);
     return updated;
@@ -875,6 +878,7 @@ class MockOrderRepository implements OrderRepository {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(
       status: OrderStatus.disputed,
+      clearDisputeWindow: true,
       dispute: OrderDispute(
         openedBy: _me.id,
         reason: reason,
