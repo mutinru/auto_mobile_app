@@ -9,11 +9,17 @@
 // Тест правит осмотр, поэтому с flavor prod отказывается работать: боевые
 // данные он трогать не должен. Без флага ApiConfig и так берёт dev.
 //
+// Вход — по телефону, как в приложении: локальный бекенд отдаёт код прямо
+// в ответе (dev_code, нужны APP_ENV=local и SMS_EXPOSE_CODE=true). Каждый
+// прогон тратит код: между прогонами — пауза SMS_RESEND_COOLDOWN (120 с), а
+// суточный лимит на номер в dev снимает SMS_DAILY_PER_PHONE=0.
+//
 // Осмотр не угадывается по номеру, а находится так же, как в приложении:
-// взятые заказы исполнителя → кандидат подбора с незакрытым осмотром.
-// Голосовую заметку тест кладёт на деталь без неё и удаляет.
-// Тест возвращает деталь в исходное состояние — повторный прогон без
-// пересидирования тоже зелёный.
+// взятые заказы исполнителя → первый кандидат подбора с идущим осмотром.
+// Содержимое сида (марка, число пунктов и дефектов) тест не зашивает —
+// сверяет ответы API между собой.
+// Голосовую заметку и фото тест кладёт на деталь и удаляет, оценку и дефект
+// возвращает — повторный прогон без пересидирования тоже зелёный.
 @Tags(['integration'])
 library;
 
@@ -26,11 +32,11 @@ import 'package:http/http.dart' as http;
 
 import 'package:auto_podbor_mobile/config/api_config.dart';
 import 'package:auto_podbor_mobile/data/api_client.dart';
+import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/api_inspection_repository.dart';
 import 'package:auto_podbor_mobile/data/api_order_repository.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/models/inspection_panel.dart';
-import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/panel_condition.dart';
 import 'package:auto_podbor_mobile/models/panel_status.dart';
@@ -47,27 +53,24 @@ void main() {
     // в тесте нет платформенного хранилища — токен держим в памяти
     FlutterSecureStorage.setMockInitialValues({});
     final auth = AuthService();
-    await auth.login('inspector@autopodbor.local', 'password');
+    await _signIn(auth, _executorPhone);
     expect(auth.isAuthenticated, isTrue);
     final client = ApiClient(auth);
 
-    // RichDemoSeeder: подбор Camry «на осмотре», третий кандидат осмотрен
-    // наполовину и исхода не имеет — его исполнитель ещё может править
+    // RichDemoSeeder: у Максима есть подборы «на осмотре» с идущим осмотром
+    // кандидата — его исполнитель ещё может править. Берём первого такого.
+    // Отсутствие исхода не годится: отправленный отчёт без исхода заморожен
     final assigned = await ApiOrderRepository(client).fetchAssignedOrders();
-    OrderCar? candidate;
-    for (final order in assigned) {
-      if (order.isInspection || order.status != OrderStatus.inspecting) {
-        continue;
-      }
-      for (final car in order.cars) {
-        if (car.inspectionId != null && car.inspectionOutcome == null) {
-          candidate = car;
-        }
-      }
-    }
+    final candidate = assigned
+        .where((o) => !o.isInspection && o.status == OrderStatus.inspecting)
+        .expand((o) => o.cars)
+        .where(
+          (c) => c.inspectionId != null && c.inspectionStatus == 'in_progress',
+        )
+        .firstOrNull;
     if (candidate == null) {
       fail(
-        'Нет подбора с открытым осмотром у Максима — засидируйте базу: '
+        'Нет подбора с идущим осмотром у Максима — засидируйте базу: '
         'docker compose exec app php artisan migrate:fresh --seed',
       );
     }
@@ -77,10 +80,15 @@ void main() {
       inspectionId: candidate.inspectionId!,
     );
 
+    // осмотр — того самого кандидата, а пункты адресуются уникальным кодом
     final snapshot = await repo.fetchInspection();
-    expect(snapshot.car.brand, 'Toyota');
-    expect(snapshot.car.model, 'Camry');
-    expect(snapshot.panels, hasLength(13));
+    expect(snapshot.car.brand, candidate.brand);
+    expect(snapshot.car.model, candidate.model);
+    expect(snapshot.panels, isNotEmpty);
+    expect(
+      snapshot.panels.map((p) => p.id).toSet(),
+      hasLength(snapshot.panels.length),
+    );
     // точное число зависит от того, что правили в dev-базе после сида
     int assessed(Iterable<InspectionPanel> panels) =>
         panels.where((p) => p.status != PanelStatus.none).length;
@@ -88,7 +96,7 @@ void main() {
     expect(assessedBefore, greaterThan(0));
 
     final catalog = await repo.fetchDefectCatalog();
-    expect(catalog, hasLength(6));
+    expect(catalog, isNotEmpty);
 
     // правим уже оценённую деталь и возвращаем её оценку — число оценённых
     // не меняется от прогона к прогону
@@ -197,6 +205,32 @@ void main() {
       png.parent.deleteSync(recursive: true);
     }
   });
+}
+
+/// Исполнитель из RichDemoSeeder (Максим К.).
+const _executorPhone = '+79000000001';
+
+/// Вход по коду из ответа сервера (dev_code) — так же, как экран входа в
+/// dev-сборке. Без dev_code или при лимите — понятная ошибка, а не 401 ниже.
+Future<void> _signIn(AuthService auth, String phone) async {
+  final PhoneCodeSent sent;
+  try {
+    sent = await auth.requestPhoneCode(phone);
+  } on ApiException catch (e) {
+    fail(
+      'Код входа не выдан (${e.statusCode}): ${e.message}\n'
+      'Пауза между кодами — SMS_RESEND_COOLDOWN; суточный лимит на номер в '
+      'dev снимает SMS_DAILY_PER_PHONE=0.',
+    );
+  }
+  final code = sent.devCode;
+  if (code == null) {
+    fail(
+      'Сервер не вернул dev_code — нужен локальный бекенд с APP_ENV=local '
+      'и SMS_EXPOSE_CODE=true.',
+    );
+  }
+  await auth.verifyPhoneCode(phone, code);
 }
 
 /// Валидный PNG 1×1 — сервер проверяет, что это изображение.

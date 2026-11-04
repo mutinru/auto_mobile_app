@@ -136,25 +136,6 @@ class AuthService extends ChangeNotifier {
     _storage.delete(key: _tokenKey).catchError((_) {});
   }
 
-  Future<void> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/login'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-
-    if (response.statusCode != 200) {
-      throw ApiException(response.statusCode, _extractMessage(response.body));
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    await _persist(body['token'] as String);
-    notifyListeners();
-  }
-
   /// Запросить код входа: звонком, в Telegram или SMS — решает бекенд.
   /// Ошибка — [ApiException] с сырым телом: экрану нужен `retry_after`.
   Future<PhoneCodeSent> requestPhoneCode(String phone) async {
