@@ -123,14 +123,15 @@ class InspectionSummaryScreen extends StatelessWidget {
                 ),
                 BottomCta(
                   children: [
-                    CtaPrimary(
-                      label: sendLabel,
-                      icon: Icons.send,
-                      // то же правило проверит сервер при отправке
-                      onPressed: store.isReportComplete
-                          ? (onSendReport ?? () {})
-                          : null,
-                    ),
+                    // без onSendReport отправлять нечего (осмотр только
+                    // смотрят) — кнопки нет, а не пустая
+                    if (onSendReport case final send?)
+                      CtaPrimary(
+                        label: sendLabel,
+                        icon: Icons.send,
+                        // то же правило проверит сервер при отправке
+                        onPressed: store.isReportComplete ? send : null,
+                      ),
                     CtaGhost(label: 'Скачать PDF', onPressed: () {}),
                   ],
                 ),

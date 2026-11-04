@@ -105,14 +105,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final isExecutor =
         _order?.executor != null &&
         _order!.executor!.id == widget.auth?.user?.id;
-    // осмотренный кандидат у заказчика — отчёт, а не рабочая схема:
-    // итог с комментарием, балл, VIN, пробег по одометру
-    if (!isExecutor && car.verdict != null) {
+    // осмотренный кандидат — отчёт, а не рабочая схема, и у заказчика, и
+    // у исполнителя: после вердикта отчёт заморожен (сервер правку не
+    // примет), итог с комментарием, балл, VIN, пробег по одометру
+    if (car.inspectionStatus == 'completed') {
       await openCandidateReport(context, InspectionStore(repo), car);
       return;
     }
-    // завершить можно только начатый осмотр: завершённый правится, но итог уже есть
-    final canFinish = isExecutor && car.inspectionStatus == 'in_progress';
+    // сюда доходит только идущий осмотр — исполнитель его и завершает
+    final canFinish = isExecutor;
     // стор — до маршрута: builder перезапускается при смене темы
     final store = InspectionStore(repo, readOnly: !isExecutor);
     final navigator = Navigator.of(context);

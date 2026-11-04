@@ -12,7 +12,9 @@ import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/inspection_overview_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
+import 'package:auto_podbor_mobile/screens/inspection_summary_screen.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
+import 'package:auto_podbor_mobile/state/inspection_store.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
@@ -56,7 +58,7 @@ void main() {
     ],
   );
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {bool asCustomer = true}) async {
     tester.view.physicalSize = const Size(1080, 6000);
     tester.view.devicePixelRatio = 2.5;
     addTearDown(tester.view.reset);
@@ -70,7 +72,7 @@ void main() {
             cities: MockCityRepository(),
           ),
           orderId: order.id,
-          viewerIsCustomer: true,
+          viewerIsCustomer: asCustomer,
           inspectionRepository: (_) => MockInspectionRepository(),
         ),
       ),
@@ -109,5 +111,35 @@ void main() {
 
     expect(find.byType(InspectionReportScreen), findsNothing);
     expect(find.byType(InspectionOverviewScreen), findsOneWidget);
+  });
+
+  testWidgets('исполнитель: осмотренный кандидат — только отчёт, без правки', (
+    tester,
+  ) async {
+    // без auth исполнитель не опознаётся, но правило от этого не зависит:
+    // завершённый осмотр открывается отчётом у любого
+    await pump(tester, asCustomer: false);
+    await tester.tap(find.text('Kia Rio 2019'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InspectionReportScreen), findsOneWidget);
+    expect(find.text('Завершить осмотр'), findsNothing);
+  });
+
+  testWidgets('сводка без отправки — без пустой кнопки (№14)', (tester) async {
+    final store = InspectionStore(MockInspectionRepository());
+    await store.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: InspectionSummaryScreen(
+          store: store,
+          sendLabel: 'Завершить осмотр',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Завершить осмотр'), findsNothing);
   });
 }

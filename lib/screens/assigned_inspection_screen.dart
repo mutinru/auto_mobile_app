@@ -165,16 +165,13 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
 
   /// «Отправить отчёт клиенту» в сводке осмотра закрывает осмотр до этого
   /// экрана и открывает шторку вердикта: отчёт заказчику — это и есть вердикт.
-  Future<void> _openInspection(
-    int inspectionId, {
-    bool readOnly = false,
-  }) async {
+  Future<void> _openInspection(int inspectionId) async {
     final repo = ApiInspectionRepository(
       ApiClient(widget.auth!),
       inspectionId: inspectionId,
     );
     // стор — до маршрута: builder перезапускается при смене темы
-    final store = InspectionStore(repo, readOnly: readOnly);
+    final store = InspectionStore(repo);
     final navigator = Navigator.of(context);
     final ownRoute = ModalRoute.of(context);
     var sendReport = false;
@@ -317,8 +314,8 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
         const SectionHead('Оплата'),
         StatusNote(
           text:
-              'Отчёт готов. Ждём оплату от заказчика:$price. Пока он не '
-              'оплатил, отчёт можно поправить.',
+              'Отчёт отправлен. Ждём оплату от заказчика:$price. Изменить '
+              'отчёт уже нельзя — заказчик платит за то, что видел.',
         ),
       ],
       OrderStatus.paymentSent => [
@@ -341,7 +338,8 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
   }
 
   /// Кнопки внизу по статусу: назначен → начать, на осмотре → продолжить,
-  /// отчёт готов → поправить, оплачен → подтвердить. Отчёт с вердиктом
+  /// отчёт готов → ждать оплату (отчёт заморожен, смотреть — «Полный
+  /// отчёт»), оплачен → подтвердить. Отчёт с вердиктом
   /// отправляется только из сводки осмотра, когда оценены все пункты.
   /// Отказаться можно до готовности отчёта.
   List<Widget> _actions(Order order) {
@@ -386,13 +384,6 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
       OrderStatus.reportReady => [
         BottomCta(
           children: [
-            CtaFlat(
-              label: 'Поправить отчёт',
-              icon: Icons.edit_outlined,
-              onPressed: canOpen && inspectionId != null
-                  ? () => _openInspection(inspectionId)
-                  : null,
-            ),
             CtaGhost(
               label: 'Заказчик не платит — открыть спор',
               onPressed: _busy ? null : () => _openDispute(order),

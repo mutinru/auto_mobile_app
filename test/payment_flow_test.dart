@@ -317,7 +317,7 @@ void main() {
     expect(order.executor, isNull);
   });
 
-  testWidgets('исполнитель: отчёт готов — ждём оплату, можно поправить', (
+  testWidgets('исполнитель: отчёт отправлен — ждём оплату, править нельзя', (
     tester,
   ) async {
     final repo = MockOrderRepository(
@@ -329,7 +329,9 @@ void main() {
     );
 
     expect(find.textContaining('Ждём оплату от заказчика'), findsOneWidget);
-    expect(find.text('Поправить отчёт'), findsOneWidget);
+    expect(find.textContaining('Изменить отчёт уже нельзя'), findsOneWidget);
+    expect(find.text('Поправить отчёт'), findsNothing);
+    expect(find.text('Заказчик не платит — открыть спор'), findsOneWidget);
     expect(find.text('Отказаться от заказа'), findsNothing);
   });
 }
