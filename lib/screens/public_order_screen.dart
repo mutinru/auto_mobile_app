@@ -106,8 +106,8 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
                   ),
                   const SizedBox(height: 9),
                   Text(
-                    'Или войдите, чтобы открыть отчёт целиком '
-                    'и написать исполнителю',
+                    'Полный отчёт и контакты видит только заказчик — '
+                    'разместите свой подбор, чтобы получить такой же',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 10.5,
