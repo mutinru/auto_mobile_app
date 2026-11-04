@@ -116,16 +116,18 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
 
   Future<void> _openFilters() async {
     final store = widget.store;
+    final opened = _filters.filter;
     final next = await showNearbyFilterSheet(
       context,
-      current: _filters.filter,
+      current: opened,
       cityOptions: [for (final f in store.cityFacets) f.name],
       brandOptions: [for (final f in store.brandFacets) f.name],
       countFor: (f) =>
           store.countAvailableOrders(f, fewResponses: _fewResponsesOnly),
       cities: store.cities,
+      defaultCities: _filters.gpsCities,
     );
-    if (next != null) _filters.set(next);
+    if (next != null) _filters.set(next, from: opened);
   }
 
   /// Город по GPS, если ленту опустошил только он, — тогда пустая лента
@@ -139,7 +141,9 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
 
   void _resetFilters() {
     setState(() => _fewResponsesOnly = false);
-    _filters.set(NearbyFilter(sort: _filters.filter.sort));
+    _filters.set(
+      NearbyFilter(sort: _filters.filter.sort, cities: _filters.gpsCities),
+    );
     // фильтр шторки мог и не измениться — «Мало откликов» тоже сброшено
     _reload();
   }

@@ -23,6 +23,7 @@ Future<NearbyFilter?> showNearbyFilterSheet(
   required List<String> brandOptions,
   required Future<int> Function(NearbyFilter) countFor,
   CityRepository? cities,
+  Set<String> defaultCities = const {},
 }) {
   return showModalBottomSheet<NearbyFilter>(
     context: context,
@@ -37,6 +38,7 @@ Future<NearbyFilter?> showNearbyFilterSheet(
       brandOptions: brandOptions,
       countFor: countFor,
       cities: cities,
+      defaultCities: defaultCities,
     ),
   );
 }
@@ -48,6 +50,7 @@ class _NearbyFilterSheet extends StatefulWidget {
     required this.brandOptions,
     required this.countFor,
     required this.cities,
+    required this.defaultCities,
   });
 
   final NearbyFilter initial;
@@ -55,6 +58,9 @@ class _NearbyFilterSheet extends StatefulWidget {
   final List<String> brandOptions;
   final Future<int> Function(NearbyFilter) countFor;
   final CityRepository? cities;
+
+  /// Город по GPS — к нему возвращает «Сбросить», а не к «все города».
+  final Set<String> defaultCities;
 
   @override
   State<_NearbyFilterSheet> createState() => _NearbyFilterSheetState();
@@ -124,10 +130,16 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     });
   }
 
+  /// Фильтр по умолчанию: без фильтров, город — по GPS.
+  NearbyFilter get _defaults =>
+      NearbyFilter(sort: _filter.sort, cities: widget.defaultCities);
+
+  bool get _atDefaults => _filter.toQuery() == _defaults.toQuery();
+
   void _reset() {
     _priceController.clear();
     // сортировка — не фильтр, сброс её не трогает
-    _update(NearbyFilter(sort: _filter.sort));
+    _update(_defaults);
   }
 
   Future<void> _pickCities() async {
@@ -311,7 +323,7 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
                 ),
                 CtaGhost(
                   label: 'Сбросить',
-                  onPressed: _filter.isEmpty ? null : _reset,
+                  onPressed: _atDefaults ? null : _reset,
                 ),
               ],
             ),
