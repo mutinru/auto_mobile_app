@@ -47,10 +47,15 @@ class _RepostSheetState extends State<_RepostSheet> {
   @override
   void initState() {
     super.initState();
-    _when = InspectionWhen(
-      date: firstInspectionDay((widget.now ?? DateTime.now)()),
-      slot: widget.order.timeSlot ?? TimeSlot.day,
-      exactTime: parseInspectTime(widget.order.inspectTime),
+    final now = (widget.now ?? DateTime.now)();
+    // прежний слот мог на сегодня уже пройти — подгоняем
+    _when = fitWhen(
+      InspectionWhen(
+        date: firstInspectionDay(now),
+        slot: widget.order.timeSlot ?? TimeSlot.day,
+        exactTime: parseInspectTime(widget.order.inspectTime),
+      ),
+      now,
     );
   }
 
