@@ -24,7 +24,7 @@ import '../widgets/verdict_sheet.dart';
 import 'car_vin_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
-import 'order_auto_refresh.dart';
+import 'auto_refresh.dart';
 
 /// Разовый осмотр глазами назначенного исполнителя: куда и когда ехать,
 /// телефон продавца, старт осмотра по деталям и итоговый вердикт.
@@ -57,7 +57,7 @@ class AssignedInspectionScreen extends StatefulWidget {
 }
 
 class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
-    with OrderAutoRefresh<AssignedInspectionScreen> {
+    with AutoRefresh<AssignedInspectionScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -87,9 +87,9 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
   @override
   bool get refreshPaused => _loading || _busy;
 
-  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
-  Future<void> refreshOrder() async {
+  Future<void> refresh() async {
     final before = _order;
     final order = await widget.store.fetchOrder(widget.orderId);
     // пока ждали, заказ подменило действие — его ответ свежее

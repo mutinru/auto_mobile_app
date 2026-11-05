@@ -20,7 +20,7 @@ import '../widgets/repost_sheet.dart';
 import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
 import 'executor_reviews_screen.dart';
-import 'order_auto_refresh.dart';
+import 'auto_refresh.dart';
 import 'inspection_report_screen.dart';
 
 /// Кадр 04 макета order-types.html — деталь заказа-осмотра: сводка,
@@ -60,7 +60,7 @@ class InspectionOrderDetailScreen extends StatefulWidget {
 
 class _InspectionOrderDetailScreenState
     extends State<InspectionOrderDetailScreen>
-    with OrderAutoRefresh<InspectionOrderDetailScreen> {
+    with AutoRefresh<InspectionOrderDetailScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -92,9 +92,9 @@ class _InspectionOrderDetailScreenState
   @override
   bool get refreshPaused => _loading || _accepting || _paying || _cancelling;
 
-  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
-  Future<void> refreshOrder() async {
+  Future<void> refresh() async {
     final before = _order;
     final order = await widget.store.fetchOrder(widget.orderId);
     // пока ждали, заказ подменило действие — его ответ свежее

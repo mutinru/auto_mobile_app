@@ -14,7 +14,7 @@ import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/assigned_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
-import 'package:auto_podbor_mobile/screens/order_auto_refresh.dart';
+import 'package:auto_podbor_mobile/screens/auto_refresh.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/notification_scope.dart';
 import 'package:auto_podbor_mobile/state/notification_unread.dart';
@@ -138,7 +138,7 @@ void main() {
     repo.server = order(OrderStatus.completed);
     // пока сверху чат, опрос не ходит
     final fetches = repo.fetches;
-    await tester.pump(OrderAutoRefresh.pollInterval);
+    await tester.pump(AutoRefresh.pollInterval);
     expect(repo.fetches, fetches);
 
     navigator.currentState!.pop();
@@ -182,14 +182,14 @@ void main() {
     await open(tester, () => customerScreen(repo));
 
     repo.server = order(OrderStatus.completed);
-    await tester.pump(OrderAutoRefresh.pollInterval);
+    await tester.pump(AutoRefresh.pollInterval);
     await tester.pump();
     expect(pill(OrderStatus.completed), findsOneWidget);
 
     navigator.currentState!.pop();
     await tester.pumpAndSettle();
     final fetches = repo.fetches;
-    await tester.pump(OrderAutoRefresh.pollInterval * 3);
+    await tester.pump(AutoRefresh.pollInterval * 3);
     expect(repo.fetches, fetches);
   });
 
@@ -206,7 +206,7 @@ void main() {
     await tester.pump();
 
     final fetches = repo.fetches;
-    await tester.pump(OrderAutoRefresh.pollInterval);
+    await tester.pump(AutoRefresh.pollInterval);
     expect(repo.fetches, fetches, reason: 'идёт отметка оплаты');
 
     repo.holdPayment!.complete();

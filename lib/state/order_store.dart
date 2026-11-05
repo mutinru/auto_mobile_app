@@ -69,18 +69,38 @@ class OrderStore extends ChangeNotifier {
   /// То же для «Взятых заказов».
   String? get assignedError => _assignedError;
 
+  /// Номер запроса «Моих заказов»: ответ, обогнанный более новым запросом,
+  /// отбрасываем — иначе опрос мог бы вернуть список назад.
+  int _mineGeneration = 0;
+
+  /// Первая загрузка и «Повторить»: флаг загрузки и ошибка — в состоянии.
+  /// Уже загруженный список ошибка не стирает.
   Future<void> loadMyOrders() async {
+    final generation = ++_mineGeneration;
     _loadingMine = true;
     _mineError = null;
     notifyListeners();
     try {
-      _myOrders = await _repository.fetchMyOrders();
+      final orders = await _repository.fetchMyOrders();
+      if (generation == _mineGeneration) _myOrders = orders;
     } catch (e) {
-      _mineError = apiErrorText(e);
+      if (generation == _mineGeneration) _mineError = apiErrorText(e);
     } finally {
-      _loadingMine = false;
+      if (generation == _mineGeneration) _loadingMine = false;
       notifyListeners();
     }
+  }
+
+  /// Тихое перечитывание «Моих заказов» (автообновление, потягивание): без
+  /// флага загрузки, ошибку бросает и состояние не трогает.
+  Future<void> refreshMyOrders() async {
+    final generation = ++_mineGeneration;
+    final orders = await _repository.fetchMyOrders();
+    if (generation != _mineGeneration) return;
+    _myOrders = orders;
+    _mineError = null;
+    _loadingMine = false;
+    notifyListeners();
   }
 
   // --- «Заказы рядом»: фильтрует и листает сервер ---
@@ -207,18 +227,37 @@ class OrderStore extends ChangeNotifier {
         fewResponses: fewResponses ?? _availableFew,
       );
 
+  /// Номер запроса «Взятых заказов» — как [_mineGeneration].
+  int _assignedGeneration = 0;
+
+  /// Как [loadMyOrders], для «Взятых заказов».
   Future<void> loadAssignedOrders() async {
+    final generation = ++_assignedGeneration;
     _loadingAssigned = true;
     _assignedError = null;
     notifyListeners();
     try {
-      _assignedOrders = await _repository.fetchAssignedOrders();
+      final orders = await _repository.fetchAssignedOrders();
+      if (generation == _assignedGeneration) _assignedOrders = orders;
     } catch (e) {
-      _assignedError = apiErrorText(e);
+      if (generation == _assignedGeneration) {
+        _assignedError = apiErrorText(e);
+      }
     } finally {
-      _loadingAssigned = false;
+      if (generation == _assignedGeneration) _loadingAssigned = false;
       notifyListeners();
     }
+  }
+
+  /// Как [refreshMyOrders], для «Взятых заказов».
+  Future<void> refreshAssignedOrders() async {
+    final generation = ++_assignedGeneration;
+    final orders = await _repository.fetchAssignedOrders();
+    if (generation != _assignedGeneration) return;
+    _assignedOrders = orders;
+    _assignedError = null;
+    _loadingAssigned = false;
+    notifyListeners();
   }
 
   Future<Order> createOrder({
@@ -243,6 +282,8 @@ class OrderStore extends ChangeNotifier {
       requirements: requirements,
       comment: comment,
     );
+    _mineGeneration++; // ответ на запрос, ушедший раньше, заказа ещё не знает
+    _loadingMine = false;
     _myOrders = [order, ..._myOrders];
     notifyListeners();
     return order;
@@ -289,6 +330,8 @@ class OrderStore extends ChangeNotifier {
       sellerPhone: sellerPhone,
       comment: comment,
     );
+    _mineGeneration++; // ответ на запрос, ушедший раньше, заказа ещё не знает
+    _loadingMine = false;
     _myOrders = [order, ..._myOrders];
     notifyListeners();
     return order;
@@ -410,6 +453,8 @@ class OrderStore extends ChangeNotifier {
   /// Исполнитель отказался — заказ уходит из «Взятых».
   Future<Order> declineOrder(int orderId) async {
     final order = await _repository.declineOrder(orderId);
+    _assignedGeneration++; // ответ, ушедший раньше, вернул бы заказ назад
+    _loadingAssigned = false;
     _assignedOrders = _assignedOrders.where((o) => o.id != orderId).toList();
     replaceOrder(order);
     notifyListeners();

@@ -24,7 +24,7 @@ import '../widgets/purchase_sheet.dart';
 import '../widgets/review_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'executor_reviews_screen.dart';
-import 'order_auto_refresh.dart';
+import 'auto_refresh.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
 import 'start_inspection_screen.dart';
@@ -58,7 +58,7 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen>
-    with OrderAutoRefresh<OrderDetailScreen> {
+    with AutoRefresh<OrderDetailScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -93,9 +93,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool get refreshPaused =>
       _loading || _accepting || _completing || _cancelling;
 
-  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
-  Future<void> refreshOrder() async {
+  Future<void> refresh() async {
     final before = _order;
     final order = await widget.store.fetchOrder(widget.orderId);
     // пока ждали, заказ подменило действие — его ответ свежее
@@ -206,7 +206,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     if (!mounted) return;
     if (car == null) {
       // отказ или «назад» — сервер мог успеть завести кандидата (QA №6)
-      await refreshOrder().catchError((_) {});
+      await refresh().catchError((_) {});
       return;
     }
     await _load();

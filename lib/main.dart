@@ -26,7 +26,7 @@ import 'screens/nearby_orders_screen.dart';
 import 'screens/new_inspection_screen.dart';
 import 'screens/new_order_screen.dart';
 import 'screens/notifications_screen.dart';
-import 'screens/order_auto_refresh.dart';
+import 'screens/auto_refresh.dart';
 import 'screens/order_routes.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';

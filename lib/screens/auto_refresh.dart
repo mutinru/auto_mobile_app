@@ -13,8 +13,9 @@ import '../widgets/api_error.dart';
 final RouteObserver<ModalRoute<void>> appRouteObserver =
     RouteObserver<ModalRoute<void>>();
 
-/// Экран заказа сам перечитывает заказ (QA №33): другая сторона платит,
-/// подтверждает, откликается, поддержка решает спор — а экран открыт.
+/// Экран сам перечитывает свои данные: другая сторона платит, подтверждает,
+/// откликается, поддержка решает спор — а экран открыт. Подмешивают экраны
+/// заказа (QA №33) и списки «Мои заказы» / «Взятые заказы» (QA 2026-11-05 №1).
 ///
 /// Перечитываем, когда:
 /// - вернулись на экран с другого маршрута ([appRouteObserver]);
@@ -27,15 +28,15 @@ final RouteObserver<ModalRoute<void>> appRouteObserver =
 /// Пока поверх экрана шторка или другой маршрут, либо приложение в фоне, не
 /// перечитываем: вернувшись, перечитаем всё равно.
 ///
-/// Экран отдаёт [refreshOrder] — тихое перечитывание без спиннера, ошибки
+/// Экран отдаёт [refresh] — тихое перечитывание без спиннера, ошибки
 /// бросает наружу; [refreshPaused] — идёт первая загрузка или действие
 /// пользователя, ответ опроса его результат не затрёт.
-mixin OrderAutoRefresh<T extends StatefulWidget> on State<T> {
+mixin AutoRefresh<T extends StatefulWidget> on State<T> {
   static const pollInterval = Duration(seconds: 30);
 
-  /// Перечитать заказ с сервера и показать. Ошибку — бросить.
+  /// Перечитать данные экрана с сервера и показать. Ошибку — бросить.
   @protected
-  Future<void> refreshOrder();
+  Future<void> refresh();
 
   /// true — сейчас не перечитываем (идёт загрузка или действие).
   @protected
@@ -92,9 +93,14 @@ mixin OrderAutoRefresh<T extends StatefulWidget> on State<T> {
     }
   }
 
+  /// Тихо перечитать по своему поводу (вернулись из открытого экраном
+  /// маршрута): тот же запрос, что у [RouteAware.didPopNext], — не второй.
+  @protected
+  void refreshQuietly() => _auto();
+
   /// Параллельные вызовы делят один запрос.
   Future<void> _reload() =>
-      _inFlight ??= refreshOrder().whenComplete(() => _inFlight = null);
+      _inFlight ??= refresh().whenComplete(() => _inFlight = null);
 
   bool get _visible => _resumed && (_route?.isCurrent ?? true);
 
@@ -127,7 +133,7 @@ mixin OrderAutoRefresh<T extends StatefulWidget> on State<T> {
 class _Observer with WidgetsBindingObserver, RouteAware {
   _Observer(this._owner);
 
-  final OrderAutoRefresh _owner;
+  final AutoRefresh _owner;
 
   @override
   void didPopNext() => _owner._onPopNext();

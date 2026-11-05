@@ -12,6 +12,7 @@ import '../widgets/order_card.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/order_kind_sheet.dart';
 import '../widgets/unread_badge.dart';
+import 'auto_refresh.dart';
 import 'inspection_report_screen.dart';
 import 'new_inspection_screen.dart';
 import 'new_order_screen.dart';
@@ -42,22 +43,38 @@ class MyOrdersScreen extends StatefulWidget {
   State<MyOrdersScreen> createState() => _MyOrdersScreenState();
 }
 
-class _MyOrdersScreenState extends State<MyOrdersScreen> {
+/// Список перечитывается сам ([AutoRefresh]): отклик, оплата или отмена
+/// другой стороной видны без ухода с экрана (QA 2026-11-05 №1).
+class _MyOrdersScreenState extends State<MyOrdersScreen>
+    with AutoRefresh<MyOrdersScreen> {
   int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    _reload();
+    _load();
   }
 
-  void _reload() {
+  /// Загрузка со спиннером и экраном ошибки — первая и «Повторить».
+  void _load() {
     if (widget.asExecutor) {
       widget.store.loadAssignedOrders();
     } else {
       widget.store.loadMyOrders();
     }
   }
+
+  /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
+  @override
+  Future<void> refresh() => widget.asExecutor
+      ? widget.store.refreshAssignedOrders()
+      : widget.store.refreshMyOrders();
+
+  /// Идёт первая загрузка — опрос ей не мешает.
+  @override
+  bool get refreshPaused => widget.asExecutor
+      ? widget.store.isLoadingAssigned
+      : widget.store.isLoadingMine;
 
   /// Экран заказа выбирает [openOrderScreen] — тот же, что у ленты уведомлений.
   Future<void> _openOrder(Order order) async {
@@ -69,13 +86,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       isInspection: order.isInspection,
       asExecutor: widget.asExecutor,
     );
-    _reload();
+    refreshQuietly();
   }
 
   /// Уведомление могло увести в заказ и сменить его статус — перечитываем.
   Future<void> _openNotifications() async {
     await openNotifications(context, store: widget.store, auth: widget.auth);
-    _reload();
+    refreshQuietly();
   }
 
   /// Колокольчик (есть [NotificationScope]) и профиль — справа в шапке.
@@ -111,7 +128,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             : NewOrderScreen(store: widget.store),
       ),
     );
-    _reload();
+    refreshQuietly();
   }
 
   /// «Осмотреть другую машину» — новый осмотр с тем же адресом и ценой.
@@ -125,46 +142,57 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         ),
       ),
     );
-    _reload();
+    refreshQuietly();
   }
 
   /// Активный таб — секциями «Осмотры» (по дате) и «Подборы»,
   /// завершённый — единым списком (order-types.html, кадры 01 и 05).
-  Widget _list(List<Order> orders) {
+  ///
+  /// Спиннер и экран ошибки — только пока показать нечего ([loaded] пуст):
+  /// загруженный список перечитывание не прячет и сбой сети не стирает.
+  /// Любое состояние тянется вниз ([_pullable]).
+  Widget _list(List<Order> orders, {required List<Order> loaded}) {
     final store = widget.store;
     final error = widget.asExecutor ? store.assignedError : store.mineError;
-    if (error != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Не удалось загрузить заказы',
-              style: TextStyle(fontSize: 14, color: context.colors.text1),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
-            ),
-            const SizedBox(height: 10),
-            CtaGhost(label: 'Повторить', onPressed: _reload),
-          ],
+    if (error != null && loaded.isEmpty) {
+      return _pullable(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Не удалось загрузить заказы',
+                style: TextStyle(fontSize: 14, color: context.colors.text1),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+              ),
+              const SizedBox(height: 10),
+              CtaGhost(label: 'Повторить', onPressed: _load),
+            ],
+          ),
         ),
       );
     }
 
-    if (widget.asExecutor ? store.isLoadingAssigned : store.isLoadingMine) {
-      return const Center(child: CircularProgressIndicator());
+    final loading = widget.asExecutor
+        ? store.isLoadingAssigned
+        : store.isLoadingMine;
+    if (loading && loaded.isEmpty) {
+      return _pullable(const Center(child: CircularProgressIndicator()));
     }
 
     if (orders.isEmpty) {
-      return Center(
-        child: Text(
-          'Пока пусто',
-          style: TextStyle(color: context.colors.text3, fontSize: 12),
+      return _pullable(
+        Center(
+          child: Text(
+            'Пока пусто',
+            style: TextStyle(color: context.colors.text3, fontSize: 12),
+          ),
         ),
       );
     }
@@ -175,6 +203,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
         _tab == 0 && inspections.isNotEmpty && selections.isNotEmpty;
 
     return ListView(
+      // короткий список тоже тянется вниз
+      physics: const AlwaysScrollableScrollPhysics(),
       // .scroll-body { padding: 4px 22px 18px }
       padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
       children: [
@@ -189,6 +219,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       ],
     );
   }
+
+  /// Непрокручиваемое содержимое (пусто, ошибка, спиннер) — в прокрутку на
+  /// всю высоту: без неё [RefreshIndicator] жест не поймает.
+  Widget _pullable(Widget child) => LayoutBuilder(
+    builder: (context, constraints) => ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [SizedBox(height: constraints.maxHeight, child: child)],
+    ),
+  );
 
   Widget _card(Order order) => OrderCard(
     order: order,
@@ -244,7 +283,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                   activeIndex: _tab,
                   onChanged: (i) => setState(() => _tab = i),
                 ),
-                Expanded(child: _list(orders)),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: pullToRefresh,
+                    child: _list(orders, loaded: source),
+                  ),
+                ),
                 if (!widget.asExecutor)
                   BottomCta(
                     children: [
