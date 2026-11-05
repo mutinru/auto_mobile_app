@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../state/city_locator.dart';
 import '../data/city_repository.dart';
 import '../models/nearby_filter.dart';
 import '../models/order_kind.dart';
@@ -14,7 +15,9 @@ import 'city_picker_sheet.dart';
 /// шапке. Варианты городов и марок — [cityOptions] и [brandOptions]
 /// (фасеты сервера по всем свободным). [countFor] спрашивает у сервера,
 /// сколько заказов покажет фильтр, — для кнопки «Показать N заказов».
-/// [cities] добавляет чип «Другой город…» с поиском по справочнику.
+/// [cities] добавляет чип «Другой город…» с поиском по справочнику,
+/// [locator] — строку «Определить по геопозиции» в нём (QA 2026-11-05 №9):
+/// свой город возвращается, не сбрасывая остальные фильтры.
 /// Возвращает новый фильтр или null, если закрыли.
 Future<NearbyFilter?> showNearbyFilterSheet(
   BuildContext context, {
@@ -23,6 +26,7 @@ Future<NearbyFilter?> showNearbyFilterSheet(
   required List<String> brandOptions,
   required Future<int> Function(NearbyFilter) countFor,
   CityRepository? cities,
+  CityLocator? locator,
   Set<String> defaultCities = const {},
 }) {
   return showModalBottomSheet<NearbyFilter>(
@@ -38,6 +42,7 @@ Future<NearbyFilter?> showNearbyFilterSheet(
       brandOptions: brandOptions,
       countFor: countFor,
       cities: cities,
+      locator: locator,
       defaultCities: defaultCities,
     ),
   );
@@ -50,6 +55,7 @@ class _NearbyFilterSheet extends StatefulWidget {
     required this.brandOptions,
     required this.countFor,
     required this.cities,
+    required this.locator,
     required this.defaultCities,
   });
 
@@ -58,6 +64,7 @@ class _NearbyFilterSheet extends StatefulWidget {
   final List<String> brandOptions;
   final Future<int> Function(NearbyFilter) countFor;
   final CityRepository? cities;
+  final CityLocator? locator;
 
   /// Город по GPS — к нему возвращает «Сбросить», а не к «все города».
   final Set<String> defaultCities;
@@ -147,6 +154,7 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
       context,
       cities: widget.cities!,
       selected: _filter.cities,
+      locator: widget.locator,
     );
     if (next != null && mounted) _update(_filter.copyWith(cities: next));
   }

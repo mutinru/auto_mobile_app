@@ -397,4 +397,63 @@ void main() {
       );
     });
   });
+
+  group('шторка фильтров: свой город по геопозиции (QA 2026-11-05 №9)', () {
+    Future<void> openOtherCity(
+      WidgetTester tester, {
+      CityLocator? locator,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: NearbyOrdersScreen(
+            store: OrderStore(
+              MockOrderRepository(),
+              catalog: MockCarCatalogRepository(),
+              cities: MockCityRepository(),
+              locator: locator,
+            ),
+            verification: VerificationStatus(
+              MockVerificationRepository(passed: 4, required: false),
+            ),
+            filters: NearbyFilterStore(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Осмотр'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Другой город…'));
+      await tester.tap(find.text('Другой город…'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('строка есть, город добавляется, «Осмотр» остаётся', (
+      tester,
+    ) async {
+      await openOtherCity(
+        tester,
+        locator: CityLocator(MockCityRepository(), _Here((55.7558, 37.6173))),
+      );
+      expect(find.text('Определить по геопозиции'), findsOneWidget);
+
+      await tester.tap(find.text('Определить по геопозиции'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Готово'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Показать'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Москва  ✕'), findsOneWidget);
+      expect(find.text('Осмотр  ✕'), findsOneWidget);
+    });
+
+    testWidgets('без локатора строки нет', (tester) async {
+      await openOtherCity(tester);
+      expect(find.text('Определить по геопозиции'), findsNothing);
+    });
+  });
 }

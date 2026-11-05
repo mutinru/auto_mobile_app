@@ -147,6 +147,7 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
       countFor: (f) =>
           store.countAvailableOrders(f, fewResponses: _fewResponsesOnly),
       cities: store.cities,
+      locator: store.locator,
       defaultCities: _filters.gpsCities,
     );
     if (next != null) _filters.set(next, from: opened);
