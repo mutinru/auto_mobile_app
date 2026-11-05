@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
 import '../models/vin_kind.dart';
+import '../screens/vin_camera_screen.dart';
 import '../theme/app_colors.dart';
 import 'app_ui.dart';
 import 'vin_scanner.dart';
@@ -229,38 +232,29 @@ class VinCapture extends StatelessWidget {
     }
   }
 
-  /// Снимок + распознавание. VIN надёжнее номера кузова: найденный VIN
-  /// переключает вид сам, номер кузова ищем, только если выбран он. Что бы
-  /// ни распозналось — даже часть VIN или ничего, — открываем шторку сверки
-  /// со снимком: подтвердить номер исполнитель обязан сам.
+  /// Снимок своей камерой с рамкой ([VinCameraScreen]) и распознавание:
+  /// сначала только рамка, пусто — весь кадр. Что бы ни распозналось —
+  /// даже часть VIN или ничего, — открываем шторку сверки со снимком:
+  /// подтвердить номер исполнитель обязан сам.
   Future<void> _scan(BuildContext context) async {
-    final shot = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 2000,
-    );
+    final shot = await openVinCamera(context, controller.kind);
     if (shot == null || !context.mounted) return;
 
+    // на сервер — полный кадр: доказательство с контекстом
     controller.setPhoto(shot.path);
     controller._setScanning(true);
-    String? found;
-    var how = _Recognition.none;
-    final text = await recognizeText(shot.path);
-    controller._setScanning(false);
-    if (text != null) {
-      final vin = extractVin(text);
-      if (vin != null) {
-        controller.setKind(VinKind.vin);
-        found = vin;
-        how = _Recognition.exact;
-      } else if (controller.kind == VinKind.bodyNumber) {
-        found = extractBodyNumber(text);
-        if (found != null) how = _Recognition.exact;
-      } else {
-        // неполный VIN тоже показываем: дописать проще, чем набрать
-        found = guessVin(text);
-        if (found != null) how = _Recognition.guess;
-      }
+    var (found, how) = (null as String?, _Recognition.none);
+    final frame = shot.frame;
+    if (frame != null) {
+      // сначала только рамка: на шильдике рядом с VIN много других надписей
+      (found, how) = _parse(await recognizeTextInFrame(shot.path, frame));
     }
+    if (found == null) {
+      // в рамке пусто (или снимали системной камерой) — весь кадр, как
+      // раньше: промах пересчёта рамки не должен делать хуже
+      (found, how) = _parse(await recognizeText(shot.path));
+    }
+    controller._setScanning(false);
     if (!context.mounted) return;
     // в поле — только то, что дал этот снимок: номер с прошлого выглядел
     // бы распознанным с нового фото
@@ -271,6 +265,24 @@ class VinCapture extends StatelessWidget {
       controller._forgetRecognition();
     }
     await _edit(context, recognized: how);
+  }
+
+  /// Номер из распознанного текста. VIN надёжнее номера кузова: найденный
+  /// VIN переключает вид сам; неполный VIN тоже показываем — дописать
+  /// проще, чем набрать.
+  (String?, _Recognition) _parse(String? text) {
+    if (text == null) return (null, _Recognition.none);
+    final vin = extractVin(text);
+    if (vin != null) {
+      controller.setKind(VinKind.vin);
+      return (vin, _Recognition.exact);
+    }
+    if (controller.kind == VinKind.bodyNumber) {
+      final body = extractBodyNumber(text);
+      return (body, body == null ? _Recognition.none : _Recognition.exact);
+    }
+    final guess = guessVin(text);
+    return (guess, guess == null ? _Recognition.none : _Recognition.guess);
   }
 
   /// Шторка сверки: снимок таблички, поле и «Всё верно». Закрыта кнопкой —
@@ -563,6 +575,34 @@ Future<String?> recognizeText(String imagePath) async {
   } finally {
     await recognizer.close();
   }
+}
+
+/// Текст только из рамки [frame] (доли кадра). Снимок поворачиваем по EXIF
+/// и вырезаем рамку в полном разрешении — мелкие буквы шильдика не теряют
+/// пикселей, а соседние надписи не попадают в OCR. Вырезка — в отдельном
+/// изоляте: разбор JPEG на 12 Мп заметно подвесил бы интерфейс.
+Future<String?> recognizeTextInFrame(String imagePath, Rect frame) async {
+  final cropPath = '$imagePath.frame.jpg';
+  final (l, t, w, h) = (frame.left, frame.top, frame.width, frame.height);
+  final ok = await Isolate.run(() {
+    try {
+      final decoded = img.decodeImage(File(imagePath).readAsBytesSync());
+      if (decoded == null) return false;
+      final upright = img.bakeOrientation(decoded);
+      final crop = img.copyCrop(
+        upright,
+        x: (l * upright.width).round(),
+        y: (t * upright.height).round(),
+        width: (w * upright.width).round().clamp(1, upright.width),
+        height: (h * upright.height).round().clamp(1, upright.height),
+      );
+      File(cropPath).writeAsBytesSync(img.encodeJpg(crop, quality: 92));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  });
+  return ok ? recognizeText(cropPath) : null;
 }
 
 /// VIN или номер кузова с камеры — без сохранения снимка (поле заказчика).
