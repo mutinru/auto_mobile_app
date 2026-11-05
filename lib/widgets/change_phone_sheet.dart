@@ -250,7 +250,7 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
                 ? 'Сменить номер'
                 : cooldown == null
                 ? 'Получить код'
-                : 'Получить код через ${formatCountdown(cooldown)}',
+                : 'Получить код ${cooldownWhen(cooldown)}',
             loading: _busy,
             onPressed: _codeSent
                 ? (_codeController.text.length == 4 ? _confirm : null)
@@ -260,7 +260,7 @@ class _ChangePhoneSheetState extends State<_ChangePhoneSheet> {
             CtaGhost(
               label: cooldown == null
                   ? 'Запросить код снова'
-                  : 'Запросить код снова через ${formatCountdown(cooldown)}',
+                  : 'Запросить код снова ${cooldownWhen(cooldown)}',
               onPressed: cooldown == null && !_busy ? _requestCode : null,
             ),
             CtaGhost(

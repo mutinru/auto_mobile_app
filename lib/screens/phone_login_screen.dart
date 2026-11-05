@@ -10,7 +10,7 @@ import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/phone_input.dart';
 
-export '../widgets/phone_input.dart' show formatCountdown;
+export '../widgets/phone_input.dart' show cooldownWhen, formatCountdown;
 
 /// Экран 01 макета — «авторизация» по номеру телефона.
 class PhoneLoginScreen extends StatefulWidget {
@@ -280,7 +280,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       ? 'Войти'
                       : cooldown == null
                       ? 'Получить код'
-                      : 'Получить код через ${formatCountdown(cooldown)}',
+                      : 'Получить код ${cooldownWhen(cooldown)}',
                   loading: _busy,
                   onPressed: _codeSent
                       ? _verify
@@ -290,7 +290,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   CtaGhost(
                     label: cooldown == null
                         ? 'Запросить код снова'
-                        : 'Запросить код снова через ${formatCountdown(cooldown)}',
+                        : 'Запросить код снова ${cooldownWhen(cooldown)}',
                     onPressed: cooldown == null && !_busy ? _requestCode : null,
                   ),
                   CtaGhost(

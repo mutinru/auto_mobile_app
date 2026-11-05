@@ -67,6 +67,26 @@ void main() {
     expect(formatCountdown(const Duration(seconds: 5)), '0:05');
   });
 
+  test('долгая пауза — время, а не «1366:04» (QA №31)', () {
+    final today = DateTime.now();
+    final now = DateTime(today.year, today.month, today.day, 9, 0, 30);
+
+    expect(cooldownWhen(const Duration(minutes: 10), now: now), 'через 10:00');
+    // минута — вверх: 10:31:30 → 10:32
+    expect(
+      cooldownWhen(const Duration(minutes: 91), now: now),
+      'сегодня в 10:32',
+    );
+    expect(
+      cooldownWhen(const Duration(minutes: 89, seconds: 30), now: now),
+      'сегодня в 10:30',
+    );
+    expect(
+      cooldownWhen(const Duration(hours: 22, minutes: 46), now: now),
+      'завтра в 07:47',
+    );
+  });
+
   testWidgets('код ушёл: подсказка по каналу и пауза до повторного запроса', (
     tester,
   ) async {
@@ -126,6 +146,29 @@ void main() {
     await tester.enterText(find.byType(TextField).first, '9007654321');
     await tester.pump();
     expect(find.text('Получить код'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('суточный лимит: на кнопке время, а не отсчёт', (tester) async {
+    final auth = _FakeAuth(
+      error: ApiException(
+        429,
+        '{"message":"Слишком много запросов кода на этот номер.","retry_after":82000}',
+      ),
+    );
+    await pump(tester, auth);
+
+    await tester.tap(find.text('Получить код'));
+    await tester.pump();
+
+    expect(
+      find.textContaining(
+        RegExp(r'^Получить код (сегодня|завтра) в \d\d:\d\d$'),
+      ),
+      findsOneWidget,
+    );
+    expect(primary(tester).onPressed, isNull);
 
     await tester.pumpWidget(const SizedBox());
   });

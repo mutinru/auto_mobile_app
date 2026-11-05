@@ -139,6 +139,28 @@ void main() {
     expect(primary(tester).onPressed, isNull);
   });
 
+  testWidgets('суточный лимит — на кнопке время, а не отсчёт', (tester) async {
+    await openSheet(
+      tester,
+      onRequest: (_) async => throw ApiException(
+        429,
+        '{"message":"Слишком много запросов кода на этот номер.","retry_after":82000}',
+      ),
+    );
+
+    await enterPhone(tester, '9000000021');
+    await tester.tap(find.text('Получить код'));
+    await tester.pump();
+
+    expect(
+      find.textContaining(
+        RegExp(r'^Получить код (сегодня|завтра) в \d\d:\d\d$'),
+      ),
+      findsOneWidget,
+    );
+    expect(primary(tester).onPressed, isNull);
+  });
+
   testWidgets('номер занят — ошибка сервера, лист открыт', (tester) async {
     await openSheet(
       tester,

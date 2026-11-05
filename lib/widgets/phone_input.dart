@@ -3,11 +3,28 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/ru_date.dart';
 
 /// Отсчёт до повторного запроса: `1:47`.
 String formatCountdown(Duration left) {
   final seconds = left.inSeconds;
   return '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+}
+
+/// Дольше этого секунды не тикают — показываем, когда можно (QA №31).
+const longCooldown = Duration(minutes: 10);
+
+/// Когда можно запросить код снова, для подписи кнопки: пауза между кодами —
+/// «через 1:47», суточный или часовой лимит — «сегодня в 15:40» / «завтра в
+/// 10:00» по часам телефона. Минута — вверх: раньше срока кнопка не обещает,
+/// и подпись не прыгает от тика к тику.
+String cooldownWhen(Duration left, {DateTime? now}) {
+  if (left <= longCooldown) return 'через ${formatCountdown(left)}';
+  final at = (now ?? DateTime.now()).add(left);
+  final floor = DateTime(at.year, at.month, at.day, at.hour, at.minute);
+  return momentLabel(
+    floor == at ? floor : floor.add(const Duration(minutes: 1)),
+  );
 }
 
 /// `+79001234567` → `+7 900 123 45 67`; не российский номер — как есть.
