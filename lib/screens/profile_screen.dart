@@ -7,6 +7,7 @@ import '../state/order_store.dart';
 import '../state/verification_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../theme/theme_controller.dart';
 import '../util/ru_plural.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/change_phone_sheet.dart';
@@ -418,11 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // чтобы не возвращаться к нему ради них
                       const SizedBox(height: 22),
                       const SectionHead('Приложение'),
-                      const _SettingsRow(
-                        icon: Icons.contrast,
-                        label: 'Тема',
-                        trailing: ThemeSwitch(),
-                      ),
+                      const _ThemeRow(),
                       _SettingsRow(
                         icon: Icons.headset_mic_outlined,
                         label: 'Поддержка',
@@ -755,6 +752,30 @@ class _Stat extends StatelessWidget {
 }
 
 /// Строка настроек: иконка, подпись, справа — контрол или стрелка.
+/// Строка «Тема»: переключает вся строка, а не только капсула справа, и
+/// диктор слышит один переключатель «Светлая тема», а не строку-кнопку с
+/// отдельной кнопкой внутри (QA 2026-11-05 №13). Капсула ловит своё нажатие
+/// сама — тот же toggle, двойного переключения нет.
+class _ThemeRow extends StatelessWidget {
+  const _ThemeRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.maybeOf(context);
+    if (theme == null) return const SizedBox.shrink();
+    return Semantics(
+      toggled: theme.isLight,
+      label: 'Светлая тема',
+      child: _SettingsRow(
+        icon: Icons.contrast,
+        label: 'Тема',
+        onTap: theme.toggle,
+        trailing: const ExcludeSemantics(child: ThemeSwitch()),
+      ),
+    );
+  }
+}
+
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
     required this.icon,

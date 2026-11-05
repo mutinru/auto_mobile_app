@@ -11,6 +11,8 @@ import 'package:auto_podbor_mobile/screens/profile_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/theme/theme_controller.dart';
+import 'package:auto_podbor_mobile/widgets/theme_switch.dart';
 import 'package:auto_podbor_mobile/widgets/executor_stats.dart';
 
 void main() {
@@ -158,5 +160,57 @@ void main() {
     await tester.tap(find.text('Номер телефона'));
     await tester.pumpAndSettle();
     expect(find.text('Новый номер'), findsOneWidget);
+  });
+
+  group('строка «Тема» (QA 2026-11-05 №13)', () {
+    Future<ThemeController> pumpWithTheme(WidgetTester tester) async {
+      tallScreen(tester);
+      final theme = ThemeController();
+      await tester.pumpWidget(
+        ThemeScope(controller: theme, child: app(required: false)),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Тема'));
+      await tester.pumpAndSettle();
+      return theme;
+    }
+
+    testWidgets('нажатие по названию переключает тему', (tester) async {
+      final theme = await pumpWithTheme(tester);
+      await tester.tap(find.text('Тема'));
+      await tester.pumpAndSettle();
+      expect(theme.isLight, isTrue);
+      await tester.tap(find.text('Тема'));
+      await tester.pumpAndSettle();
+      expect(theme.isLight, isFalse);
+    });
+
+    testWidgets('капсула переключает ровно один раз', (tester) async {
+      final theme = await pumpWithTheme(tester);
+      await tester.tap(find.byType(ThemeSwitch));
+      await tester.pumpAndSettle();
+      expect(theme.isLight, isTrue);
+    });
+
+    testWidgets('диктору — один переключатель, без кнопки внутри', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await pumpWithTheme(tester);
+      expect(
+        tester.getSemantics(find.text('Тема')),
+        matchesSemantics(
+          label: 'Светлая тема\nТема',
+          hasToggledState: true,
+          isToggled: false,
+          hasTapAction: true,
+          hasEnabledState: false,
+          isFocusable: true,
+          hasFocusAction: true,
+        ),
+      );
+      expect(find.bySemanticsLabel(RegExp('Включить')), findsNothing);
+      semantics.dispose();
+    });
   });
 }
