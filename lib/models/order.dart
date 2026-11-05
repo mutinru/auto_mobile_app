@@ -9,6 +9,7 @@ import 'report_summary.dart';
 import 'review.dart';
 import 'time_slot.dart';
 import 'user_summary.dart';
+import '../util/ru_plural.dart';
 
 /// Почему разовый осмотр ждёт решения заказчика: исполнитель сорвал день
 /// осмотра или день прошёл, а исполнитель так и не выбран.
@@ -270,6 +271,27 @@ class Order {
     return done > 0
         ? '${shown.labelFor(kind)} · осмотрено $done'
         : shown.labelFor(kind);
+  }
+
+  /// Вторая строка статус-блока на экране подбора: прогресс осмотров.
+  /// null — пояснять нечего.
+  String? get statusDetail {
+    if (isInspection) return null;
+    if (hasUnfinishedInspection) return 'Осмотр кандидата ещё не завершён';
+    final done = cars.where((c) => c.inspectionStatus == 'completed').length;
+    final inspected =
+        'Осмотрено ${counted(done, 'машина', 'машины', 'машин')}';
+    return switch (shownStatus) {
+      OrderStatus.awaitingExecutor => 'Исполнитель ещё не выбран',
+      OrderStatus.sourcing =>
+        done > 0 ? inspected : 'Осмотренных машин пока нет',
+      OrderStatus.inspecting =>
+        done > 0
+            ? '$inspected, идёт осмотр следующей'
+            : 'Идёт осмотр первой машины',
+      OrderStatus.completed => done > 0 ? inspected : null,
+      _ => null,
+    };
   }
 
   /// Вердикт завершённого осмотра (у заказа-осмотра машина одна).

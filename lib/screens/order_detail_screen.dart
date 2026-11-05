@@ -19,7 +19,7 @@ import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';
 import '../widgets/executor_stats.dart';
 import '../widgets/order_review_section.dart';
-import '../widgets/order_status_pill.dart';
+import '../widgets/order_status_card.dart';
 import '../widgets/purchase_sheet.dart';
 import '../widgets/review_sheet.dart';
 import '../widgets/verdict_sheet.dart';
@@ -381,8 +381,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         children: [
-          OrderStatusPill(status: order.shownStatus, label: order.statusLabel),
-          const SizedBox(height: 10),
+          OrderStatusCard(order: order),
+          const SizedBox(height: 14),
           Text(
             order.carTitle,
             style: TextStyle(
