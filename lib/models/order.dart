@@ -52,6 +52,7 @@ class Order {
     this._responsesCount,
     this.cars = const [],
     this.completedAt,
+    this.cancelledAt,
     this.review,
     this.canReview = false,
     this.canCancel = false,
@@ -181,6 +182,13 @@ class Order {
   final List<OrderCar> cars;
 
   final DateTime? completedAt;
+
+  /// Когда заказ отменили; null — не отменён (или сервер старый).
+  final DateTime? cancelledAt;
+
+  /// Когда заказ закрылся — завершён или отменён. По нему «Завершённые»
+  /// идут от последнего закрытого (QA 2026-11-05 №7).
+  DateTime? get closedAt => completedAt ?? cancelledAt;
 
   /// Отзыв заказчика об исполнителе. Ключи review/can_review бекенд отдаёт
   /// только в карточке заказа, /orders/mine и ответах завершения — в
@@ -317,6 +325,7 @@ class Order {
     ReportSummary? reportSummary,
     DateTime? paymentConfirmedAt,
     DateTime? completedAt,
+    DateTime? cancelledAt,
     // повторное размещение осмотра — новая дата, слот, цена
     DateTime? inspectOn,
     TimeSlot? timeSlot,
@@ -363,6 +372,7 @@ class Order {
         responsesCount ?? (responses != null ? null : _responsesCount),
     cars: cars ?? this.cars,
     completedAt: completedAt ?? this.completedAt,
+    cancelledAt: cancelledAt ?? this.cancelledAt,
     review: review ?? this.review,
     canReview: canReview ?? this.canReview,
     canCancel: canCancel ?? this.canCancel,
@@ -425,6 +435,9 @@ class Order {
         .toList(),
     completedAt: json['completed_at'] != null
         ? DateTime.parse(json['completed_at'] as String).toLocal()
+        : null,
+    cancelledAt: json['cancelled_at'] != null
+        ? DateTime.parse(json['cancelled_at'] as String).toLocal()
         : null,
     review: json['review'] != null
         ? Review.fromJson(json['review'] as Map<String, dynamic>)

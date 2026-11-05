@@ -261,6 +261,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
               !(widget.asExecutor && o.hasUnfinishedInspection);
           return _tab == 0 ? !finished : finished;
         }).toList();
+        // активные — в порядке сервера (осмотры по дате выезда), завершённые
+        // — от последнего закрытого (QA 2026-11-05 №7)
+        if (_tab == 1) orders.sort(byClosedDesc);
 
         final eyebrow = widget.asExecutor
             ? 'вы исполнитель'
@@ -306,4 +309,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
       },
     );
   }
+}
+
+/// Последний закрытый — первым; без метки (старый сервер) — по номеру, то
+/// есть по порядку создания, после помеченных.
+@visibleForTesting
+int byClosedDesc(Order a, Order b) {
+  final (ca, cb) = (a.closedAt, b.closedAt);
+  if (ca != null && cb != null && ca != cb) return cb.compareTo(ca);
+  if (ca != null && cb == null) return -1;
+  if (ca == null && cb != null) return 1;
+  return b.id.compareTo(a.id);
 }
