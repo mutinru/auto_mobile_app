@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../state/notification_scope.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/support_sheet.dart';
 import '../widgets/theme_switch.dart';
 
@@ -14,24 +16,43 @@ enum AppIntent { buy, work, browse }
 ///
 /// Экран самодостаточный — ни сети, ни сторов, выбор уходит колбэком наружу.
 /// Сверху — поддержка и переключатель темы (design/first-launch-screen.html):
-/// оба доступны ещё до входа.
+/// оба доступны ещё до входа. Вошедшему рядом с темой — колокольчик
+/// уведомлений, чтобы новое было видно, не выбирая режим.
 class IntentScreen extends StatelessWidget {
-  const IntentScreen({super.key, required this.onChoose});
+  const IntentScreen({super.key, required this.onChoose, this.onNotifications});
 
   final ValueChanged<AppIntent> onChoose;
 
+  /// Открыть ленту уведомлений. null — гость: колокольчика нет.
+  final VoidCallback? onNotifications;
+
   @override
   Widget build(BuildContext context) {
+    final onNotifications = this.onNotifications;
+    final showBell =
+        onNotifications != null && NotificationScope.maybeOf(context) != null;
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // .top-row — поддержка слева, тема справа
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+            // .top-row — поддержка слева, (колокольчик и) тема справа
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [SupportButton(), ThemeSwitch()],
+                children: [
+                  const SupportButton(),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (showBell) ...[
+                        NotificationBell(onTap: onNotifications),
+                        const SizedBox(width: 8),
+                      ],
+                      const ThemeSwitch(),
+                    ],
+                  ),
+                ],
               ),
             ),
             Expanded(

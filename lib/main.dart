@@ -486,12 +486,23 @@ class _RootGateState extends State<_RootGate> {
     // сохраняется. «Ищу автомобиль» ведёт в мои заказы, «Беру заказы» — в
     // «Заказы рядом», «Просто посмотрю» — на витрину
     return _root ??
-        IntentScreen(
-          onChoose: (intent) => switch (intent) {
-            AppIntent.buy => _openMyOrders(),
-            AppIntent.work => _openNearbyOrders(),
-            AppIntent.browse => _openFeed(),
-          },
+        // колокольчик — только вошедшему; вход и выход перерисовывают шапку
+        ListenableBuilder(
+          listenable: _auth,
+          builder: (context, _) => IntentScreen(
+            onChoose: (intent) => switch (intent) {
+              AppIntent.buy => _openMyOrders(),
+              AppIntent.work => _openNearbyOrders(),
+              AppIntent.browse => _openFeed(),
+            },
+            onNotifications: _auth.isAuthenticated
+                ? () => openNotifications(
+                    context,
+                    store: _orderStore(),
+                    auth: _auth,
+                  )
+                : null,
+          ),
         );
   }
 }
