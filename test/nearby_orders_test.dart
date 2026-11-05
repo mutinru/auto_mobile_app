@@ -8,6 +8,13 @@ import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'dart:async';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
+import 'package:auto_podbor_mobile/data/location_service.dart';
+import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_kind.dart';
+import 'package:auto_podbor_mobile/models/order_status.dart';
+import 'package:auto_podbor_mobile/models/user_summary.dart';
+import 'package:auto_podbor_mobile/state/city_locator.dart';
+import 'package:auto_podbor_mobile/state/nearby_filter_store.dart';
 import 'package:auto_podbor_mobile/data/verification_repository.dart';
 import 'package:auto_podbor_mobile/models/available_page.dart';
 import 'package:auto_podbor_mobile/models/nearby_filter.dart';
@@ -46,6 +53,25 @@ class _ScriptedVerification implements VerificationRepository {
     calls++;
     return next.future;
   }
+}
+
+/// Геопозиция без плагина: [point] — что «вернул GPS».
+class _Here implements LocationService {
+  _Here(this.point);
+
+  final (double, double)? point;
+
+  @override
+  Future<bool> isGranted() async => point != null;
+
+  @override
+  Future<(double, double)?> current() async => point;
+
+  @override
+  Future<LocationProblem?> problem() async => null;
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async {}
 }
 
 const _verified = VerificationSummary(passed: 4, total: 4, complete: true);
@@ -305,5 +331,70 @@ void main() {
 
     expect(find.text('Смотреть можно, откликаться — нет'), findsOneWidget);
     expect(find.textContaining('пройдено 1 из 4'), findsOneWidget);
+  });
+
+  group('«Ближе ко мне» (бэклог №29)', () {
+    Order at(int id, String brand, double lat, double lon) => Order(
+      id: id,
+      kind: OrderKind.inspection,
+      status: OrderStatus.awaitingExecutor,
+      brand: brand,
+      model: 'X',
+      customer: const UserSummary(id: 7, name: 'Ольга'),
+      cities: const ['Москва'],
+      inspectOn: DateTime.now().add(const Duration(days: 1)),
+      lat: lat,
+      lon: lon,
+    );
+
+    Future<void> pumpNearest(
+      WidgetTester tester,
+      (double, double)? here,
+    ) async {
+      final filters = NearbyFilterStore();
+      await filters.set(const NearbyFilter(sort: NearbySort.nearest));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: NearbyOrdersScreen(
+            store: OrderStore(
+              MockOrderRepository(
+                orders: [
+                  at(1, 'Podolsk', 55.4312, 37.5458),
+                  at(2, 'Center', 55.7558, 37.6173),
+                  at(3, 'Khimki', 55.8897, 37.4449),
+                ],
+              ),
+              catalog: MockCarCatalogRepository(),
+              cities: MockCityRepository(),
+              locator: CityLocator(MockCityRepository(), _Here(here)),
+            ),
+            verification: VerificationStatus(
+              MockVerificationRepository(passed: 4, required: false),
+            ),
+            filters: filters,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    double top(WidgetTester tester, String brand) =>
+        tester.getTopLeft(find.textContaining(brand).first).dy;
+
+    testWidgets('лента — по расстоянию от телефона', (tester) async {
+      await pumpNearest(tester, (55.751, 37.618));
+      expect(top(tester, 'Center'), lessThan(top(tester, 'Khimki')));
+      expect(top(tester, 'Khimki'), lessThan(top(tester, 'Podolsk')));
+      expect(find.textContaining('Геопозиция недоступна'), findsNothing);
+    });
+
+    testWidgets('без геопозиции — «новые» и строка об этом', (tester) async {
+      await pumpNearest(tester, null);
+      expect(
+        find.text('Геопозиция недоступна — показаны новые заказы'),
+        findsOneWidget,
+      );
+    });
   });
 }

@@ -1,21 +1,24 @@
+import '../util/geo.dart';
 import 'order.dart';
 import 'order_kind.dart';
 
 /// Сортировка ленты «Заказы рядом» — делает сервер. [apiValue] — зеркало
 /// AvailableOrders::SORTS на бекенде.
-enum NearbySort { newest, soonest, priceDesc }
+enum NearbySort { newest, soonest, priceDesc, nearest }
 
 extension NearbySortX on NearbySort {
   String get label => switch (this) {
     NearbySort.newest => 'Новые',
     NearbySort.soonest => 'Ближе по дате',
     NearbySort.priceDesc => 'Дороже',
+    NearbySort.nearest => 'Ближе ко мне',
   };
 
   String get apiValue => switch (this) {
     NearbySort.newest => 'newest',
     NearbySort.soonest => 'soonest',
     NearbySort.priceDesc => 'price_desc',
+    NearbySort.nearest => 'nearest',
   };
 }
 
@@ -50,6 +53,7 @@ class NearbyFilter {
     this.minPrice,
     this.brands = const {},
     this.sort = NearbySort.newest,
+    this.near,
   });
 
   /// null — оба вида.
@@ -61,6 +65,11 @@ class NearbyFilter {
   final int? minPrice;
   final Set<String> brands;
   final NearbySort sort;
+
+  /// Точка зрителя (широта, долгота) для [NearbySort.nearest] — её ставит
+  /// экран ленты из геопозиции. Не сохраняется ([toJson]): переехал — и
+  /// старая точка врала бы.
+  final (double, double)? near;
 
   /// Сколько фильтров включено — число на бейдже кнопки. Сортировка не
   /// фильтр: она ничего не прячет.
@@ -86,6 +95,11 @@ class NearbyFilter {
       if (minPrice != null) 'min_price=$minPrice',
       if (fewResponses) 'few_responses=1',
       if (sort != NearbySort.newest) 'sort=${sort.apiValue}',
+      // точку шлём только туда, где она нужна, и с точностью ~100 м
+      if (sort == NearbySort.nearest && near != null) ...[
+        'lat=${near!.$1.toStringAsFixed(3)}',
+        'lon=${near!.$2.toStringAsFixed(3)}',
+      ],
     ].join('&');
   }
 
@@ -132,6 +146,7 @@ class NearbyFilter {
     int? Function()? minPrice,
     Set<String>? brands,
     NearbySort? sort,
+    (double, double)? Function()? near,
   }) => NearbyFilter(
     kind: kind != null ? kind() : this.kind,
     cities: cities ?? this.cities,
@@ -139,6 +154,7 @@ class NearbyFilter {
     minPrice: minPrice != null ? minPrice() : this.minPrice,
     brands: brands ?? this.brands,
     sort: sort ?? this.sort,
+    near: near != null ? near() : this.near,
   );
 }
 
@@ -213,6 +229,20 @@ List<Order> applyNearbyFilter(
         if (x == null) return 1;
         if (y == null) return -1;
         final c = y.compareTo(x);
+        return c != 0 ? c : byIndex(a, b);
+      });
+    case NearbySort.nearest:
+      final near = filter.near;
+      if (near == null) break;
+      double? km(Order o) => o.lat == null || o.lon == null
+          ? null
+          : distanceKm(near.$1, near.$2, o.lat!, o.lon!);
+      result.sort((a, b) {
+        final x = km(a), y = km(b);
+        if (x == null && y == null) return byIndex(a, b);
+        if (x == null) return 1;
+        if (y == null) return -1;
+        final c = x.compareTo(y);
         return c != 0 ? c : byIndex(a, b);
       });
   }

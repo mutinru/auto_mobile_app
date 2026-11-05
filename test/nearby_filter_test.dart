@@ -19,6 +19,8 @@ void main() {
     DateTime? on,
     int? price,
     String brand = 'Kia',
+    double? lat,
+    double? lon,
   }) => Order(
     id: id,
     kind: OrderKind.inspection,
@@ -29,6 +31,8 @@ void main() {
     cities: [?city],
     inspectOn: on,
     askingPrice: price,
+    lat: lat,
+    lon: lon,
   );
 
   Order selection(
@@ -187,5 +191,49 @@ void main() {
       '&brands[]=Kia&when=today&min_price=5000&few_responses=1'
       '&sort=price_desc',
     );
+  });
+
+  group('«Ближе ко мне» (бэклог №29)', () {
+    const center = (55.751, 37.618);
+    const nearest = NearbyFilter(sort: NearbySort.nearest);
+
+    test('точка уходит на сервер только с этой сортировкой', () {
+      expect(
+        nearest.copyWith(near: () => (55.75123, 37.61789)).toQuery(),
+        'sort=nearest&lat=55.751&lon=37.618',
+      );
+      // точки ещё нет — без координат, сервер отдаст «новые»
+      expect(nearest.toQuery(), 'sort=nearest');
+      expect(
+        const NearbyFilter(sort: NearbySort.priceDesc, near: center).toQuery(),
+        'sort=price_desc',
+      );
+    });
+
+    test('сортировка сохраняется, точка — нет', () {
+      final json = nearest.copyWith(near: () => center).toJson();
+      expect(json.containsKey('near'), isFalse);
+      final restored = NearbyFilter.fromJson(
+        jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+      );
+      expect(restored.sort, NearbySort.nearest);
+      expect(restored.near, isNull);
+    });
+
+    test('мок: ближе — раньше, без точки и подбор — в конец', () {
+      final points = [
+        selection(1),
+        inspection(2, lat: 55.4312, lon: 37.5458), // Подольск
+        inspection(3, lat: 55.7558, lon: 37.6173), // центр
+        inspection(4), // без точки
+        inspection(5, lat: 55.8897, lon: 37.4449), // Химки
+      ];
+      List<int> sorted(NearbyFilter f) =>
+          applyNearbyFilter(points, f, now: now).map((o) => o.id).toList();
+
+      expect(sorted(nearest.copyWith(near: () => center)), [3, 5, 2, 1, 4]);
+      // без точки — порядок сервера («новые»)
+      expect(sorted(nearest), [1, 2, 3, 4, 5]);
+    });
   });
 }

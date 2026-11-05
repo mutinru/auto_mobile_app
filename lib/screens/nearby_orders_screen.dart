@@ -88,9 +88,31 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
     super.dispose();
   }
 
+  /// «Ближе ко мне», а геопозиции нет — лента пришла «новыми», об этом
+  /// строка над списком.
+  bool _nearUnavailable = false;
+
+  /// Номер последнего [_reload]: пока он ждал геопозицию, мог начаться
+  /// следующий — устаревший не шлёт запрос.
+  int _reloadToken = 0;
+
   /// Фильтрует и листает сервер: сменился фильтр — первая страница заново.
-  void _reload() {
-    final filter = _filters.filter;
+  /// «Ближе ко мне» — с точкой устройства: удачу локатор кеширует, ждём её
+  /// только в первый раз.
+  Future<void> _reload() async {
+    final token = ++_reloadToken;
+    var filter = _filters.filter;
+    final nearest = filter.sort == NearbySort.nearest;
+    if (nearest) {
+      final here = _here ?? await widget.store.locator?.position();
+      if (!mounted || token != _reloadToken) return;
+      if (here != null) _here = here;
+      filter = filter.copyWith(near: () => here);
+    }
+    final unavailable = nearest && filter.near == null;
+    if (unavailable != _nearUnavailable) {
+      setState(() => _nearUnavailable = unavailable);
+    }
     final query = filter.toQuery(fewResponses: _fewResponsesOnly);
     if (query == _lastQuery) return;
     _lastQuery = query;
@@ -358,6 +380,14 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
             )
           else if (gate == null && verification.error != null)
             _VerificationRetry(onRetry: verification.refresh),
+          if (_nearUnavailable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Геопозиция недоступна — показаны новые заказы',
+                style: TextStyle(fontSize: 12, color: context.colors.text3),
+              ),
+            ),
           if (orders.isEmpty && hiddenByFilter && _onlyAutoCity != null)
             Padding(
               padding: const EdgeInsets.only(top: 24),
