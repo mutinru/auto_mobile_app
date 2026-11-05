@@ -70,6 +70,8 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    числе `ConversationType` и `ChatRole` чата, `NotificationType` ленты и
    `VinKind`).
    Меняя энам здесь, скажи пользователю: парная правка сама себя не сделает.
+   Так же зеркалится лимит фото на деталь: `InspectionPanel.maxPhotos` ↔
+   `Photo::MAX_PER_PANEL`.
 
 ## Ловушки
 

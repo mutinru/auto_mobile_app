@@ -18,6 +18,11 @@ class PanelPhoto {
 /// (app/Http/Resources/InspectionPanelResource.php):
 /// id, name, zone, kind, status, condition, defects, photoCount, missing, audio*.
 class InspectionPanel {
+  /// Сколько фото можно на одну деталь. Ручное зеркало
+  /// `Photo::MAX_PER_PANEL` на бекенде (сверх него — 422): меняя одно, меняй
+  /// другое (QA 2026-11-05 №16).
+  static const maxPhotos = 5;
+
   InspectionPanel({
     required this.id,
     required this.name,

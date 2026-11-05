@@ -113,6 +113,25 @@ void main() {
     expect(find.text('Нужно хотя бы одно фото'), findsOneWidget);
   });
 
+  group('лимит фото на деталь (QA 2026-11-05 №16)', () {
+    const max = InspectionPanel.maxPhotos;
+    Finder addButton() => find.byIcon(Icons.add);
+
+    testWidgets('на одно меньше лимита — «+» есть', (tester) async {
+      final store = await storeWithPhotos(max - 1);
+      await openDetail(tester, store);
+      expect(find.text('${max - 1}/$max'), findsOneWidget);
+      expect(addButton(), findsOneWidget);
+    });
+
+    testWidgets('лимит набран — «+» нет', (tester) async {
+      final store = await storeWithPhotos(max);
+      await openDetail(tester, store);
+      expect(find.text('$max/$max'), findsOneWidget);
+      expect(addButton(), findsNothing);
+    });
+  });
+
   testWidgets('отмена удаления оставляет фото', (tester) async {
     final store = await storeWithPhotos(1);
     await openDetail(tester, store);

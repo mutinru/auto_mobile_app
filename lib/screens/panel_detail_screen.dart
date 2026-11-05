@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
@@ -243,7 +244,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         children: [
                           _SectionTitle('Фото'),
                           Text(
-                            '${panel.photoCount}/5',
+                            '${panel.photoCount}/${InspectionPanel.maxPhotos}',
                             style: TextStyle(
                               fontSize: 11,
                               color: context.colors.text3,
@@ -296,7 +297,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                   ),
                                 ),
                               ),
-                            if (panel.photoCount < 5 && !store.readOnly)
+                            if (panel.photoCount < InspectionPanel.maxPhotos &&
+                                !store.readOnly)
                               InkWell(
                                 onTap: _uploading ? null : _addPhoto,
                                 borderRadius: BorderRadius.circular(12),
