@@ -24,6 +24,7 @@ import '../widgets/purchase_sheet.dart';
 import '../widgets/review_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'executor_reviews_screen.dart';
+import 'order_auto_refresh.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
 import 'start_inspection_screen.dart';
@@ -56,7 +57,8 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with OrderAutoRefresh<OrderDetailScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -85,6 +87,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  bool get refreshPaused =>
+      _loading || _accepting || _completing || _cancelling;
+
+  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  @override
+  Future<void> refreshOrder() async {
+    final before = _order;
+    final order = await widget.store.fetchOrder(widget.orderId);
+    // пока ждали, заказ подменило действие — его ответ свежее
+    if (!mounted || refreshPaused || !identical(_order, before)) return;
+    setState(() {
+      _order = order;
+      _error = null;
+    });
+    widget.store.replaceOrder(order);
   }
 
   /// Открыть осмотр кандидата можно, если есть откуда его грузить.
@@ -350,222 +370,226 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildBody(Order order) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-      children: [
-        OrderStatusPill(status: order.shownStatus, label: order.statusLabel),
-        const SizedBox(height: 10),
-        Text(
-          order.carTitle,
-          style: TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.w600,
-            color: context.colors.text1,
+    return RefreshIndicator(
+      onRefresh: pullToRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        children: [
+          OrderStatusPill(status: order.shownStatus, label: order.statusLabel),
+          const SizedBox(height: 10),
+          Text(
+            order.carTitle,
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w600,
+              color: context.colors.text1,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          [
-            if (order.cities.isNotEmpty) order.cities.join(', '),
-            if (order.mileageTo != null)
-              'пробег до ${money(order.mileageTo!)} км',
-            ?budgetRange(order.budgetMin, order.budgetMax),
-          ].join(' · '),
-          style: TextStyle(fontSize: 12.5, color: context.colors.text2),
-        ),
-        if (order.requirements.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final r in order.requirements)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.bg1,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    r,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: context.colors.text2,
+          const SizedBox(height: 6),
+          Text(
+            [
+              if (order.cities.isNotEmpty) order.cities.join(', '),
+              if (order.mileageTo != null)
+                'пробег до ${money(order.mileageTo!)} км',
+              ?budgetRange(order.budgetMin, order.budgetMax),
+            ].join(' · '),
+            style: TextStyle(fontSize: 12.5, color: context.colors.text2),
+          ),
+          if (order.requirements.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final r in order.requirements)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.colors.bg1,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      r,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: context.colors.text2,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-        ],
-        if (order.comment != null && order.comment!.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            order.comment!,
-            style: TextStyle(fontSize: 13, color: context.colors.text2),
-          ),
-        ],
-        if (order.executor != null) ...[
-          const SizedBox(height: 22),
-          _SectionLabel('Исполнитель'),
-          const SizedBox(height: 8),
-          _InfoRow(
-            label: order.executor!.name,
-            trailing: order.price != null ? '${money(order.price!)} ₽' : null,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 13),
-            child: ExecutorStats(
-              user: order.executor!,
-              onTap: () => _showReviews(order, order.executor!),
+              ],
             ),
-          ),
-        ],
-        OrderReviewSection(
-          order: order,
-          viewerIsCustomer: widget.viewerIsCustomer,
-          onWrite: () => _writeReview(order),
-        ),
-        if (order.cars.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          _SectionLabel('Кандидаты'),
-          const SizedBox(height: 8),
-          for (final car in order.cars)
+          ],
+          if (order.comment != null && order.comment!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              order.comment!,
+              style: TextStyle(fontSize: 13, color: context.colors.text2),
+            ),
+          ],
+          if (order.executor != null) ...[
+            const SizedBox(height: 22),
+            _SectionLabel('Исполнитель'),
+            const SizedBox(height: 8),
             _InfoRow(
-              label: car.title,
-              // комментарий к вердикту — то, ради чего заказчик открывает итог
-              subtitle: car.verdictComment,
-              trailing: car.inspectionLabel,
-              // исход покупки важнее вердикта; вердикт — его цветом
-              trailingColor:
-                  car.inspectionOutcome == InspectionOutcome.purchased
-                  ? context.colors.statusDone
-                  : (car.inspectionOutcome == null
-                        ? car.verdict?.color(context.colors)
-                        : null),
-              onTap: car.inspectionId != null && _canOpenInspection
-                  ? () => _openInspection(car)
-                  : null,
+              label: order.executor!.name,
+              trailing: order.price != null ? '${money(order.price!)} ₽' : null,
             ),
-        ],
-        if (_canCompletePurchase(order)) ...[
-          const SizedBox(height: 14),
-          CtaPrimary(
-            label: 'Зафиксировать покупку',
-            icon: Icons.check,
-            loading: _completing,
-            onPressed: () => _completePurchase(order),
-          ),
-        ],
-        // Заводить кандидата и стартовать осмотр может только назначенный
-        // исполнитель — у заказчика этот вызов вернёт 403; в закрытый подбор
-        // нового кандидата не завести (422), начатые — дозавершаются.
-        if (widget.auth?.user != null &&
-            order.executor?.id == widget.auth!.user!.id &&
-            (order.status == OrderStatus.sourcing ||
-                order.status == OrderStatus.inspecting)) ...[
-          const SizedBox(height: 14),
-          CtaPrimary(
-            label: 'Осмотреть новый вариант',
-            icon: Icons.add,
-            onPressed: () => _startInspection(order),
-          ),
-        ],
-        if (widget.viewerIsCustomer && order.responses.isNotEmpty) ...[
-          const SizedBox(height: 22),
-          _SectionLabel('Отклики'),
-          const SizedBox(height: 8),
-          for (final r in order.responses)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: context.colors.bg1,
-                borderRadius: BorderRadius.circular(13),
+            Padding(
+              padding: const EdgeInsets.only(left: 13),
+              child: ExecutorStats(
+                user: order.executor!,
+                onTap: () => _showReviews(order, order.executor!),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          r.executor.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: context.colors.text1,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        ExecutorStats(
-                          user: r.executor,
-                          onTap: () => _showReviews(order, r.executor),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${money(r.proposedPrice)} ₽',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.colors.text2,
-                          ),
-                        ),
-                        if (r.message != null) ...[
-                          const SizedBox(height: 4),
+            ),
+          ],
+          OrderReviewSection(
+            order: order,
+            viewerIsCustomer: widget.viewerIsCustomer,
+            onWrite: () => _writeReview(order),
+          ),
+          if (order.cars.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _SectionLabel('Кандидаты'),
+            const SizedBox(height: 8),
+            for (final car in order.cars)
+              _InfoRow(
+                label: car.title,
+                // комментарий к вердикту — то, ради чего заказчик открывает итог
+                subtitle: car.verdictComment,
+                trailing: car.inspectionLabel,
+                // исход покупки важнее вердикта; вердикт — его цветом
+                trailingColor:
+                    car.inspectionOutcome == InspectionOutcome.purchased
+                    ? context.colors.statusDone
+                    : (car.inspectionOutcome == null
+                          ? car.verdict?.color(context.colors)
+                          : null),
+                onTap: car.inspectionId != null && _canOpenInspection
+                    ? () => _openInspection(car)
+                    : null,
+              ),
+          ],
+          if (_canCompletePurchase(order)) ...[
+            const SizedBox(height: 14),
+            CtaPrimary(
+              label: 'Зафиксировать покупку',
+              icon: Icons.check,
+              loading: _completing,
+              onPressed: () => _completePurchase(order),
+            ),
+          ],
+          // Заводить кандидата и стартовать осмотр может только назначенный
+          // исполнитель — у заказчика этот вызов вернёт 403; в закрытый подбор
+          // нового кандидата не завести (422), начатые — дозавершаются.
+          if (widget.auth?.user != null &&
+              order.executor?.id == widget.auth!.user!.id &&
+              (order.status == OrderStatus.sourcing ||
+                  order.status == OrderStatus.inspecting)) ...[
+            const SizedBox(height: 14),
+            CtaPrimary(
+              label: 'Осмотреть новый вариант',
+              icon: Icons.add,
+              onPressed: () => _startInspection(order),
+            ),
+          ],
+          if (widget.viewerIsCustomer && order.responses.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _SectionLabel('Отклики'),
+            const SizedBox(height: 8),
+            for (final r in order.responses)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                  color: context.colors.bg1,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            r.message!,
+                            r.executor.name,
                             style: TextStyle(
-                              fontSize: 11.5,
-                              color: context.colors.text3,
+                              fontWeight: FontWeight.w600,
+                              color: context.colors.text1,
                             ),
                           ),
+                          const SizedBox(height: 2),
+                          ExecutorStats(
+                            user: r.executor,
+                            onTap: () => _showReviews(order, r.executor),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${money(r.proposedPrice)} ₽',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: context.colors.text2,
+                            ),
+                          ),
+                          if (r.message != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              r.message!,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: context.colors.text3,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ),
-                  if (r.status == OrderResponseStatus.pending)
-                    ElevatedButton(
-                      onPressed: _accepting ? null : () => _accept(r.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.colors.statusDone,
-                        foregroundColor: context.colors.modeBuyInk,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
                       ),
-                      child: const Text(
-                        'Принять',
+                    ),
+                    if (r.status == OrderResponseStatus.pending)
+                      ElevatedButton(
+                        onPressed: _accepting ? null : () => _accept(r.id),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.colors.statusDone,
+                          foregroundColor: context.colors.modeBuyInk,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Принять',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        r.status.label,
                         style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          color: context.colors.text3,
                         ),
                       ),
-                    )
-                  else
-                    Text(
-                      r.status.label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: context.colors.text3,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
+          ],
+          if (widget.viewerIsCustomer && order.canCancel) ...[
+            const SizedBox(height: 14),
+            CtaGhost(
+              label: 'Отменить заказ',
+              onPressed: _cancelling ? null : () => _cancel(order),
             ),
+          ],
         ],
-        if (widget.viewerIsCustomer && order.canCancel) ...[
-          const SizedBox(height: 14),
-          CtaGhost(
-            label: 'Отменить заказ',
-            onPressed: _cancelling ? null : () => _cancel(order),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

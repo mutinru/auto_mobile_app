@@ -22,6 +22,7 @@ import '../widgets/verdict_sheet.dart';
 import 'car_vin_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
+import 'order_auto_refresh.dart';
 
 /// Разовый осмотр глазами назначенного исполнителя: куда и когда ехать,
 /// телефон продавца, старт осмотра по деталям и итоговый вердикт.
@@ -53,7 +54,8 @@ class AssignedInspectionScreen extends StatefulWidget {
       _AssignedInspectionScreenState();
 }
 
-class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
+class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
+    with OrderAutoRefresh<AssignedInspectionScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -78,6 +80,23 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  bool get refreshPaused => _loading || _busy;
+
+  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  @override
+  Future<void> refreshOrder() async {
+    final before = _order;
+    final order = await widget.store.fetchOrder(widget.orderId);
+    // пока ждали, заказ подменило действие — его ответ свежее
+    if (!mounted || refreshPaused || !identical(_order, before)) return;
+    setState(() {
+      _order = order;
+      _error = null;
+    });
+    widget.store.replaceOrder(order);
   }
 
   /// Ошибки действий — SnackBar'ом, экран при этом остаётся рабочим.
@@ -270,39 +289,43 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
-      children: [
-        InspectionOrderSummary(
-          order: order,
-          // гонорар — цена из принятого отклика; до принятия её нет
-          priceLabel: 'Ваш гонорар',
-          price: order.price ?? order.askingPrice,
-        ),
-        if (order.executorDeadlineAt != null &&
-            (order.status == OrderStatus.scheduled ||
-                order.status == OrderStatus.inspecting)) ...[
-          const SizedBox(height: 10),
-          DeadlineCountdown(deadline: order.executorDeadlineAt!),
-        ],
-        ..._payment(order),
-        if (order.verdict != null) ...[
-          const SizedBox(height: 22),
-          const SectionHead('Итог осмотра'),
-          InspectionVerdictBox.forOrder(order),
-          if (widget.auth != null && hasInspectionReport(order)) ...[
-            const SizedBox(height: 8),
-            CtaGhost(
-              label: 'Полный отчёт',
-              onPressed: () =>
-                  openInspectionReport(context, widget.auth!, order),
-            ),
+    return RefreshIndicator(
+      onRefresh: pullToRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
+        children: [
+          InspectionOrderSummary(
+            order: order,
+            // гонорар — цена из принятого отклика; до принятия её нет
+            priceLabel: 'Ваш гонорар',
+            price: order.price ?? order.askingPrice,
+          ),
+          if (order.executorDeadlineAt != null &&
+              (order.status == OrderStatus.scheduled ||
+                  order.status == OrderStatus.inspecting)) ...[
+            const SizedBox(height: 10),
+            DeadlineCountdown(deadline: order.executorDeadlineAt!),
           ],
+          ..._payment(order),
+          if (order.verdict != null) ...[
+            const SizedBox(height: 22),
+            const SectionHead('Итог осмотра'),
+            InspectionVerdictBox.forOrder(order),
+            if (widget.auth != null && hasInspectionReport(order)) ...[
+              const SizedBox(height: 8),
+              CtaGhost(
+                label: 'Полный отчёт',
+                onPressed: () =>
+                    openInspectionReport(context, widget.auth!, order),
+              ),
+            ],
+          ],
+          const SizedBox(height: 22),
+          const SectionHead('Заказчик'),
+          _CustomerBox(order: order),
         ],
-        const SizedBox(height: 22),
-        const SectionHead('Заказчик'),
-        _CustomerBox(order: order),
-      ],
+      ),
     );
   }
 

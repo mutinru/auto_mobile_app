@@ -20,6 +20,7 @@ import '../widgets/repost_sheet.dart';
 import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
 import 'executor_reviews_screen.dart';
+import 'order_auto_refresh.dart';
 import 'inspection_report_screen.dart';
 
 /// Кадр 04 макета order-types.html — деталь заказа-осмотра: сводка,
@@ -58,7 +59,8 @@ class InspectionOrderDetailScreen extends StatefulWidget {
 }
 
 class _InspectionOrderDetailScreenState
-    extends State<InspectionOrderDetailScreen> {
+    extends State<InspectionOrderDetailScreen>
+    with OrderAutoRefresh<InspectionOrderDetailScreen> {
   Order? _order;
   bool _loading = true;
   String? _error;
@@ -85,6 +87,23 @@ class _InspectionOrderDetailScreenState
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  @override
+  bool get refreshPaused => _loading || _accepting || _paying || _cancelling;
+
+  /// Тихое перечитывание (OrderAutoRefresh): без спиннера, ошибку бросает.
+  @override
+  Future<void> refreshOrder() async {
+    final before = _order;
+    final order = await widget.store.fetchOrder(widget.orderId);
+    // пока ждали, заказ подменило действие — его ответ свежее
+    if (!mounted || refreshPaused || !identical(_order, before)) return;
+    setState(() {
+      _order = order;
+      _error = null;
+    });
+    widget.store.replaceOrder(order);
   }
 
   Future<void> _markPaid(Order order) async {
@@ -291,103 +310,107 @@ class _InspectionOrderDetailScreenState
         order.status == OrderStatus.awaitingExecutor &&
         !_accepting;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
-      children: [
-        InspectionOrderSummary(
-          order: order,
-          priceLabel: 'Ваша цена',
-          price: order.askingPrice,
-        ),
-        if (widget.viewerIsCustomer &&
-            (order.cars.firstOrNull?.vinMismatch ?? false))
-          const VinMismatchNote(),
-        if (widget.viewerIsCustomer)
-          ?mileageMismatchNoteFor(order.cars.firstOrNull),
-        if (widget.viewerIsCustomer &&
-            order.status == OrderStatus.awaitingDecision)
-          ..._decision(order),
-        if (widget.viewerIsCustomer && order.status.isAwaitingPayment)
-          ..._payment(order),
-        // вердикт — только когда отчёт получен; до оплаты сервер его не
-        // отдаёт, проверка статуса — страховка
-        if (order.verdict != null && !order.status.isAwaitingPayment) ...[
-          const SizedBox(height: 22),
-          const SectionHead('Итог осмотра'),
-          InspectionVerdictBox.forOrder(order),
-          if (widget.auth != null && hasInspectionReport(order)) ...[
-            const SizedBox(height: 8),
-            CtaGhost(
-              label: 'Полный отчёт',
-              onPressed: () =>
-                  openInspectionReport(context, widget.auth!, order),
-            ),
-          ],
-        ],
-        if (order.executor != null) ...[
-          const SizedBox(height: 22),
-          const SectionHead('Исполнитель'),
-          _ExecutorBox(
+    return RefreshIndicator(
+      onRefresh: pullToRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(22, 6, 22, 22),
+        children: [
+          InspectionOrderSummary(
             order: order,
-            onShowReviews: () => openExecutorReviews(
-              context,
-              widget.store.repository,
-              order.executor!,
-            ),
+            priceLabel: 'Ваша цена',
+            price: order.askingPrice,
           ),
-          if (order.executorDeadlineAt != null &&
-              (order.status == OrderStatus.scheduled ||
-                  order.status == OrderStatus.inspecting)) ...[
-            const SizedBox(height: 8),
-            DeadlineCountdown(
-              deadline: order.executorDeadlineAt!,
-              prefix: 'Осмотрит в течение',
-            ),
+          if (widget.viewerIsCustomer &&
+              (order.cars.firstOrNull?.vinMismatch ?? false))
+            const VinMismatchNote(),
+          if (widget.viewerIsCustomer)
+            ?mileageMismatchNoteFor(order.cars.firstOrNull),
+          if (widget.viewerIsCustomer &&
+              order.status == OrderStatus.awaitingDecision)
+            ..._decision(order),
+          if (widget.viewerIsCustomer && order.status.isAwaitingPayment)
+            ..._payment(order),
+          // вердикт — только когда отчёт получен; до оплаты сервер его не
+          // отдаёт, проверка статуса — страховка
+          if (order.verdict != null && !order.status.isAwaitingPayment) ...[
+            const SizedBox(height: 22),
+            const SectionHead('Итог осмотра'),
+            InspectionVerdictBox.forOrder(order),
+            if (widget.auth != null && hasInspectionReport(order)) ...[
+              const SizedBox(height: 8),
+              CtaGhost(
+                label: 'Полный отчёт',
+                onPressed: () =>
+                    openInspectionReport(context, widget.auth!, order),
+              ),
+            ],
           ],
-        ],
-        OrderReviewSection(
-          order: order,
-          viewerIsCustomer: widget.viewerIsCustomer,
-          onWrite: () => _writeReview(order),
-        ),
-        // в ожидании решения старые отклики выбрать нельзя: при повторном
-        // размещении сервер их отклонит
-        if (pending.isNotEmpty &&
-            order.status != OrderStatus.awaitingDecision) ...[
-          const SizedBox(height: 22),
-          // исполнителю сервер отдаёт только его собственный отклик
-          widget.viewerIsCustomer
-              ? SectionHead('Отклики', extra: '${pending.length}')
-              : const SectionHead('Ваш отклик'),
-          for (final response in pending)
-            ResponseCard(
-              response: response,
-              askingPrice: order.askingPrice,
-              onAccept: canPick ? () => _accept(response.id) : null,
+          if (order.executor != null) ...[
+            const SizedBox(height: 22),
+            const SectionHead('Исполнитель'),
+            _ExecutorBox(
+              order: order,
               onShowReviews: () => openExecutorReviews(
                 context,
                 widget.store.repository,
-                response.executor,
+                order.executor!,
               ),
             ),
-        ] else if (order.status == OrderStatus.awaitingExecutor) ...[
-          const SizedBox(height: 22),
-          const SectionHead('Отклики'),
-          Text(
-            'Пока никто не откликнулся',
-            style: TextStyle(fontSize: 12.5, color: context.colors.text2),
+            if (order.executorDeadlineAt != null &&
+                (order.status == OrderStatus.scheduled ||
+                    order.status == OrderStatus.inspecting)) ...[
+              const SizedBox(height: 8),
+              DeadlineCountdown(
+                deadline: order.executorDeadlineAt!,
+                prefix: 'Осмотрит в течение',
+              ),
+            ],
+          ],
+          OrderReviewSection(
+            order: order,
+            viewerIsCustomer: widget.viewerIsCustomer,
+            onWrite: () => _writeReview(order),
           ),
+          // в ожидании решения старые отклики выбрать нельзя: при повторном
+          // размещении сервер их отклонит
+          if (pending.isNotEmpty &&
+              order.status != OrderStatus.awaitingDecision) ...[
+            const SizedBox(height: 22),
+            // исполнителю сервер отдаёт только его собственный отклик
+            widget.viewerIsCustomer
+                ? SectionHead('Отклики', extra: '${pending.length}')
+                : const SectionHead('Ваш отклик'),
+            for (final response in pending)
+              ResponseCard(
+                response: response,
+                askingPrice: order.askingPrice,
+                onAccept: canPick ? () => _accept(response.id) : null,
+                onShowReviews: () => openExecutorReviews(
+                  context,
+                  widget.store.repository,
+                  response.executor,
+                ),
+              ),
+          ] else if (order.status == OrderStatus.awaitingExecutor) ...[
+            const SizedBox(height: 22),
+            const SectionHead('Отклики'),
+            Text(
+              'Пока никто не откликнулся',
+              style: TextStyle(fontSize: 12.5, color: context.colors.text2),
+            ),
+          ],
+          // в конце списка, а не в нижней панели: пока заказ ждёт
+          // исполнителя, главное действие — выбрать отклик
+          if (widget.viewerIsCustomer && order.canCancel) ...[
+            const SizedBox(height: 14),
+            CtaGhost(
+              label: 'Отменить заказ',
+              onPressed: _cancelling ? null : () => _cancel(order),
+            ),
+          ],
         ],
-        // в конце списка, а не в нижней панели: пока заказ ждёт
-        // исполнителя, главное действие — выбрать отклик
-        if (widget.viewerIsCustomer && order.canCancel) ...[
-          const SizedBox(height: 14),
-          CtaGhost(
-            label: 'Отменить заказ',
-            onPressed: _cancelling ? null : () => _cancel(order),
-          ),
-        ],
-      ],
+      ),
     );
   }
 

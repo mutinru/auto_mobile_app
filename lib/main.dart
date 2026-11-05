@@ -26,6 +26,7 @@ import 'screens/nearby_orders_screen.dart';
 import 'screens/new_inspection_screen.dart';
 import 'screens/new_order_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/order_auto_refresh.dart';
 import 'screens/order_routes.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
@@ -122,6 +123,8 @@ class AutoPodborApp extends StatelessWidget {
           locale: appLocale,
           supportedLocales: appSupportedLocales,
           localizationsDelegates: appLocalizationsDelegates,
+          // экраны заказа перечитывают заказ, когда на них возвращаются
+          navigatorObservers: [appRouteObserver],
           // у экранов нет AppBar, поэтому иконки статус-бара красим здесь:
           // тёмные на светлой теме, светлые на тёмной
           builder: (context, child) => SupportChatScope(

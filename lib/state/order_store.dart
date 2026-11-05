@@ -304,7 +304,7 @@ class OrderStore extends ChangeNotifier {
       verdict: verdict,
       comment: comment,
     );
-    _replaceInLists(order);
+    replaceOrder(order);
     return order;
   }
 
@@ -333,7 +333,7 @@ class OrderStore extends ChangeNotifier {
 
   Future<Order> acceptResponse(int orderId, int responseId) async {
     final order = await _repository.acceptResponse(orderId, responseId);
-    _replaceInLists(order);
+    replaceOrder(order);
     return order;
   }
 
@@ -389,7 +389,7 @@ class OrderStore extends ChangeNotifier {
       rating: rating,
       text: text,
     );
-    _replaceInLists(order);
+    replaceOrder(order);
     return order;
   }
 
@@ -403,7 +403,7 @@ class OrderStore extends ChangeNotifier {
       rating: rating,
       text: text,
     );
-    _replaceInLists(order);
+    replaceOrder(order);
     return order;
   }
 
@@ -411,7 +411,7 @@ class OrderStore extends ChangeNotifier {
   Future<Order> declineOrder(int orderId) async {
     final order = await _repository.declineOrder(orderId);
     _assignedOrders = _assignedOrders.where((o) => o.id != orderId).toList();
-    _replaceInLists(order);
+    replaceOrder(order);
     notifyListeners();
     return order;
   }
@@ -428,11 +428,13 @@ class OrderStore extends ChangeNotifier {
   /// Статус и поля оплаты — с сервера, локально не вычисляем.
   Future<Order> _mutate(Future<Order> request) async {
     final order = await request;
-    _replaceInLists(order);
+    replaceOrder(order);
     return order;
   }
 
-  void _replaceInLists(Order order) {
+  /// Свежий заказ с сервера — в списки, где он есть (мутация, перечитывание
+  /// открытой детали).
+  void replaceOrder(Order order) {
     final mine = _myOrders.indexWhere((o) => o.id == order.id);
     if (mine != -1) _myOrders = [..._myOrders]..[mine] = order;
     final assigned = _assignedOrders.indexWhere((o) => o.id == order.id);
