@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -12,16 +14,29 @@ import '../widgets/audio_note.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/status_dot.dart';
 
+/// Чем закончился экран детали — для схемы, которая его открыла.
+enum PanelExit {
+  /// «Завершить осмотр» на последней детали: схема покажет сводку или
+  /// шторку «Осталось исправить», а не молча уведёт в недоделанную деталь.
+  finish,
+}
+
 /// Экран 02 из макета: оценка одной детали (состояние, дефекты, фото, аудио).
 class PanelDetailScreen extends StatefulWidget {
   const PanelDetailScreen({
     super.key,
     required this.store,
     required this.panelId,
+    this.fixMode = false,
   });
 
   final InspectionStore store;
   final String panelId;
+
+  /// Режим исправления: деталь открыта из «Осталось исправить» или сводки.
+  /// Вместо «Дальше» по порядку — «Готово» обратно к списку, сверху плашка
+  /// «чего не хватает», экран прокручен к этому блоку и подсвечивает его.
+  final bool fixMode;
 
   @override
   State<PanelDetailScreen> createState() => _PanelDetailScreenState();
@@ -31,6 +46,53 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
   late String _panelId = widget.panelId;
 
   bool _uploading = false;
+
+  final _conditionKey = GlobalKey();
+  final _defectKey = GlobalKey();
+  final _photoKey = GlobalKey();
+
+  /// Короткая подсветка проблемного блока при входе в режим исправления.
+  bool _highlight = false;
+  Timer? _highlightTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.fixMode && !widget.store.readOnly) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _pointAtProblem());
+    }
+  }
+
+  /// Прокрутить к первому блоку, которого не хватает, и мигнуть им.
+  Future<void> _pointAtProblem() async {
+    if (!mounted) return;
+    final panel = widget.store.panelById(_panelId);
+    final key = panel.condition == null
+        ? _conditionKey
+        : panel.needsDefect
+        ? _defectKey
+        : panel.needsPhoto
+        ? _photoKey
+        : null;
+    final target = key?.currentContext;
+    if (target == null) return;
+    setState(() => _highlight = true);
+    await Scrollable.ensureVisible(
+      target,
+      alignment: 0.3,
+      duration: const Duration(milliseconds: 300),
+    );
+    if (!mounted) return;
+    _highlightTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) setState(() => _highlight = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _highlightTimer?.cancel();
+    super.dispose();
+  }
 
   /// Снять камерой или взять из галереи и отправить на сервер.
   Future<void> _addPhoto() async {
@@ -112,6 +174,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
         final panel = store.panelById(_panelId);
         final position = store.indexOf(_panelId) + 1;
         final next = store.nextAfter(_panelId);
+        final fixing = widget.fixMode && !store.readOnly;
 
         return Scaffold(
           body: SafeArea(
@@ -178,11 +241,18 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                     ],
                   ),
                 ),
+                if (fixing) _FixBanner(panel: panel),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                     children: [
                       _SectionTitle('Состояние'),
+                      if (fixing && panel.condition == null)
+                        _Requirement(
+                          'Выберите состояние',
+                          key: _conditionKey,
+                          highlight: _highlight,
+                        ),
                       const SizedBox(height: 12),
                       GridView.count(
                         crossAxisCount: 2,
@@ -220,7 +290,11 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         ],
                       ),
                       if (panel.needsDefect && !store.readOnly)
-                        const _Requirement('«К ремонту» — отметьте дефект'),
+                        _Requirement(
+                          '«К ремонту» — отметьте дефект',
+                          key: _defectKey,
+                          highlight: _highlight,
+                        ),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 6,
@@ -254,7 +328,12 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                         ],
                       ),
                       if (panel.needsPhoto && !store.readOnly)
-                        const _Requirement('Нужно хотя бы одно фото'),
+                        _Requirement(
+                          'Нужно хотя бы одно фото',
+                          key: _photoKey,
+                          // дефект подсвечивается первым, фото — если он есть
+                          highlight: _highlight && !panel.needsDefect,
+                        ),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 72,
@@ -353,13 +432,24 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                   child: SizedBox(
                     width: double.infinity,
-                    child: NextStepButton(
-                      caption: 'Дальше',
-                      title: next?.name ?? 'Завершить осмотр',
-                      onPressed: next == null
-                          ? () => Navigator.of(context).pop()
-                          : () => setState(() => _panelId = next.id),
-                    ),
+                    child: fixing
+                        ? NextStepButton(
+                            caption: switch (store.problems.length) {
+                              0 => 'Всё заполнено',
+                              final n => 'Осталось исправить · $n',
+                            },
+                            title: 'Готово',
+                            onPressed: () => Navigator.of(context).pop(),
+                          )
+                        : NextStepButton(
+                            caption: 'Дальше',
+                            title: next?.name ?? 'Завершить осмотр',
+                            onPressed: next == null
+                                ? () => Navigator.of(
+                                    context,
+                                  ).pop(PanelExit.finish)
+                                : () => setState(() => _panelId = next.id),
+                          ),
                   ),
                 ),
               ],
@@ -392,13 +482,27 @@ class _SectionTitle extends StatelessWidget {
 /// Подсказка, чего не хватает детали для отчёта. Не блокирует «Дальше»:
 /// жёстко это проверит отправка отчёта (сервер, InspectionPanel::missing()).
 class _Requirement extends StatelessWidget {
-  const _Requirement(this.text);
+  const _Requirement(this.text, {super.key, this.highlight = false});
   final String text;
+
+  /// Мигнуть при входе в режим исправления — см. [PanelDetailScreen.fixMode].
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      margin: const EdgeInsets.only(top: 6),
+      padding: EdgeInsets.symmetric(
+        horizontal: highlight ? 8 : 0,
+        vertical: highlight ? 6 : 0,
+      ),
+      decoration: BoxDecoration(
+        color: highlight
+            ? context.colors.statusProgress.withValues(alpha: 0.16)
+            : context.colors.statusProgress.withValues(alpha: 0),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         children: [
           Icon(
@@ -412,6 +516,54 @@ class _Requirement extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 11.5,
+                color: context.colors.progressText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Плашка режима исправления: зачем исполнителя вернули на эту деталь.
+/// Пропадает, как только сервер вернёт деталь без `missing`.
+class _FixBanner extends StatelessWidget {
+  const _FixBanner({required this.panel});
+
+  final InspectionPanel panel;
+
+  @override
+  Widget build(BuildContext context) {
+    final todo = panel.condition == null
+        ? ['выберите состояние']
+        : [
+            if (panel.needsDefect) 'отметьте дефект',
+            if (panel.needsPhoto) 'добавьте фото',
+          ];
+    if (todo.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: context.colors.statusProgress.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 16,
+            color: context.colors.progressText,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Чтобы отправить отчёт: ${todo.join(' и ')}',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
                 color: context.colors.progressText,
               ),
             ),

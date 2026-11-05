@@ -228,11 +228,7 @@ class _MissingTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = switch ((panel.needsPhoto, panel.needsDefect)) {
-      (true, true) => 'нужны фото и дефект',
-      (true, false) => 'нужно фото',
-      _ => 'нужен дефект',
-    };
+    final text = panel.missingLabel ?? '';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

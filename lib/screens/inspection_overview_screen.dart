@@ -6,6 +6,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/photo_viewer.dart';
+import '../widgets/inspection_problems_sheet.dart';
 import '../widgets/inspection_schematic.dart';
 import '../widgets/progress_summary.dart';
 import 'inspection_summary_screen.dart';
@@ -44,44 +45,61 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
   }
 
   Future<void> _openPanel(String panelId) async {
-    await Navigator.of(context).push(
+    final exit = await Navigator.of(context).push<PanelExit>(
       MaterialPageRoute(
         builder: (_) =>
             PanelDetailScreen(store: widget.store, panelId: panelId),
       ),
     );
+    if (!mounted) return;
     setState(() {});
+    if (exit == PanelExit.finish) await _finish();
   }
 
-  /// Главная кнопка ведёт по осмотру: пока есть неоценённые пункты, она
-  /// открывает первый из них (дальше по цепочке — «Дальше» в карточке),
-  /// затем — пункты без обязательного фото или дефекта, после — сводка.
+  /// «Завершить осмотр»: всё готово — сразу сводка, иначе шторка с тем, что
+  /// осталось. Раньше экран молча возвращался на схему, и следующее нажатие
+  /// уводило в недоделанную деталь без объяснений.
+  Future<void> _finish() async {
+    final store = widget.store;
+    if (store.isReportComplete) return _openSummary();
+    final ready = await showInspectionProblems(context, store);
+    if (ready && mounted) await _openSummary();
+  }
+
+  Future<void> _openSummary() => Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => InspectionSummaryScreen(
+        store: widget.store,
+        onSendReport: widget.onSendReport,
+        sendLabel: widget.sendLabel,
+      ),
+    ),
+  );
+
+  /// Главная кнопка ведёт по осмотру: пока проход не дошёл до конца, она
+  /// открывает первый неоценённый пункт (дальше — «Дальше» в карточке),
+  /// потом — шторку «Осталось исправить», когда всё готово — сводку.
   Widget _primaryAction(InspectionStore store) {
-    final next = store.firstIncomplete;
-    if (next != null) {
-      final caption = next.condition != null
-          ? 'Дозаполнить'
-          : store.evaluatedCount == 0
-          ? 'Начать осмотр'
-          : 'Продолжить';
+    final unrated = store.firstUnrated;
+    if (unrated != null && !store.passFinished) {
       return NextStepButton(
-        caption: caption,
-        title: next.name,
-        onPressed: () => _openPanel(next.id),
+        caption: store.evaluatedCount == 0 ? 'Начать осмотр' : 'Продолжить',
+        title: unrated.name,
+        onPressed: () => _openPanel(unrated.id),
+      );
+    }
+    final problems = store.problems.length;
+    if (problems > 0) {
+      return NextStepButton(
+        caption: 'Осталось исправить · $problems',
+        title: 'Показать, что не так',
+        onPressed: _finish,
       );
     }
     return NextStepButton(
       caption: 'Осмотр завершён',
       title: 'Сформировать отчёт',
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => InspectionSummaryScreen(
-            store: store,
-            onSendReport: widget.onSendReport,
-            sendLabel: widget.sendLabel,
-          ),
-        ),
-      ),
+      onPressed: _openSummary,
     );
   }
 

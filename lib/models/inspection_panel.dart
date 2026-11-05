@@ -79,6 +79,18 @@ class InspectionPanel {
   /// Оценена, но для отчёта не хватает фото или дефекта.
   bool get isIncomplete => condition != null && (needsPhoto || needsDefect);
 
+  /// Чего не хватает, коротко — для списка, шторки «Осталось исправить» и
+  /// сводки. null — пункт готов к отчёту.
+  String? get missingLabel {
+    if (condition == null) return 'не выбрано состояние';
+    return switch ((needsPhoto, needsDefect)) {
+      (true, true) => 'нужны фото и дефект',
+      (true, false) => 'нужно фото',
+      (false, true) => 'нужен дефект',
+      (false, false) => null,
+    };
+  }
+
   void applyCondition(PanelCondition condition) {
     this.condition = condition;
     status = condition.impliedStatus;

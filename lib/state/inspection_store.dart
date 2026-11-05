@@ -78,6 +78,18 @@ class InspectionStore extends ChangeNotifier {
     return null;
   }
 
+  /// Что мешает отправить отчёт, в серверном порядке: неоценённые и
+  /// недозаполненные пункты. По нему строятся шторка «Осталось исправить»
+  /// и счётчик режима исправления.
+  List<InspectionPanel> get problems => _panels
+      .where((p) => p.status == PanelStatus.none || p.isIncomplete)
+      .toList();
+
+  /// Обычный проход «Дальше» дошёл до конца — последний пункт оценён.
+  /// Дальше схема ведёт не по порядку, а к списку того, что осталось.
+  bool get passFinished =>
+      _panels.isNotEmpty && _panels.last.status != PanelStatus.none;
+
   /// Отчёт можно отправлять: всё оценено и дозаполнено (то же проверит сервер).
   bool get isReportComplete =>
       remainingCount == 0 && !_panels.any((p) => p.isIncomplete);

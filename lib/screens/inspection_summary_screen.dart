@@ -63,9 +63,12 @@ class InspectionSummaryScreen extends StatelessWidget {
                             panel: p,
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
+                                // «Готово» вернёт сюда, а не поведёт по всем
+                                // деталям подряд
                                 builder: (_) => PanelDetailScreen(
                                   store: store,
                                   panelId: p.id,
+                                  fixMode: true,
                                 ),
                               ),
                             ),
@@ -126,10 +129,6 @@ class _IncompleteItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final need = [
-      if (panel.needsPhoto) 'фото',
-      if (panel.needsDefect) 'дефект',
-    ].join(' и ');
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -159,7 +158,7 @@ class _IncompleteItem extends StatelessWidget {
               ),
             ),
             Text(
-              'нужно $need',
+              panel.missingLabel ?? '',
               style: TextStyle(
                 fontSize: 11,
                 color: context.colors.progressText,
