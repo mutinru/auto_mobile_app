@@ -605,9 +605,9 @@ Future<String?> recognizeTextInFrame(String imagePath, Rect frame) async {
   return ok ? recognizeText(cropPath) : null;
 }
 
-/// VIN или номер кузова с камеры — без сохранения снимка (поле заказчика).
+/// VIN с камеры — без сохранения снимка (поле заказчика).
 /// null — отказались от съёмки или ничего не нашли.
-Future<String?> scanVinOrBodyNumber() async {
+Future<String?> scanVin() async {
   final shot = await ImagePicker().pickImage(
     source: ImageSource.camera,
     maxWidth: 2000,
@@ -615,7 +615,7 @@ Future<String?> scanVinOrBodyNumber() async {
   if (shot == null) return null;
   final text = await recognizeText(shot.path);
   if (text == null) return null;
-  return extractVin(text) ?? extractBodyNumber(text);
+  return extractVin(text);
 }
 
 /// Снятое фото (табличка, одометр) — миниатюра и отметка «сохранено».

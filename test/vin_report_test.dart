@@ -60,8 +60,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder vinField() =>
-      find.widgetWithText(TextField, '17 символов или номер кузова');
+  Finder vinField() => find.widgetWithText(TextField, '17 символов');
 
   Future<void> typeVin(WidgetTester tester, String vin) async {
     await tester.enterText(vinField(), vin);
@@ -92,17 +91,22 @@ void main() {
     expect(find.text('С оговорками'), findsNothing);
   });
 
-  testWidgets('номер кузова принимается полем', (tester) async {
-    await open(tester, MockOrderRepository());
+  testWidgets('номер кузова не проверяется — поле только для VIN', (
+    tester,
+  ) async {
+    final repo = _SlowCheck();
+    await open(tester, repo);
     await tester.enterText(vinField(), 'gx110-6012345');
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
 
-    final field = tester.widget<TextField>(
+    // дефис отсекается форматтером VIN, запроса проверки нет
+    expect(
       find.byWidgetPredicate(
-        (w) => w is TextField && w.controller?.text == 'GX110-6012345',
+        (w) => w is TextField && w.controller?.text == 'GX1106012345',
       ),
+      findsOneWidget,
     );
-    expect(field.controller!.text, 'GX110-6012345');
+    expect(repo.pending, isEmpty);
   });
 
   testWidgets('ответ на прежний VIN не показывается', (tester) async {

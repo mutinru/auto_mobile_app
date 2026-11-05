@@ -159,9 +159,9 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
 
   String get _vin => _vinController.text.trim().toUpperCase();
 
-  /// VIN или номер кузова — что угодно из двух, вид заказчик не выбирает.
-  static bool _isVinOrBody(String v) =>
-      VinKind.vin.problem(v) == null || VinKind.bodyNumber.problem(v) == null;
+  /// Заказчик вводит только VIN: готовые отчёты ищутся лишь по нему,
+  /// номер кузова снимает исполнитель.
+  static bool _isVin(String v) => VinKind.vin.problem(v) == null;
 
   /// Как ссылка: спрашиваем сервер, когда ввод замер на полсекунды.
   void _onVinChanged() {
@@ -177,7 +177,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         _vinChecking = false;
       });
     }
-    if (!_isVinOrBody(vin)) return;
+    if (!_isVin(vin)) return;
     _vinDebounce = Timer(
       const Duration(milliseconds: 500),
       () => _checkVin(vin, generation),
@@ -210,7 +210,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   }
 
   Future<void> _scanVin() async {
-    final found = await scanVinOrBodyNumber();
+    final found = await scanVin();
     if (!mounted) return;
     if (found == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -381,8 +381,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         mileageProblem(mileage),
       _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
-      _ when vin.isNotEmpty && !_isVinOrBody(vin) =>
-        'Проверьте VIN или номер кузова',
+      _ when vin.isNotEmpty && !_isVin(vin) => VinKind.vin.problem(vin),
       _ when listing.isNotEmpty && normalizeListingUrl(listing) == null =>
         'Похоже, это не ссылка на объявление',
       _ when phoneDigits.isNotEmpty && phoneDigits.length != 10 =>
@@ -469,11 +468,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                   // .or — разделитель «или»
                   const _OrDivider(),
                   FieldBoxInput(
-                    label: 'VIN или номер кузова',
+                    label: 'VIN',
                     controller: _vinController,
-                    hint: '17 символов или номер кузова',
+                    hint: '17 символов',
                     mono: true,
-                    inputFormatters: const [BodyNumberFormatter()],
+                    inputFormatters: const [VinFormatter()],
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
