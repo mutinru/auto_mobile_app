@@ -28,6 +28,31 @@ class VinCaptureController extends ChangeNotifier {
 
   String get value => text.text.trim().toUpperCase();
 
+  /// Текст подставило распознавание, а исполнитель его ещё не открывал:
+  /// ML Kit путает 0 и O, 8 и B — просим сверить с табличкой.
+  bool _recognized = false;
+  bool get needsCheck => _recognized && value.isNotEmpty;
+
+  /// Зовётся после записи распознанного текста в [text].
+  void markRecognized() {
+    _recognized = true;
+    notifyListeners();
+  }
+
+  /// Новый снимок ничего не дал — прежнее распознавание к нему не относится.
+  void _forgetRecognition() {
+    if (!_recognized) return;
+    _recognized = false;
+    notifyListeners();
+  }
+
+  /// Исполнитель открыл поле правки — значит, сверил.
+  void markChecked() {
+    if (!_recognized) return;
+    _recognized = false;
+    notifyListeners();
+  }
+
   VinCaptureController() {
     // поправили значение — ошибка поля уходит
     text.addListener(() {
@@ -42,6 +67,7 @@ class VinCaptureController extends ChangeNotifier {
   /// подходит — текст очищаем, фото оставляем (на нём может быть и то и то).
   void switchKind(VinKind kind) {
     if (kind == _kind) return;
+    _recognized = false;
     text.clear();
     setKind(kind);
   }
@@ -70,19 +96,29 @@ class VinCaptureController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Что не так с введённым текстом; null — годится. Распознавание могло
+  /// отдать неполный VIN — тогда говорим, сколько знаков не хватает.
+  String? textProblem() {
+    final v = value;
+    if (v.isEmpty) {
+      return _kind == VinKind.vin ? 'Укажите VIN' : 'Укажите номер кузова';
+    }
+    if (_kind == VinKind.vin && v.length != 17) {
+      return 'В VIN 17 символов, сейчас ${v.length} — сверьте с фото';
+    }
+    return _kind.problem(v);
+  }
+
   /// Готовый VIN или null — тогда ошибка уже стоит у поля.
   CapturedVin? validate() {
-    final v = value;
-    final problem = v.isEmpty
-        ? (_kind == VinKind.vin ? 'Укажите VIN' : 'Укажите номер кузова')
-        : _kind.problem(v);
+    final problem = textProblem();
     final error =
         problem ?? (_photoPath == null ? 'Сфотографируйте табличку' : null);
     if (error != null) {
       setError(error);
       return null;
     }
-    return CapturedVin(value: v, kind: _kind, photoPath: _photoPath!);
+    return CapturedVin(value: value, kind: _kind, photoPath: _photoPath!);
   }
 
   @override
@@ -132,6 +168,8 @@ class VinCapture extends StatelessWidget {
                 path: c.photoPath!,
                 label: 'Фото таблички сохранено',
               ),
+            if (c.needsCheck)
+              _CheckHint(kind: c.kind, onFix: () => _edit(context)),
             _KindSwitch(controller: c),
             FieldError(c.error),
           ],
@@ -192,7 +230,9 @@ class VinCapture extends StatelessWidget {
   }
 
   /// Снимок + распознавание. VIN надёжнее номера кузова: найденный VIN
-  /// переключает вид сам, номер кузова ищем, только если выбран он.
+  /// переключает вид сам, номер кузова ищем, только если выбран он. Что бы
+  /// ни распозналось — даже часть VIN или ничего, — открываем шторку сверки
+  /// со снимком: подтвердить номер исполнитель обязан сам.
   Future<void> _scan(BuildContext context) async {
     final shot = await ImagePicker().pickImage(
       source: ImageSource.camera,
@@ -203,6 +243,7 @@ class VinCapture extends StatelessWidget {
     controller.setPhoto(shot.path);
     controller._setScanning(true);
     String? found;
+    var how = _Recognition.none;
     final text = await recognizeText(shot.path);
     controller._setScanning(false);
     if (text != null) {
@@ -210,43 +251,130 @@ class VinCapture extends StatelessWidget {
       if (vin != null) {
         controller.setKind(VinKind.vin);
         found = vin;
+        how = _Recognition.exact;
       } else if (controller.kind == VinKind.bodyNumber) {
         found = extractBodyNumber(text);
+        if (found != null) how = _Recognition.exact;
+      } else {
+        // неполный VIN тоже показываем: дописать проще, чем набрать
+        found = guessVin(text);
+        if (found != null) how = _Recognition.guess;
       }
     }
     if (!context.mounted) return;
+    // в поле — только то, что дал этот снимок: номер с прошлого выглядел
+    // бы распознанным с нового фото
+    controller.text.text = found ?? '';
     if (found != null) {
-      controller.text.text = found;
-      return;
+      controller.markRecognized();
+    } else {
+      controller._forgetRecognition();
     }
-    // сбой распознавания — не запроса: свой текст, не apiErrorText
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${controller.kind.label} не распознан — введите вручную, '
-          'снимок сохранён',
-        ),
-      ),
-    );
-    await _edit(context);
+    await _edit(context, recognized: how);
   }
 
-  Future<void> _edit(BuildContext context) async {
-    final kind = controller.kind;
-    await showModalBottomSheet<void>(
+  /// Шторка сверки: снимок таблички, поле и «Всё верно». Закрыта кнопкой —
+  /// номер сверен; смахнули — распознанный номер остаётся с подсказкой
+  /// «Проверьте VIN» под видоискателем.
+  Future<void> _edit(BuildContext context, {_Recognition? recognized}) async {
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: context.colors.bg0,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          left: 22,
-          right: 22,
-          top: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 22,
-        ),
+      builder: (_) => _VinSheet(controller: controller, recognized: recognized),
+    );
+    if (confirmed == true) controller.markChecked();
+  }
+}
+
+/// Чем закончилось распознавание снимка. Догадка ([guessVin]: неполный
+/// номер или с заменой O→0) показывается как неуверенная — её
+/// исполнитель обязан проверить по знаку.
+enum _Recognition { exact, guess, none }
+
+/// Содержимое шторки сверки VIN. Ошибку «Всё верно» держит у себя: пока
+/// номер не годится, шторка не закрывается.
+class _VinSheet extends StatefulWidget {
+  const _VinSheet({required this.controller, this.recognized});
+
+  final VinCaptureController controller;
+
+  /// Исход распознавания сразу после снимка; null — шторку открыли руками
+  /// («Исправить», «Ввести вручную»).
+  final _Recognition? recognized;
+
+  @override
+  State<_VinSheet> createState() => _VinSheetState();
+}
+
+class _VinSheetState extends State<_VinSheet> {
+  String? _error;
+
+  /// Рекомендация под полем: как прошло распознавание. Считается один раз
+  /// при открытии — пока исполнитель правит, текст не должен прыгать.
+  late final String? _warning;
+  late final String? _helper;
+
+  /// Уверенно распознанный полный номер — клавиатуру не поднимаем, иначе
+  /// она закроет снимок; догадку, неполный или пустой — сразу править.
+  late final bool _confident;
+
+  VinCaptureController get _c => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _c.text.addListener(_clearError);
+    final complete = _c.value.isNotEmpty && _c.textProblem() == null;
+    final how = widget.recognized;
+    _confident =
+        complete && how != _Recognition.guess && how != _Recognition.none;
+    _warning = switch (how) {
+      _Recognition.none => 'Не удалось распознать — введите по фото',
+      _Recognition.guess when complete =>
+        'Распознано неуверенно — проверьте каждый знак',
+      _Recognition.guess => 'Распознано не всё — допишите по фото',
+      _ => null,
+    };
+    _helper = _warning == null && _c.photoPath != null
+        ? 'Сверьте с табличкой на фото'
+        : null;
+  }
+
+  @override
+  void dispose() {
+    _c.text.removeListener(_clearError);
+    super.dispose();
+  }
+
+  void _clearError() {
+    if (_error != null) setState(() => _error = null);
+  }
+
+  void _submit() {
+    final problem = _c.textProblem();
+    if (problem != null) {
+      setState(() => _error = problem);
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = _c.kind;
+    final photo = _c.photoPath;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 22,
+        right: 22,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 22,
+      ),
+      child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -255,11 +383,21 @@ class VinCapture extends StatelessWidget {
               kind.label,
               extra: kind == VinKind.vin ? '17 символов' : 'как на табличке',
             ),
+            if (photo != null) ...[
+              _PlatePhoto(path: photo),
+              const SizedBox(height: 10),
+            ],
             FieldBoxInput(
               label: '',
-              controller: controller.text,
-              hint: kind == VinKind.vin ? 'XW8ZZZ61ZKG0KX24P' : 'GX110-6012345',
+              controller: _c.text,
+              hint: kind == VinKind.vin
+                  ? '17 знаков с таблички'
+                  : 'например, GX110-6012345',
               mono: true,
+              autofocus: !_confident,
+              error: _error,
+              warning: _warning,
+              helper: _helper,
               inputFormatters: [
                 kind == VinKind.vin
                     ? const VinFormatter()
@@ -268,11 +406,98 @@ class VinCapture extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             CtaPrimary(
-              label: 'Готово',
-              onPressed: () => Navigator.of(context).pop(),
+              label: photo != null ? 'Всё верно' : 'Готово',
+              onPressed: _submit,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Снимок таблички в шторке — щипком увеличивается, чтобы сверить знаки.
+class _PlatePhoto extends StatelessWidget {
+  const _PlatePhoto({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 170,
+        color: context.colors.bg2,
+        child: InteractiveViewer(
+          maxScale: 6,
+          child: Center(
+            child: Image.file(
+              File(path),
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Icon(
+                Icons.image_outlined,
+                size: 28,
+                color: context.colors.text3,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Под распознанным VIN: просьба сверить с табличкой и прямой путь к
+/// правке — без него исправить можно было, только догадавшись тапнуть
+/// по видоискателю ещё раз.
+class _CheckHint extends StatelessWidget {
+  const _CheckHint({required this.kind, required this.onFix});
+
+  final VinKind kind;
+  final VoidCallback onFix;
+
+  @override
+  Widget build(BuildContext context) {
+    final what = kind == VinKind.vin ? 'VIN' : 'номер кузова';
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 15,
+            color: context.colors.progressText,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              'Проверьте $what по табличке — распознавание может ошибиться',
+              style: TextStyle(
+                fontSize: 12,
+                color: context.colors.progressText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onFix,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: context.colors.text1,
+            ),
+            child: const Text(
+              'Исправить',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

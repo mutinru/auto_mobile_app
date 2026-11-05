@@ -76,6 +76,38 @@ String? extractVin(String text) {
   return null;
 }
 
+/// Лучшая догадка о VIN, когда [extractVin] целого не нашёл: строка,
+/// похожая на VIN, даже если знаков меньше 17 или OCR прочитал 0 как O.
+/// Нужна шторке сверки — исполнитель допишет недостающее по фото, а не
+/// наберёт всё заново. I, O и Q в VIN не бывает, поэтому меняем их на
+/// 1 и 0, но не больше двух замен: больше — скорее мусор (текст, прочитанный
+/// вверх ногами), чем VIN. Чтобы не принять за VIN надпись вроде TOYOTA
+/// MOTOR CORPORATION, в строке должно быть хотя бы четыре цифры — у VIN их
+/// обычно шесть и больше. Короче 10 знаков — не догадка.
+String? guessVin(String text) {
+  final full = extractVin(text);
+  if (full != null) return full;
+  String? best;
+  for (final line in text.toUpperCase().split('\n')) {
+    final cleaned = line
+        .replaceAll(RegExp(r'\bVIN\b'), '')
+        .replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (RegExp(r'[0-9]').allMatches(cleaned).length < 4) continue;
+    final head = cleaned.length > 17 ? cleaned.substring(0, 17) : cleaned;
+    if (RegExp(r'[IOQ]').allMatches(head).length > 2) continue;
+    final normalized = cleaned
+        .replaceAll('I', '1')
+        .replaceAll('O', '0')
+        .replaceAll('Q', '0');
+    if (normalized.length < 10) continue;
+    final candidate = normalized.length > 17
+        ? normalized.substring(0, 17)
+        : normalized;
+    if (best == null || candidate.length > best.length) best = candidate;
+  }
+  return best;
+}
+
 /// Номер кузова на табличке: модель шасси, дефис, серийный номер
 /// (`GX110-6012345`, `JZX100 0123456`). Разделитель приводим к дефису.
 String? extractBodyNumber(String text) {

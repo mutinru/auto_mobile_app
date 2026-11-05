@@ -371,11 +371,20 @@ class FieldBoxInput extends StatelessWidget {
     this.autofocus = false,
     this.maxLength,
     this.error,
+    this.warning,
+    this.helper,
     this.optional = false,
   });
 
   /// Текст ошибки под полем; поле — в красной рамке.
   final String? error;
+
+  /// Рекомендация под полем (оранжевая, с иконкой); поле — в оранжевой
+  /// рамке. Ошибка показывается вместо неё.
+  final String? warning;
+
+  /// Серая пояснительная строка под полем; ошибка и рекомендация важнее.
+  final String? helper;
 
   /// Серое «необязательно» справа от подписи.
   final bool optional;
@@ -415,7 +424,10 @@ class FieldBoxInput extends StatelessWidget {
               border: Border.all(
                 color: error != null
                     ? context.colors.statusDefect
+                    : warning != null
+                    ? context.colors.statusProgress
                     : context.colors.line,
+                width: error != null || warning != null ? 1.5 : 1,
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -460,7 +472,56 @@ class FieldBoxInput extends StatelessWidget {
               ],
             ),
           ),
-          FieldError(error),
+          if (error != null)
+            FieldError(error)
+          else if (warning != null)
+            FieldWarning(warning!)
+          else if (helper != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                helper!,
+                style: TextStyle(fontSize: 12, color: context.colors.text2),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Рекомендация под полем: оранжевая иконка и текст, как подсказка
+/// «чего не хватает» на экране детали осмотра. Не ошибка — не блокирует.
+class FieldWarning extends StatelessWidget {
+  const FieldWarning(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(
+              Icons.error_outline,
+              size: 14,
+              color: context.colors.progressText,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                color: context.colors.progressText,
+              ),
+            ),
+          ),
         ],
       ),
     );
