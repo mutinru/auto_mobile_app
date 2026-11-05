@@ -18,10 +18,21 @@ enum AppIntent { buy, work, browse }
 /// Сверху — поддержка и переключатель темы (design/first-launch-screen.html):
 /// оба доступны ещё до входа. Вошедшему рядом с темой — колокольчик
 /// уведомлений, чтобы новое было видно, не выбирая режим.
+///
+/// Вопрос лежит в корне всегда (QA 2026-11-05 №2, №19): вошедший видит его,
+/// вернувшись «назад» из раздела, — поэтому ему тексты без онбординга.
 class IntentScreen extends StatelessWidget {
-  const IntentScreen({super.key, required this.onChoose, this.onNotifications});
+  const IntentScreen({
+    super.key,
+    required this.onChoose,
+    this.onNotifications,
+    this.signedIn = false,
+  });
 
   final ValueChanged<AppIntent> onChoose;
+
+  /// Вошёл: «Куда перейти?» без строк про регистрацию.
+  final bool signedIn;
 
   /// Открыть ленту уведомлений. null — гость: колокольчика нет.
   final VoidCallback? onNotifications;
@@ -81,13 +92,16 @@ class IntentScreen extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       Text(
-                        'Что вас сюда привело?',
+                        signedIn ? 'Куда перейти?' : 'Что вас сюда привело?',
                         style: context.text.flTitle,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Настроим главный экран. Переключить режим можно в любой '
-                        'момент — регистрация пока не нужна.',
+                        signedIn
+                            ? 'Аккаунт один на оба сценария — переключиться '
+                                  'можно в любой момент.'
+                            : 'Настроим главный экран. Переключить режим можно '
+                                  'в любой момент — регистрация пока не нужна.',
                         style: context.text.flSub,
                       ),
                       const SizedBox(height: 24),
@@ -123,16 +137,18 @@ class IntentScreen extends StatelessWidget {
                         onPressed: () => onChoose(AppIntent.browse),
                       ),
 
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Text(
-                          'Это не роль и не регистрация — только вид главного экрана. '
-                          'Аккаунт остаётся один на оба сценария.',
-                          style: context.text.flNote,
-                          textAlign: TextAlign.center,
+                      if (!signedIn) ...[
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            'Это не роль и не регистрация — только вид главного экрана. '
+                            'Аккаунт остаётся один на оба сценария.',
+                            style: context.text.flNote,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

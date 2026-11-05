@@ -18,6 +18,7 @@ import 'l10n/app_locale.dart';
 import 'models/order.dart';
 import 'models/order_kind.dart';
 import 'models/push_target.dart';
+import 'navigation/section_nav.dart';
 import 'push/firebase_push_messaging.dart';
 import 'push/push_service.dart';
 import 'screens/intent_screen.dart';
@@ -32,6 +33,7 @@ import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
 import 'screens/profile_screen.dart';
 import 'state/city_locator.dart';
+import 'state/last_section.dart';
 import 'state/nearby_filter_store.dart';
 import 'state/notification_scope.dart';
 import 'state/notification_unread.dart';
@@ -49,6 +51,10 @@ Future<void> main() async {
   // тему читаем до первого кадра, иначе светлая мигнёт тёмной
   final theme = ThemeController();
   await theme.load();
+  // последний раздел — тоже до первого кадра: вошедший попадает в него
+  // сразу, вопрос о намерении не мелькает
+  final lastSection = LastSection.secure();
+  await lastSection.load();
   final auth = AuthService();
   // бейджи непрочитанных поддержки: одна сессия — один счётчик
   final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))
@@ -74,6 +80,7 @@ Future<void> main() async {
       unread: unread,
       notifications: notifications,
       push: push,
+      lastSection: lastSection,
     ),
   );
 }
@@ -86,6 +93,7 @@ class AutoPodborApp extends StatelessWidget {
     this.unread,
     this.notifications,
     this.push,
+    this.lastSection,
   });
 
   final ThemeController theme;
@@ -103,6 +111,9 @@ class AutoPodborApp extends StatelessWidget {
 
   /// Пуши — тапы по ним открывает _RootGate.
   final PushService? push;
+
+  /// Последний выбранный раздел. null — без автоперехода при запуске.
+  final LastSection? lastSection;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +152,7 @@ class AutoPodborApp extends StatelessWidget {
               ),
             ),
           ),
-          home: _RootGate(auth: auth, push: push),
+          home: _RootGate(auth: auth, push: push, lastSection: lastSection),
         ),
       ),
     );
@@ -152,18 +163,21 @@ class AutoPodborApp extends StatelessWidget {
 /// макета car-storefront-modes.html), за ним экран выбранного режима:
 /// «Ищу автомобиль» → [MyOrdersScreen], «Беру заказы» → [NearbyOrdersScreen],
 /// «Просто посмотрю» → [PublicFeedScreen]. Первые два требуют токен, поэтому
-/// гостя ведут через вход. Выбранный раздел встаёт на место вопроса (см.
-/// [_RootGateState._switchTo]), витрина — поверх него. Держит [AuthService]
-/// и отдаёт [OrderStore] на реальном API в разделы.
+/// гостя ведут через вход. Вопрос всегда лежит в корне, выбранный раздел —
+/// «дом» — поверх него, профиль и разделы из профиля — ещё выше; правила
+/// стека — в [SectionNav]. «Назад» из дома ведёт к вопросу, с вопроса —
+/// выход. Вошедшему при запуске дом открывается сразу ([LastSection]).
+/// Держит [AuthService] и отдаёт [OrderStore] на реальном API в разделы.
 ///
 /// Экраны одиночного осмотра (InspectionOverviewScreen) остаются
 /// самостоятельным модулем — из этого хаба пока не достижимы напрямую,
 /// подключаются к заказу отдельным проходом (см. "Старт осмотра" в макете).
 class _RootGate extends StatefulWidget {
-  const _RootGate({required this.auth, this.push});
+  const _RootGate({required this.auth, this.push, this.lastSection});
 
   final AuthService auth;
   final PushService? push;
+  final LastSection? lastSection;
 
   @override
   State<_RootGate> createState() => _RootGateState();
@@ -196,11 +210,14 @@ class _RootGateState extends State<_RootGate> {
       if (!mounted) return;
       setState(() {});
       _warmUpCity();
-      // тапом по пушу приложение запустили — сессия уже поднята
+      // тапом по пушу приложение запустили — сессия уже поднята; экран
+      // пуша — поверх дома, чтобы «назад» вёл туда, а не к вопросу
       final tap = widget.push?.takePendingTap();
-      if (tap != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _openPush(tap));
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _openLastSection();
+        if (tap != null) _openPush(tap);
+      });
     });
     _auth.addListener(_onAuthChanged);
     _auth.addListener(_warmUpCity);
@@ -279,20 +296,16 @@ class _RootGateState extends State<_RootGate> {
   void _onAuthChanged() {
     if (!_auth.sessionExpired || !mounted) return;
     _auth.consumeSessionExpired();
-    final section = _section;
+    final section = _nav.home;
     final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() {
-      _root = null;
-      _section = null;
-    });
+    _nav.reset();
     messenger.showSnackBar(
       const SnackBar(content: Text('Сессия истекла — войдите заново')),
     );
     // гостю (витрина, вопрос о намерении) вход не навязываем
     if (section == null) return;
     _pushLogin(
-      onLoggedIn: () => _switchTo(section),
+      onLoggedIn: () => _openHome(section),
       onBrowse: () => Navigator.of(context).pushReplacement(_feedRoute()),
     );
   }
@@ -313,21 +326,21 @@ class _RootGateState extends State<_RootGate> {
   /// «Ищу автомобиль» ведёт в мои заказы. /orders/mine требует токен, а
   /// экран на ошибке загрузки висит на спиннере — поэтому гостя сначала
   /// проводим через вход.
-  void _openMyOrders() => _openSection(_Section.myOrders);
+  void _openMyOrders() => _openSection(HomeSection.myOrders);
 
   /// «Беру заказы на подбор» ведёт в «Заказы рядом». /orders/available
   /// требует токен, поэтому гостя, как и в «Ищу автомобиль», сначала
   /// проводим через вход.
-  void _openNearbyOrders() => _openSection(_Section.nearby);
+  void _openNearbyOrders() => _openSection(HomeSection.nearby);
 
-  void _openSection(_Section section) {
+  void _openSection(HomeSection section) {
     if (_auth.isAuthenticated) {
-      _switchTo(section);
+      _chooseHome(section);
     } else {
       // вход открыт с вопроса о намерении, а не с витрины: «без входа»
       // подменяем витриной, чтобы «назад» с неё вёл к вопросу
       _pushLogin(
-        onLoggedIn: () => _switchTo(section),
+        onLoggedIn: () => _chooseHome(section),
         onBrowse: () => Navigator.of(context).pushReplacement(_feedRoute()),
       );
     }
@@ -374,7 +387,7 @@ class _RootGateState extends State<_RootGate> {
         ? await navigator.pushReplacement<Order, void>(route)
         : await navigator.push(route);
     if (created != null && mounted) {
-      _switchTo(_Section.myOrders, store: store);
+      _openHome(HomeSection.myOrders, store: store);
     }
   }
 
@@ -403,76 +416,92 @@ class _RootGateState extends State<_RootGate> {
     addresses: _addresses,
   );
 
-  /// Открытый раздел. null — показываем вопрос о намерении.
-  Widget? _root;
+  /// Стек разделов: вопрос → дом → профиль → другой раздел, без копий.
+  late final _nav = SectionNav(() => Navigator.of(context));
 
-  /// Какой раздел открыт — чтобы вернуть в него после повторного входа.
-  _Section? _section;
-
-  /// Переход в раздел «Мои заказы», «Заказы рядом» или «Профиль». Раздел
-  /// встаёт в корень стека вместо вопроса о намерении (и вместо другого
-  /// раздела), а всё, что было сверху — вход, витрина, форма, — снимается.
-  /// Поэтому у раздела нет стрелки «назад», а системное «назад» закрывает
-  /// приложение. Корневой маршрут не подменяем: вместе с ним умер бы
-  /// _RootGateState, а колбэки открытых экранов зовут его контекст.
-  void _switchTo(_Section section, {OrderStore? store}) {
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() {
-      _section = section;
-      _root = _sectionScreen(section, store: store);
-    });
+  /// Выбор на вопросе о намерении: раздел становится домом и запоминается —
+  /// при следующем запуске откроется сразу.
+  void _chooseHome(HomeSection section) {
+    unawaited(widget.lastSection?.save(section));
+    _openHome(section);
   }
 
-  /// Выход: раздел снимается, снова виден вопрос о намерении. Сторы
-  /// разделов создаются заново на каждый [_switchTo], поэтому данные
-  /// прошлого пользователя выход не переживут.
+  /// Дом поверх вопроса — со свежим стором или стором только что
+  /// созданного заказа, чтобы тот был виден сразу.
+  void _openHome(
+    HomeSection section, {
+    OrderStore? store,
+    bool animate = true,
+  }) => _nav.openHome(
+    section,
+    () => _sectionScreen(section, store ?? _orderStore()),
+    animate: animate,
+  );
+
+  /// Запуск вошедшего: сразу в последний дом, без анимации появления.
+  void _openLastSection() {
+    final section = widget.lastSection?.value;
+    if (section == null || !_auth.isAuthenticated || _nav.home != null) {
+      return;
+    }
+    _openHome(section, animate: false);
+  }
+
+  /// Иконка профиля в любом разделе. Разделы, открытые из профиля, делят
+  /// его стор: счётчики профиля видят те же списки, что и экран поверх.
+  void _openProfile() => _nav.openProfile(() {
+    final store = _orderStore();
+    return ProfileScreen(
+      auth: _auth,
+      store: store,
+      verification: _verification,
+      onMyOrders: () => _nav.openFromProfile(
+        HomeSection.myOrders,
+        () => _sectionScreen(HomeSection.myOrders, store),
+      ),
+      onNearbyOrders: () => _nav.openFromProfile(
+        HomeSection.nearby,
+        () => _sectionScreen(HomeSection.nearby, store),
+      ),
+      onLogout: _logout,
+    );
+  });
+
+  /// Выход: снова виден вопрос о намерении, последний раздел забыт. Сторы
+  /// создаются заново на каждый раздел, поэтому данные прошлого
+  /// пользователя выход не переживут.
   Future<void> _logout() async {
     await _auth.logout();
+    await widget.lastSection?.clear();
     if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    setState(() {
-      _root = null;
-      _section = null;
-    });
+    _nav.reset();
   }
 
-  /// Экран раздела со свежими сторами. Сторы создаём здесь, а не в build:
-  /// build зовётся заново при каждой смене темы, и экран получил бы новый
-  /// пустой стор. UniqueKey — чтобы состояние не переезжало между разделами.
-  Widget _sectionScreen(_Section section, {OrderStore? store}) {
-    final orders = store ?? _orderStore();
-    final screen = switch (section) {
-      _Section.myOrders => MyOrdersScreen(
-        auth: _auth,
-        store: orders,
-        onProfile: () => _switchTo(_Section.profile),
-      ),
-      _Section.nearby => NearbyOrdersScreen(
-        store: orders,
-        verification: _verification,
-        auth: _auth,
-        onProfile: () => _switchTo(_Section.profile),
-        filters: NearbyFilterStore.persistent(
-          // фильтры — свои у каждого аккаунта; после офлайн-старта профиля
-          // ещё может не быть
-          userId: () async {
-            await _auth.ensureUser();
-            return _auth.user?.id;
-          },
-          locator: _cityLocator,
-        )..load(),
-      ),
-      _Section.profile => ProfileScreen(
-        auth: _auth,
-        store: orders,
-        verification: _verification,
-        onMyOrders: () => _switchTo(_Section.myOrders),
-        onNearbyOrders: () => _switchTo(_Section.nearby),
-        onLogout: _logout,
-      ),
-    };
-    return KeyedSubtree(key: UniqueKey(), child: screen);
-  }
+  /// Экран раздела. Зовётся из фабрики [SectionNav] один раз на маршрут —
+  /// не в `builder`, иначе смена темы пересоздала бы сторы.
+  Widget _sectionScreen(HomeSection section, OrderStore orders) =>
+      switch (section) {
+        HomeSection.myOrders => MyOrdersScreen(
+          auth: _auth,
+          store: orders,
+          onProfile: _openProfile,
+        ),
+        HomeSection.nearby => NearbyOrdersScreen(
+          store: orders,
+          verification: _verification,
+          auth: _auth,
+          onProfile: _openProfile,
+          filters: NearbyFilterStore.persistent(
+            // фильтры — свои у каждого аккаунта; после офлайн-старта профиля
+            // ещё может не быть
+            userId: () async {
+              await _auth.ensureUser();
+              return _auth.user?.id;
+            },
+            locator: _cityLocator,
+          )..load(),
+        ),
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -482,30 +511,28 @@ class _RootGateState extends State<_RootGate> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // вопрос о намерении показывается при каждом запуске, выбор нигде не
-    // сохраняется. «Ищу автомобиль» ведёт в мои заказы, «Беру заказы» — в
-    // «Заказы рядом», «Просто посмотрю» — на витрину
-    return _root ??
-        // колокольчик — только вошедшему; вход и выход перерисовывают шапку
-        ListenableBuilder(
-          listenable: _auth,
-          builder: (context, _) => IntentScreen(
-            onChoose: (intent) => switch (intent) {
-              AppIntent.buy => _openMyOrders(),
-              AppIntent.work => _openNearbyOrders(),
-              AppIntent.browse => _openFeed(),
-            },
-            onNotifications: _auth.isAuthenticated
-                ? () => openNotifications(
-                    context,
-                    store: _orderStore(),
-                    auth: _auth,
-                  )
-                : null,
-          ),
-        );
+    // вопрос о намерении всегда в корне: гость видит его при запуске,
+    // вошедший — по «назад» из дома ([LastSection] открывает дом сразу).
+    // «Ищу автомобиль» ведёт в мои заказы, «Беру заказы» — в «Заказы рядом»,
+    // «Просто посмотрю» — на витрину
+    // колокольчик — только вошедшему; вход и выход перерисовывают шапку
+    return ListenableBuilder(
+      listenable: _auth,
+      builder: (context, _) => IntentScreen(
+        signedIn: _auth.isAuthenticated,
+        onChoose: (intent) => switch (intent) {
+          AppIntent.buy => _openMyOrders(),
+          AppIntent.work => _openNearbyOrders(),
+          AppIntent.browse => _openFeed(),
+        },
+        onNotifications: _auth.isAuthenticated
+            ? () => openNotifications(
+                context,
+                store: _orderStore(),
+                auth: _auth,
+              )
+            : null,
+      ),
+    );
   }
 }
-
-/// Разделы, между которыми переключает [_RootGateState._switchTo].
-enum _Section { myOrders, nearby, profile }

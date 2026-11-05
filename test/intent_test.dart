@@ -37,6 +37,32 @@ void main() {
     expect(find.text('Просто посмотрю'), findsOneWidget);
   });
 
+  testWidgets('вошедшему — «Куда перейти?» без онбординга (QA №19)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: IntentScreen(onChoose: (_) {}, signedIn: true),
+      ),
+    );
+
+    expect(find.text('Куда перейти?'), findsOneWidget);
+    expect(find.text('Что вас сюда привело?'), findsNothing);
+    expect(find.textContaining('регистрац'), findsNothing);
+    expect(find.text('Ищу автомобиль'), findsOneWidget);
+    expect(find.text('Беру заказы на подбор'), findsOneWidget);
+    expect(find.text('Просто посмотрю'), findsOneWidget);
+  });
+
+  testWidgets('гостю — вопрос и строки про регистрацию', (tester) async {
+    final (app, _) = build();
+    await tester.pumpWidget(app);
+
+    expect(find.textContaining('регистрация пока не нужна'), findsOneWidget);
+    expect(find.textContaining('Это не роль и не регистрация'), findsOneWidget);
+  });
+
   testWidgets('карточка исполнителя без выдуманных цифр из макета', (
     tester,
   ) async {
