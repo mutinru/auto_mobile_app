@@ -60,13 +60,18 @@ class CapturedOdometer {
 /// не встречаются — это отсеивает ложные срабатывания на обычных словах.
 /// Сначала — отдельное слово ровно из 17 знаков; не нашлось (OCR разбил
 /// VIN пробелами) — склеиваем строку, убрав подпись «VIN», иначе её N
-/// прилипнет к номеру.
+/// прилипнет к номеру. Склеиваем не всякую строку ([_glueable]).
+///
+/// Берётся первое совпадение по порядку текста: снимок с рамкой отдаёт
+/// строки от ближайшей к центру рамки (`textNearest`), так что побеждает
+/// строка, на которую наводили, а не верхняя на табличке.
 String? extractVin(String text) {
   final upper = text.toUpperCase();
   final whole = RegExp(r'(?<![A-Z0-9])[A-HJ-NPR-Z0-9]{17}(?![A-Z0-9])');
   final exact = whole.firstMatch(upper)?.group(0);
   if (exact != null) return exact;
   for (final line in upper.split('\n')) {
+    if (!_glueable(line)) continue;
     final cleaned = line
         .replaceAll(RegExp(r'\bVIN\b'), '')
         .replaceAll(RegExp(r'[^A-Z0-9]'), '');
@@ -89,6 +94,7 @@ String? guessVin(String text) {
   if (full != null) return full;
   String? best;
   for (final line in text.toUpperCase().split('\n')) {
+    if (!_glueable(line)) continue;
     final cleaned = line
         .replaceAll(RegExp(r'\bVIN\b'), '')
         .replaceAll(RegExp(r'[^A-Z0-9]'), '');
@@ -106,6 +112,21 @@ String? guessVin(String text) {
     if (best == null || candidate.length > best.length) best = candidate;
   }
   return best;
+}
+
+/// Можно ли склеить строку в VIN. OCR разбивает VIN на 2–3 куска
+/// («XW8 ZZZ61Z KG100111»), а соседние строки шильдика — это много слов и
+/// дефисы: «MAX 1650 KG 1-860 KG 2-1000 KG» без разделителей тоже даёт 17
+/// «VIN-знаков» (QA 2026-11-05 №4). Поэтому: не больше четырёх кусков
+/// (подпись «VIN» не в счёт) и никаких дефисов между буквами и цифрами.
+bool _glueable(String line) {
+  final upper = line.toUpperCase();
+  if (RegExp(r'[A-Z0-9]\s*-\s*[A-Z0-9]').hasMatch(upper)) return false;
+  final pieces = upper
+      .replaceAll(RegExp(r'\bVIN\b'), ' ')
+      .split(RegExp(r'[^A-Z0-9]+'))
+      .where((p) => p.isNotEmpty);
+  return pieces.length <= 4;
 }
 
 /// Номер кузова на табличке: модель шасси, дефис, серийный номер

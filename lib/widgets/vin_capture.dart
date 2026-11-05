@@ -10,6 +10,7 @@ import '../models/vin_kind.dart';
 import '../screens/vin_camera_screen.dart';
 import '../theme/app_colors.dart';
 import 'app_ui.dart';
+import 'vin_frame.dart';
 import 'vin_scanner.dart';
 
 /// Состояние блока VIN: что снято, какого вида, где фото таблички и
@@ -245,13 +246,21 @@ class VinCapture extends StatelessWidget {
     controller._setScanning(true);
     var (found, how) = (null as String?, _Recognition.none);
     final frame = shot.frame;
-    if (frame != null) {
+    final crop = frame == null
+        ? null
+        : await cropFrame(shot.path, frame, preview: shot.preview);
+    if (crop != null) {
       // сначала только рамка: на шильдике рядом с VIN много других надписей
-      (found, how) = _parse(await recognizeTextInFrame(shot.path, frame));
-    }
-    if (found == null) {
-      // в рамке пусто (или снимали системной камерой) — весь кадр, как
-      // раньше: промах пересчёта рамки не должен делать хуже
+      (found, how) = _parse(await recognizeNear(crop.path, crop.centerInCrop));
+      if (found == null) {
+        // в рамке пусто — весь кадр, но строки всё равно от центра рамки:
+        // промах вырезки не должен отдавать верхнюю надпись таблички
+        (found, how) = _parse(
+          await recognizeNear(shot.path, crop.centerInImage),
+        );
+      }
+    } else {
+      // снимали системной камерой (рамки нет) или снимок не разобрался
       (found, how) = _parse(await recognizeText(shot.path));
     }
     controller._setScanning(false);
@@ -577,32 +586,84 @@ Future<String?> recognizeText(String imagePath) async {
   }
 }
 
-/// Текст только из рамки [frame] (доли кадра). Снимок поворачиваем по EXIF
-/// и вырезаем рамку в полном разрешении — мелкие буквы шильдика не теряют
-/// пикселей, а соседние надписи не попадают в OCR. Вырезка — в отдельном
-/// изоляте: разбор JPEG на 12 Мп заметно подвесил бы интерфейс.
-Future<String?> recognizeTextInFrame(String imagePath, Rect frame) async {
+/// Строки текста со снимка с их местом — ML Kit, офлайн. Координаты — в
+/// повёрнутом по EXIF снимке: ML Kit сам читает поворот из файла. null — не
+/// удалось распознать.
+Future<List<OcrLine>?> recognizeLines(String imagePath) async {
+  final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  try {
+    final result = await recognizer.processImage(
+      InputImage.fromFilePath(imagePath),
+    );
+    return [
+      for (final block in result.blocks)
+        for (final line in block.lines)
+          (text: line.text, box: line.boundingBox),
+    ];
+  } catch (_) {
+    return null;
+  } finally {
+    await recognizer.close();
+  }
+}
+
+/// Текст снимка строками от ближайшей к [centerY] (центр рамки в пикселях
+/// этого снимка) — см. [textNearest].
+Future<String?> recognizeNear(String imagePath, double centerY) async {
+  final lines = await recognizeLines(imagePath);
+  return lines == null ? null : textNearest(lines, centerY);
+}
+
+/// Вырезка рамки и где её центр: в пикселях вырезки и целого снимка.
+typedef FrameCrop = ({String path, double centerInCrop, double centerInImage});
+
+/// Вырезает рамку [frame] (доли превью) из снимка в полном разрешении:
+/// мелкие буквы шильдика не теряют пикселей, а соседние надписи не
+/// попадают в OCR. Снимок поворачиваем по EXIF и переводим рамку в его доли
+/// по настоящему размеру ([previewToImage]): превью и снимок бывают разной
+/// формы (QA 2026-11-05 №4). В отдельном изоляте: разбор JPEG на 12 Мп
+/// заметно подвесил бы интерфейс. null — снимок не разобрался.
+Future<FrameCrop?> cropFrame(
+  String imagePath,
+  Rect frame, {
+  Size? preview,
+}) async {
   final cropPath = '$imagePath.frame.jpg';
-  final (l, t, w, h) = (frame.left, frame.top, frame.width, frame.height);
-  final ok = await Isolate.run(() {
+  return Isolate.run(() {
     try {
       final decoded = img.decodeImage(File(imagePath).readAsBytesSync());
-      if (decoded == null) return false;
+      if (decoded == null) return null;
       final upright = img.bakeOrientation(decoded);
+      final size = Size(upright.width.toDouble(), upright.height.toDouble());
+      final inImage = preview == null
+          ? frame
+          : previewToImage(frame, preview: preview, image: size);
+      final x = (inImage.left * size.width).round().clamp(0, upright.width - 1);
+      final y = (inImage.top * size.height).round().clamp(
+        0,
+        upright.height - 1,
+      );
       final crop = img.copyCrop(
         upright,
-        x: (l * upright.width).round(),
-        y: (t * upright.height).round(),
-        width: (w * upright.width).round().clamp(1, upright.width),
-        height: (h * upright.height).round().clamp(1, upright.height),
+        x: x,
+        y: y,
+        width: (inImage.width * size.width).round().clamp(1, upright.width - x),
+        height: (inImage.height * size.height).round().clamp(
+          1,
+          upright.height - y,
+        ),
       );
       File(cropPath).writeAsBytesSync(img.encodeJpg(crop, quality: 92));
-      return true;
+      final centerInImage = inImage.center.dy * size.height;
+      return (
+        path: cropPath,
+        centerInCrop: centerInImage - y,
+        centerInImage: centerInImage,
+      );
     } catch (_) {
-      return false;
+      return null;
     }
   });
-  return ok ? recognizeText(cropPath) : null;
 }
 
 /// VIN с камеры — без сохранения снимка (поле заказчика).

@@ -12,10 +12,16 @@ import '../widgets/vin_frame.dart';
 /// доказательство) и рамка в долях кадра — распознаётся только она.
 /// [frame] == null — сняли системной камерой, рамки не было.
 class VinShot {
-  const VinShot({required this.path, this.frame});
+  const VinShot({required this.path, this.frame, this.preview});
 
   final String path;
+
+  /// Рамка в долях превью (с запасом). null — снимали системной камерой.
   final Rect? frame;
+
+  /// Портретный размер превью: по нему и настоящему размеру снимка рамку
+  /// переводят в кадр снимка (`previewToImage`) — они бывают разной формы.
+  final Size? preview;
 }
 
 /// Открывает камеру с рамкой; null — закрыли без снимка.
@@ -185,6 +191,7 @@ class _VinCameraScreenState extends State<VinCameraScreen>
             viewport: viewport,
             frameOnScreen: _frameRect(viewport),
           ),
+          preview: preview,
         ),
       );
     } on CameraException {

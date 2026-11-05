@@ -257,6 +257,15 @@ void main() {
       expect(guessVin('WIAXTSYNZT9ZZZ8MX'), isNull);
     });
 
+    test('строка шильдика с массами — не VIN (QA 2026-11-05 №4)', () {
+      // без пробелов и дефисов она даёт 17 «VIN-знаков»: WAX1650KG1860KG28
+      const masses = 'MAX 1650 KG 1-860 KG 2-1000 KG';
+      expect(extractVin(masses), isNull);
+      expect(guessVin(masses), isNull);
+      // а VIN, разбитый OCR на три куска, по-прежнему склеивается
+      expect(guessVin('VIN: XW8 ZZZ61Z KG10011'), 'XW8ZZZ61ZKG10011');
+    });
+
     test('надписи без цифр и короткие строки — не VIN', () {
       expect(guessVin('TOYOTA MOTOR CORPORATION'), isNull);
       expect(guessVin('MAX 1850 KG'), isNull);
