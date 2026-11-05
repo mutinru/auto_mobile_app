@@ -16,7 +16,9 @@ import '../widgets/confirm_sheet.dart';
 import '../widgets/deadline_countdown.dart';
 import '../widgets/dispute_sheet.dart';
 import '../widgets/inspection_order_parts.dart';
+import '../util/route_link.dart';
 import '../widgets/payment_parts.dart';
+import '../widgets/route_button.dart';
 import '../widgets/support_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'car_vin_screen.dart';
@@ -301,6 +303,13 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
             priceLabel: 'Ваш гонорар',
             price: order.price ?? order.askingPrice,
           ),
+          // до осмотра и во время него — путь до машины во внешнем навигаторе
+          if ((order.status == OrderStatus.scheduled ||
+                  order.status == OrderStatus.inspecting) &&
+              routeLinks(order).isNotEmpty) ...[
+            const SizedBox(height: 10),
+            RouteButton(order: order),
+          ],
           if (order.executorDeadlineAt != null &&
               (order.status == OrderStatus.scheduled ||
                   order.status == OrderStatus.inspecting)) ...[

@@ -36,6 +36,7 @@ class Order {
     this.address,
     this.lat,
     this.lon,
+    this.addressPrecision,
     this.inspectOn,
     this.timeSlot,
     this.inspectTime,
@@ -88,6 +89,16 @@ class Order {
   /// заказа сервер округляет её до ~1 км — для «· 8 км» в ленте хватает.
   final double? lat;
   final double? lon;
+
+  /// Точность точки — `qc_geo` DaData: 0 — дом, 1 — ближайший дом, 2 —
+  /// улица, 3 — населённый пункт, 4 — город, 5 — не определено. null —
+  /// адрес введён руками и точка — центр города. Только сторонам заказа.
+  final int? addressPrecision;
+
+  /// Точка — сам дом, по ней можно строить маршрут. Иначе маршрут — по
+  /// тексту адреса: центр города увёл бы не туда.
+  bool get hasExactPoint =>
+      lat != null && lon != null && (addressPrecision ?? 9) <= 1;
 
   /// «Химки, ул. Ленина, 5». У осмотров до разделения города и адреса
   /// город уже стоит в начале address — не повторяем его.
@@ -312,6 +323,7 @@ class Order {
     address: address,
     lat: lat,
     lon: lon,
+    addressPrecision: addressPrecision,
     inspectOn: inspectOn ?? this.inspectOn,
     timeSlot: timeSlot ?? this.timeSlot,
     inspectTime: timeSlot != null ? inspectTime : this.inspectTime,
@@ -364,6 +376,7 @@ class Order {
     address: json['address'] as String?,
     lat: (json['lat'] as num?)?.toDouble(),
     lon: (json['lon'] as num?)?.toDouble(),
+    addressPrecision: json['address_precision'] as int?,
     // с бекенда приходит 'Y-m-d' — DateTime.parse даёт локальную полночь
     inspectOn: json['inspect_on'] != null
         ? DateTime.parse(json['inspect_on'] as String)
