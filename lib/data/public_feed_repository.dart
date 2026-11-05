@@ -1,17 +1,17 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
-
 import '../config/api_config.dart';
 import '../models/feed_card.dart';
 import '../models/public_order.dart';
 import 'api_exception.dart';
+import 'http_transport.dart';
 
-/// Витрина доступна без входа, поэтому ходит мимо ApiClient —
-/// токена здесь нет по замыслу.
+/// Витрина доступна без входа, поэтому ходит мимо ApiClient — прямо
+/// транспортом (с его таймаутом); токена здесь нет по замыслу.
 class PublicFeedRepository {
   Future<(FeedStats, List<FeedCard>)> fetchFeed() async {
-    final response = await http.get(
+    final response = await HttpTransport.request(
+      'GET',
       Uri.parse('${ApiConfig.baseUrl}/public/feed'),
       headers: {'Accept': 'application/json'},
     );
@@ -27,7 +27,8 @@ class PublicFeedRepository {
   }
 
   Future<PublicOrder> fetchOrder(int id) async {
-    final response = await http.get(
+    final response = await HttpTransport.request(
+      'GET',
       Uri.parse('${ApiConfig.baseUrl}/public/orders/$id'),
       headers: {'Accept': 'application/json'},
     );

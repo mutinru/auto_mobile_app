@@ -5,15 +5,17 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'api_exception.dart';
 import 'auth_service.dart';
+import 'http_transport.dart';
 
-/// Тонкая обёртка над package:http: базовый URL, Bearer-токен из
-/// [AuthService], декодирование JSON и единая обработка ошибок.
+/// Обёртка над [HttpTransport]: базовый URL, Bearer-токен из
+/// [AuthService], декодирование JSON и единая обработка ошибок — в том
+/// числе у загрузки файлов ([multipart]). Таймауты — в транспорте.
 class ApiClient {
   ApiClient(this._auth);
 
   final AuthService _auth;
 
-  /// Нужен для multipart-запросов, которые идут мимо этого клиента.
+  /// Токен для заголовков картинок чата (`ChatRepository.imageHeaders`).
   String? get token => _auth.token;
 
   Map<String, String> get _headers => {
@@ -23,7 +25,6 @@ class ApiClient {
   };
 
   /// Ошибка ответа; на 401 заодно стирает сессию — корень уведёт на вход.
-  /// Нужна и multipart-запросам, которые идут мимо [get]/[post].
   ApiException failure(int statusCode, String body) {
     if (statusCode == 401) _auth.expireSession();
     return ApiException(statusCode, body);
@@ -36,7 +37,11 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String path) async {
     await _auth.ensureUser();
-    final response = await http.get(_uri(path), headers: _headers);
+    final response = await HttpTransport.request(
+      'GET',
+      _uri(path),
+      headers: _headers,
+    );
     return _decode(response);
   }
 
@@ -47,7 +52,8 @@ class ApiClient {
     String? etag,
   }) async {
     await _auth.ensureUser();
-    final response = await http.get(
+    final response = await HttpTransport.request(
+      'GET',
       _uri(path),
       headers: {..._headers, 'If-None-Match': ?etag},
     );
@@ -60,7 +66,8 @@ class ApiClient {
     Map<String, dynamic> body,
   ) async {
     await _auth.ensureUser();
-    final response = await http.patch(
+    final response = await HttpTransport.request(
+      'PATCH',
       _uri(path),
       headers: _headers,
       body: jsonEncode(body),
@@ -73,7 +80,8 @@ class ApiClient {
     Map<String, dynamic>? body,
   ]) async {
     await _auth.ensureUser();
-    final response = await http.post(
+    final response = await HttpTransport.request(
+      'POST',
       _uri(path),
       headers: _headers,
       body: body == null ? null : jsonEncode(body),
@@ -83,8 +91,31 @@ class ApiClient {
 
   Future<Map<String, dynamic>> delete(String path) async {
     await _auth.ensureUser();
-    final response = await http.delete(_uri(path), headers: _headers);
+    final response = await HttpTransport.request(
+      'DELETE',
+      _uri(path),
+      headers: _headers,
+    );
     return _decode(response);
+  }
+
+  /// Загрузка файлов: поля и файлы формой, ответ — JSON, ошибки — как у
+  /// [post] (401 стирает сессию, 422 ложатся на поля через
+  /// [ApiException.fieldErrors]). Таймаут — [HttpTransport.uploadTimeout].
+  Future<Map<String, dynamic>> multipart(
+    String path, {
+    Map<String, String> fields = const {},
+    List<http.MultipartFile> files = const [],
+  }) async {
+    await _auth.ensureUser();
+    final request = http.MultipartRequest('POST', _uri(path))
+      ..headers['Accept'] = 'application/json'
+      ..fields.addAll(fields)
+      ..files.addAll(files);
+    if (_auth.token != null) {
+      request.headers['Authorization'] = 'Bearer ${_auth.token}';
+    }
+    return _decode(await HttpTransport.send(request));
   }
 
   Map<String, dynamic> _decode(http.Response response) {

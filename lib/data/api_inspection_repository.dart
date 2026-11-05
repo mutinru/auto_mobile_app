@@ -2,11 +2,8 @@ import '../models/car.dart';
 import '../models/defect_def.dart';
 import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
 import 'api_client.dart';
 import 'inspection_repository.dart';
 
@@ -108,26 +105,12 @@ class ApiInspectionRepository implements InspectionRepository {
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
   }
 
-  /// multipart идёт мимо ApiClient — тот умеет только JSON; ошибки всё равно
-  /// через [ApiClient.failure], чтобы 401 стёр сессию.
   Future<InspectionPanel> _multipart(
     String path,
     http.MultipartFile file, {
     Map<String, String> fields = const {},
   }) async {
-    final request =
-        http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
-          ..headers['Accept'] = 'application/json'
-          ..headers['Authorization'] = 'Bearer ${_client.token}'
-          ..fields.addAll(fields)
-          ..files.add(file);
-
-    final streamed = await request.send();
-    final body = await streamed.stream.bytesToString();
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      throw _client.failure(streamed.statusCode, body);
-    }
-    final json = jsonDecode(body) as Map<String, dynamic>;
+    final json = await _client.multipart(path, fields: fields, files: [file]);
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
   }
 }

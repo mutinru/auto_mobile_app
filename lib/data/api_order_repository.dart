@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
 import '../models/available_page.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
@@ -331,39 +328,27 @@ class ApiOrderRepository implements OrderRepository {
     return (json['data'] as Map<String, dynamic>)['id'] as int;
   }
 
-  /// VIN с фото таблички и пробег с фото одометра — multipart мимо
-  /// ApiClient (тот умеет только JSON); ошибки всё равно через
-  /// [ApiClient.failure], чтобы 401 стёр сессию, а 422 легли на поля.
+  /// VIN с фото таблички и пробег с фото одометра — одной формой; 422
+  /// по полям (`vin`, `mileage_km`, фото) экран раскладывает по блокам.
   Future<Map<String, dynamic>> _withCapture(
     String path,
     CapturedVin vin,
     CapturedOdometer odometer,
     Map<String, String> fields,
   ) async {
-    final request =
-        http.MultipartRequest('POST', Uri.parse('${ApiConfig.baseUrl}$path'))
-          ..headers['Accept'] = 'application/json'
-          ..headers['Authorization'] = 'Bearer ${_client.token}'
-          ..fields.addAll({
-            ...fields,
-            'vin': vin.value,
-            'vin_kind': vin.kind.apiValue,
-            'mileage_km': '${odometer.km}',
-          })
-          ..files.addAll([
-            await http.MultipartFile.fromPath('vin_photo', vin.photoPath),
-            await http.MultipartFile.fromPath(
-              'odometer_photo',
-              odometer.photoPath,
-            ),
-          ]);
-
-    final streamed = await request.send();
-    final body = await streamed.stream.bytesToString();
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      throw _client.failure(streamed.statusCode, body);
-    }
-    return jsonDecode(body) as Map<String, dynamic>;
+    return _client.multipart(
+      path,
+      fields: {
+        ...fields,
+        'vin': vin.value,
+        'vin_kind': vin.kind.apiValue,
+        'mileage_km': '${odometer.km}',
+      },
+      files: [
+        await http.MultipartFile.fromPath('vin_photo', vin.photoPath),
+        await http.MultipartFile.fromPath('odometer_photo', odometer.photoPath),
+      ],
+    );
   }
 
   @override

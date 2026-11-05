@@ -5,15 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../data/api_exception.dart';
+import '../data/http_transport.dart';
 
 const networkErrorText = 'Нет связи с сервером. Проверьте интернет и повторите';
 const unexpectedErrorText =
     'Не удалось обработать ответ сервера. Обновите приложение или повторите позже';
 
 /// Запрос не дошёл до сервера или ответ не пришёл: обрыв, нет сети, TLS,
-/// таймаут. Распознаём по типу — транспорт в приложении не один
-/// (ApiClient, прямые http.*, multipart), а экраны все идут через
-/// [apiErrorText]. IOClient заворачивает SocketException в ClientException.
+/// таймаут ([HttpTransport] — 30 с, загрузки — 3 мин). Распознаём по типу:
+/// IOClient заворачивает SocketException в ClientException.
 bool isNetworkError(Object error) =>
     error is http.ClientException ||
     error is SocketException ||

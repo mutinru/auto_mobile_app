@@ -117,9 +117,12 @@ fonts/        Inter и JetBrains Mono, зашиты чтобы не зависе
 `InspectionRepository`, `OrderRepository` и `VerificationRepository` по две
 реализации — `api_*` (весь прод) и `mock_*` (только тесты).
 
-`ApiClient` — тонкая обёртка над `http`, подставляет bearer-токен из
-`AuthService`. Загрузка фото multipart'ом идёт мимо него и читает
-`ApiClient.token` напрямую.
+В сеть приложение ходит только через `HttpTransport`
+(`lib/data/http_transport.dart`): таймаут 30 с, у загрузок файлов — 3 мин;
+таймаут экраны показывают как «Нет связи». Над ним `ApiClient` — базовый
+адрес, bearer-токен из `AuthService`, разбор JSON, 401; загрузки фото, аудио,
+VIN и вложений чата — `ApiClient.multipart`. Напрямую транспортом пользуются
+только `AuthService` и гостевая витрина.
 
 `AuthService` один на приложение: создаётся в `main()` и уходит и в `_RootGate`,
 и в `SupportChatScope` (в `MaterialApp.builder`, выше `Navigator`).

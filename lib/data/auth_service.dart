@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/code_channel.dart';
@@ -10,6 +9,7 @@ import '../models/current_user.dart';
 import '../models/notification_category.dart';
 import '../models/payout.dart';
 import 'api_exception.dart';
+import 'http_transport.dart';
 
 /// Хранит Sanctum-токен в защищённом хранилище платформы
 /// (Keystore на Android, Keychain на iOS), поэтому вход переживает
@@ -45,7 +45,7 @@ class AuthService extends ChangeNotifier {
     try {
       if (saved != null) {
         _token = saved;
-        if (await _loadUser().timeout(restoreTimeout) == 401) {
+        if (await _loadUser(timeout: restoreTimeout) == 401) {
           _token = null;
           await _storage.delete(key: _tokenKey);
         }
@@ -122,8 +122,8 @@ class AuthService extends ChangeNotifier {
   void consumeSessionExpired() => _sessionExpired = false;
 
   /// Сервер ответил 401 на запрос с токеном: токен отозван или протух.
-  /// Зовут все, кто ходит в API с токеном, — ApiClient, multipart-запросы,
-  /// экраны с прямым http. Без токена (гость, уже обработанный 401 от
+  /// Зовут те, кто ходит в API с токеном: ApiClient (в том числе загрузки)
+  /// и запросы самого AuthService. Без токена (гость, уже обработанный 401 от
   /// параллельного запроса) — ничего не делает.
   void expireSession() {
     if (_token == null) return;
@@ -139,7 +139,8 @@ class AuthService extends ChangeNotifier {
   /// Запросить код входа: звонком, в Telegram или SMS — решает бекенд.
   /// Ошибка — [ApiException] с сырым телом: экрану нужен `retry_after`.
   Future<PhoneCodeSent> requestPhoneCode(String phone) async {
-    final response = await http.post(
+    final response = await HttpTransport.request(
+      'POST',
       Uri.parse('${ApiConfig.baseUrl}/auth/phone/request'),
       headers: {
         'Content-Type': 'application/json',
@@ -157,7 +158,8 @@ class AuthService extends ChangeNotifier {
 
   /// Ошибка — [ApiException] с сырым телом, как у [requestPhoneCode].
   Future<void> verifyPhoneCode(String phone, String code) async {
-    final response = await http.post(
+    final response = await HttpTransport.request(
+      'POST',
       Uri.parse('${ApiConfig.baseUrl}/auth/phone/verify'),
       headers: {
         'Content-Type': 'application/json',
@@ -181,13 +183,16 @@ class AuthService extends ChangeNotifier {
 
   /// Профилю нужны имя и дата регистрации — их отдаёт GET /me. Код ответа —
   /// вызывающему: restore() и refreshUser() по-разному реагируют на 401.
-  Future<int> _loadUser() async {
-    final response = await http.get(
+  Future<int> _loadUser({Duration? timeout}) async {
+    final response = await HttpTransport.request(
+      'GET',
       Uri.parse('${ApiConfig.baseUrl}/me'),
       headers: {
         'Accept': 'application/json',
         'Authorization': 'Bearer $_token',
       },
+      // при запуске — короче обычного: заставка не ждёт молчащий сервер
+      timeout: timeout,
     );
     if (response.statusCode != 200) return response.statusCode;
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -198,7 +203,8 @@ class AuthService extends ChangeNotifier {
   /// Сменить имя (PATCH /me). Сервер отдаёт профиль в той же форме, что
   /// GET /me, — подменяем юзера целиком, шапка профиля обновится сама.
   Future<void> updateName(String name) async {
-    final response = await http.patch(
+    final response = await HttpTransport.request(
+      'PATCH',
       Uri.parse('${ApiConfig.baseUrl}/me'),
       headers: {
         'Content-Type': 'application/json',
@@ -223,7 +229,8 @@ class AuthService extends ChangeNotifier {
   /// [requestPhoneCode]; ошибка — [ApiException] с сырым телом: листу нужны
   /// `retry_after` и текст 422.
   Future<PhoneCodeSent> requestPhoneChange(String phone) async {
-    final response = await http.post(
+    final response = await HttpTransport.request(
+      'POST',
       Uri.parse('${ApiConfig.baseUrl}/me/phone/request'),
       headers: {
         'Content-Type': 'application/json',
@@ -244,7 +251,8 @@ class AuthService extends ChangeNotifier {
   /// Подтвердить новый номер кодом (POST /me/phone/verify). Сервер отдаёт
   /// профиль в форме GET /me и отзывает остальные токены — текущий живёт.
   Future<void> confirmPhoneChange(String phone, String code) async {
-    final response = await http.post(
+    final response = await HttpTransport.request(
+      'POST',
       Uri.parse('${ApiConfig.baseUrl}/me/phone/verify'),
       headers: {
         'Content-Type': 'application/json',
@@ -266,7 +274,8 @@ class AuthService extends ChangeNotifier {
   /// бросаем с сырым телом: форме нужны ошибки по полям
   /// ([ApiException.fieldErrors]).
   Future<void> updatePayout(Payout payout) async {
-    final response = await http.patch(
+    final response = await HttpTransport.request(
+      'PATCH',
       Uri.parse('${ApiConfig.baseUrl}/me/payout'),
       headers: {
         'Content-Type': 'application/json',
@@ -286,7 +295,8 @@ class AuthService extends ChangeNotifier {
 
   /// Заглушённые категории пушей (PATCH /me/notifications) — полный список.
   Future<void> updatePushMuted(Set<NotificationCategory> muted) async {
-    final response = await http.patch(
+    final response = await HttpTransport.request(
+      'PATCH',
       Uri.parse('${ApiConfig.baseUrl}/me/notifications'),
       headers: {
         'Content-Type': 'application/json',
@@ -323,7 +333,8 @@ class AuthService extends ChangeNotifier {
     // локальная сессия уже стёрта — без сети выход не должен падать,
     // токен на сервере тогда просто доживёт своё
     try {
-      await http.post(
+      await HttpTransport.request(
+        'POST',
         Uri.parse('${ApiConfig.baseUrl}/logout'),
         headers: {
           'Authorization': 'Bearer $token',

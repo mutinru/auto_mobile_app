@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
 import '../models/chat_message.dart';
 import '../models/conversation.dart';
 import '../models/conversation_type.dart';
@@ -45,27 +42,14 @@ class ApiChatRepository implements ChatRepository {
     String? body,
     List<String> photoPaths = const [],
   }) async {
-    // multipart идёт мимо ApiClient — тот умеет только JSON
-    final request =
-        http.MultipartRequest(
-            'POST',
-            Uri.parse(
-              '${ApiConfig.baseUrl}/conversations/$conversationId/messages',
-            ),
-          )
-          ..headers['Accept'] = 'application/json'
-          ..headers['Authorization'] = 'Bearer ${_client.token}';
-    if (body != null && body.isNotEmpty) request.fields['body'] = body;
-    for (final path in photoPaths) {
-      request.files.add(await http.MultipartFile.fromPath('photos[]', path));
-    }
-
-    final streamed = await request.send();
-    final text = await streamed.stream.bytesToString();
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      throw _client.failure(streamed.statusCode, text);
-    }
-    final json = jsonDecode(text) as Map<String, dynamic>;
+    final json = await _client.multipart(
+      '/conversations/$conversationId/messages',
+      fields: {'body': ?(body == null || body.isEmpty ? null : body)},
+      files: [
+        for (final path in photoPaths)
+          await http.MultipartFile.fromPath('photos[]', path),
+      ],
+    );
     return ChatMessage.fromJson(json['data'] as Map<String, dynamic>);
   }
 

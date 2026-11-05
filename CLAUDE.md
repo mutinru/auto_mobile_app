@@ -89,11 +89,16 @@ README перечисляет ограничения приложения; зд�
   `InspectionStore.load()` ошибку не пробрасывает, а кладёт в `loadError`:
   экраны осмотра обязаны рисовать именно его, `catch` вокруг `load()`
   бесполезен (гейт на `car == null` оставит спиннер).
+- **В сеть — только через `HttpTransport`** (`lib/data/http_transport.dart`):
+  там таймауты (30 с, загрузки — 3 мин), без них на плохой сети спиннер висел
+  бесконечно. Не зови `http.get/post/…`, `http.Client()` и `.send()` в обход —
+  это ловит `test/http_transport_test.dart`. Запросы к API — через `ApiClient`
+  (`get/post/patch/delete`, файлы — `multipart`); транспорт напрямую — только у
+  `AuthService` (от него зависит сам клиент) и гостевой витрины.
 - **401 — только через `AuthService.expireSession()`.** `ApiClient` делает это
-  сам (`ApiClient.failure`, им пользуются и multipart-запросы). Новый запрос
-  мимо `ApiClient` (прямой `http`, как в `quiz_screen` и `verification_screen`)
-  обязан на 401 звать `auth.expireSession()` — иначе протухшая сессия снова
-  станет тупиком. Уводит на вход корень (`_RootGateState._onAuthChanged`), не
+  сам (`ApiClient.failure`, в том числе у загрузок). Запрос мимо `ApiClient`
+  (только `AuthService`) обязан на 401 звать `expireSession()` — иначе
+  протухшая сессия снова станет тупиком. Уводит на вход корень (`_RootGateState._onAuthChanged`), не
   экран. И наоборот: **стирать сессию — только на 401**. Нет сети, таймаут или
   5xx — не повод (502 во время выкатки разлогинил бы всех).
 - **Вошёл — не значит есть `auth.user`.** После офлайн-старта токен есть, а
@@ -107,9 +112,7 @@ README перечисляет ограничения приложения; зд�
   (SnackBar) или `apiErrorText(e)` (строка в форме). Не печатай `'$e'` — это
   сырой `ApiException(422): {json}`. Ошибки 422 по полям —
   `ApiException.fieldErrors` (образец — `RespondSheet`, `payout_sheet.dart`).
-  Экран, который ходит в `http` напрямую (`quiz_screen`, `verification_screen`),
-  сам превращает ответ не-200 в `ApiException`, иначе любая ошибка станет «Нет
-  связи с сервером». Сбой не запроса (распознавание VIN) — свой текст, не
+  Сбой не запроса (распознавание VIN) — свой текст, не
   `apiErrorText`.
 - **Непрочитанные поддержки — только с сервера** (`SupportUnread.refresh`),
   локально не уменьшай: чат сам отмечает прочитанное, а при его закрытии
@@ -163,8 +166,8 @@ README перечисляет ограничения приложения; зд�
 - **VIN снимает исполнитель — только через `VinCapture`** (`widgets/vin_capture.dart`):
   снимок таблички обязателен, текст распознаёт ML Kit, правится руками. Он
   нужен и кандидату подбора (`StartInspectionScreen` → `addCar`), и старту
-  разового осмотра (`CarVinScreen` → `startInspection(vin:)`), multipart мимо
-  `ApiClient`. VIN заказчика исполнителю не подставляй — иначе его не сверят
+  разового осмотра (`CarVinScreen` → `startInspection(vin:)`), одной формой
+  через `ApiClient.multipart`. VIN заказчика исполнителю не подставляй — иначе его не сверят
   с машиной. `VinKind` — зеркало `App\Enums\VinKind`. Фото таблички —
   подписанная ссылка `vinPhotoUrl`, Bearer не нужен.
 - **Пробег по одометру — `OdometerCapture`** (`widgets/odometer_capture.dart`)

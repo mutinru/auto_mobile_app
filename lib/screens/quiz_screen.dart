@@ -1,10 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
-import '../data/api_exception.dart';
+import '../data/api_client.dart';
 import '../data/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -45,16 +41,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _load() async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/quiz/questions'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ${widget.auth.token}',
-        },
-      );
+      final body = await ApiClient(widget.auth).get('/quiz/questions');
       if (!mounted) return;
-      if (response.statusCode != 200) throw _failure(response);
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (body['available'] == false) {
         setState(() {
           _error = body['message'] as String?;
@@ -78,13 +66,6 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
-  /// Прямой http мимо ApiClient — 401 разбираем сами, иначе протухшая
-  /// сессия станет тупиком.
-  ApiException _failure(http.Response response) {
-    if (response.statusCode == 401) widget.auth.expireSession();
-    return ApiException(response.statusCode, response.body);
-  }
-
   Future<void> _submit() async {
     try {
       await _send();
@@ -94,22 +75,12 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _send() async {
-    final response = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/quiz/submit'),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ${widget.auth.token}',
-      },
-      body: jsonEncode({
-        'answers': _answers.entries
-            .map((e) => {'question_id': e.key, 'option_index': e.value})
-            .toList(),
-      }),
-    );
+    final body = await ApiClient(widget.auth).post('/quiz/submit', {
+      'answers': _answers.entries
+          .map((e) => {'question_id': e.key, 'option_index': e.value})
+          .toList(),
+    });
     if (!mounted) return;
-    if (response.statusCode != 200) throw _failure(response);
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
     setState(() {
       _result =
           'Верных ${body['score']} из $_threshold необходимых — '

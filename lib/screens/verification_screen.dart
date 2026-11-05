@@ -1,13 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-import '../config/api_config.dart';
+import '../data/api_client.dart';
 import '../data/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../data/api_exception.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/score_ring.dart';
@@ -38,34 +34,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
     _load();
   }
 
-  /// Прямой http мимо ApiClient — 401 разбираем сами, иначе протухшая
-  /// сессия станет тупиком.
-  ApiException _failure(http.Response response) {
-    if (response.statusCode == 401) widget.auth.expireSession();
-    return ApiException(response.statusCode, response.body);
-  }
-
   Future<void> _load() async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/verification'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ${widget.auth.token}',
-        },
-      );
+      final json = await ApiClient(widget.auth).get('/verification');
       if (!mounted) return;
-      if (response.statusCode != 200) {
-        setState(() {
-          _error = apiErrorText(_failure(response));
-          _loading = false;
-        });
-        return;
-      }
       setState(() {
-        _data =
-            (jsonDecode(response.body) as Map<String, dynamic>)['data']
-                as Map<String, dynamic>;
+        _data = json['data'] as Map<String, dynamic>;
         _loading = false;
       });
     } catch (e) {
