@@ -10,6 +10,7 @@ import 'city_locator.dart';
 /// Фильтры и сортировка экрана «Заказы рядом». Переживают перезапуск и
 /// уход в другой раздел — все, кроме «Когда» ([NearbyFilter.toJson]):
 /// подборщик обычно смотрит одно и то же.
+/// Хранятся по пользователю: у каждого аккаунта на устройстве свои (QA №30).
 /// Лежат в том же защищённом хранилище, что тема ([ThemeController]), —
 /// отдельный пакет настроек не тянем. Формат — [NearbyFilter.toJson].
 ///
@@ -25,13 +26,53 @@ class NearbyFilterStore extends ChangeNotifier {
   /// которому стор не передали.
   NearbyFilterStore() : _read = null, _write = null, _locator = null;
 
-  /// С сохранением в хранилище устройства. [locator] — город по GPS, пока
-  /// пользователь не выбрал фильтр сам.
-  factory NearbyFilterStore.persistent({CityLocator? locator}) {
+  /// С сохранением в хранилище устройства под ключом пользователя
+  /// [userId]. [locator] — город по GPS, пока пользователь не выбрал фильтр
+  /// сам.
+  factory NearbyFilterStore.persistent({
+    required Future<int?> Function() userId,
+    CityLocator? locator,
+  }) {
     const storage = FlutterSecureStorage();
+    return NearbyFilterStore.keyed(
+      read: (key) => storage.read(key: key),
+      write: (key, value) => storage.write(key: key, value: value),
+      delete: (key) => storage.delete(key: key),
+      userId: userId,
+      locator: locator,
+    );
+  }
+
+  /// Хранилище «ключ → значение» колбэками, ключ — по пользователю.
+  /// Пользователь неизвестен (профиль не догрузился) — без хранилища:
+  /// фильтр живёт до перезапуска, чужой не читается. Старый общий ключ
+  /// [_legacyKey] — неизвестно чей: удаляем, не переносим.
+  @visibleForTesting
+  factory NearbyFilterStore.keyed({
+    required Future<String?> Function(String key) read,
+    required Future<void> Function(String key, String value) write,
+    required Future<void> Function(String key) delete,
+    required Future<int?> Function() userId,
+    CityLocator? locator,
+  }) {
+    Future<String?>? key;
+    Future<String?> userKey() => key ??= userId()
+        .then((id) => id == null ? null : '${_legacyKey}_$id')
+        .catchError((_) => null);
     return NearbyFilterStore.withStorage(
-      () => storage.read(key: _key),
-      (value) => storage.write(key: _key, value: value),
+      () async {
+        try {
+          await delete(_legacyKey);
+        } catch (_) {
+          // не удалилось — попробуем при следующем запуске
+        }
+        final k = await userKey();
+        return k == null ? null : read(k);
+      },
+      (value) async {
+        final k = await userKey();
+        if (k != null) await write(k, value);
+      },
       locator,
     );
   }
@@ -40,7 +81,8 @@ class NearbyFilterStore extends ChangeNotifier {
   @visibleForTesting
   NearbyFilterStore.withStorage(this._read, this._write, [this._locator]);
 
-  static const _key = 'nearby_filter';
+  /// Общий ключ до QA №30; ключ пользователя — `nearby_filter_<id>`.
+  static const _legacyKey = 'nearby_filter';
   final Future<String?> Function()? _read;
   final Future<void> Function(String value)? _write;
   final CityLocator? _locator;

@@ -453,6 +453,12 @@ class _RootGateState extends State<_RootGate> {
         auth: _auth,
         onProfile: () => _switchTo(_Section.profile),
         filters: NearbyFilterStore.persistent(
+          // фильтры — свои у каждого аккаунта; после офлайн-старта профиля
+          // ещё может не быть
+          userId: () async {
+            await _auth.ensureUser();
+            return _auth.user?.id;
+          },
           locator: _cityLocator,
         )..load(),
       ),

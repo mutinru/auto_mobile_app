@@ -222,4 +222,68 @@ void main() {
       },
     );
   });
+
+  group('по пользователю (QA №30)', () {
+    late Map<String, String> device;
+    late int userIdCalls;
+
+    setUp(() {
+      device = {};
+      userIdCalls = 0;
+    });
+
+    NearbyFilterStore forUser(int? id) => NearbyFilterStore.keyed(
+      read: (key) async => device[key],
+      write: (key, value) async => device[key] = value,
+      delete: (key) async => device.remove(key),
+      userId: () async {
+        userIdCalls++;
+        return id;
+      },
+    );
+
+    const inspection = NearbyFilter(kind: OrderKind.inspection);
+
+    test('у каждого аккаунта свои фильтры', () async {
+      final first = forUser(1);
+      await first.load();
+      await first.set(inspection);
+
+      final second = forUser(2);
+      await second.load();
+      expect(second.filter.kind, isNull);
+      expect(device.keys, ['nearby_filter_1']);
+
+      final again = forUser(1);
+      await again.load();
+      expect(again.filter.kind, OrderKind.inspection);
+    });
+
+    test('пользователь неизвестен — без хранилища', () async {
+      device['nearby_filter_1'] = jsonEncode(inspection.toJson());
+      final s = forUser(null);
+      await s.load();
+      expect(s.filter.kind, isNull);
+
+      await s.set(inspection);
+      expect(s.filter.kind, OrderKind.inspection);
+      expect(device.keys, ['nearby_filter_1']);
+    });
+
+    test('старый общий фильтр не достаётся никому и удаляется', () async {
+      device['nearby_filter'] = jsonEncode(inspection.toJson());
+      final s = forUser(2);
+      await s.load();
+      expect(s.filter.kind, isNull);
+      expect(device, isEmpty);
+    });
+
+    test('пользователь спрашивается один раз', () async {
+      final s = forUser(1);
+      await s.load();
+      await s.set(inspection);
+      await s.set(const NearbyFilter());
+      expect(userIdCalls, 1);
+    });
+  });
 }
