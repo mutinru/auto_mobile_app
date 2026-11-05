@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../data/city_repository.dart';
+import '../data/location_service.dart';
 import '../models/car_catalog.dart';
 import '../models/city.dart';
 import '../state/city_locator.dart';
@@ -107,6 +108,10 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
   bool _failed = false;
   bool _locating = false;
 
+  /// Геопозиция не дала города — заметка под строкой «Определить…».
+  bool _locateFailed = false;
+  LocationProblem? _locateProblem;
+
   @override
   void initState() {
     super.initState();
@@ -179,22 +184,72 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
     });
   }
 
+  /// Неудача — заметкой в самой шторке: SnackBar лёг бы на экран под ней
+  /// и не был бы виден (QA №20).
   Future<void> _locate() async {
-    setState(() => _locating = true);
-    final city = await widget.locator!.detect();
+    setState(() {
+      _locating = true;
+      _locateFailed = false;
+      _locateProblem = null;
+    });
+    final locator = widget.locator!;
+    final city = await locator.detect();
+    final problem = city == null ? await locator.problem() : null;
     if (!mounted) return;
-    setState(() => _locating = false);
-    if (city == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось определить город')),
-      );
-      return;
-    }
+    setState(() {
+      _locating = false;
+      _locateFailed = city == null;
+      _locateProblem = problem;
+    });
+    if (city == null) return;
     if (widget.single) {
       _pick(city.name, city);
     } else if (!_selected.contains(city.name)) {
       _toggle(city.name);
     }
+  }
+
+  Widget _locateNote() {
+    final problem = _locateProblem;
+    final (text, action) = switch (problem) {
+      LocationProblem.serviceOff => (
+        'Геолокация на телефоне выключена',
+        'Включить',
+      ),
+      LocationProblem.deniedForever => (
+        'Приложению запрещён доступ к геопозиции',
+        'Открыть настройки',
+      ),
+      LocationProblem.denied => (
+        'Без доступа к геопозиции город не определить — нажмите ещё раз '
+            'и разрешите',
+        null,
+      ),
+      null => (
+        'Не удалось определить город. Попробуйте ещё раз или найдите его '
+            'поиском',
+        null,
+      ),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            text,
+            style: TextStyle(fontSize: 12, color: context.colors.defectText),
+          ),
+          if (action != null && problem != null) ...[
+            const SizedBox(height: 6),
+            CtaFlat(
+              label: action,
+              onPressed: () => widget.locator!.openSettings(problem),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -286,6 +341,7 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
           accent: true,
           onTap: _locating ? null : _locate,
         ),
+      if (q.isEmpty && widget.locator != null && _locateFailed) _locateNote(),
       if (q.isEmpty && !widget.single)
         _Row(
           title: allRussia,

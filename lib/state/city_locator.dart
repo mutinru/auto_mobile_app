@@ -41,6 +41,12 @@ class CityLocator {
     });
   }
 
+  /// Почему [detect] не дал города — для подсказки «что сделать».
+  Future<LocationProblem?> problem() => _location.problem();
+
+  Future<void> openSettings(LocationProblem problem) =>
+      _location.openSettings(problem);
+
   Future<City?> _resolve() async {
     try {
       final point = await position();

@@ -1,5 +1,18 @@
 import 'package:geolocator/geolocator.dart';
 
+/// Почему геопозиции нет — чтобы сказать пользователю, что сделать
+/// (QA №20).
+enum LocationProblem {
+  /// Геолокация на телефоне выключена — включается в настройках системы.
+  serviceOff,
+
+  /// Доступ не дали, но спросить можно снова.
+  denied,
+
+  /// Доступ запрещён навсегда — только настройки приложения.
+  deniedForever,
+}
+
 /// Координаты устройства. Абстракция — чтобы виджет-тесты не трогали
 /// платформенный плагин.
 abstract class LocationService {
@@ -11,6 +24,14 @@ abstract class LocationService {
   /// для фонового прогрева города, где окно запроса было бы некстати.
   /// Не бросает.
   Future<bool> isGranted();
+
+  /// Почему геопозиции нет; null — с доступом всё в порядке (значит,
+  /// таймаут или сеть). Разрешение **не** спрашивает. Не бросает.
+  Future<LocationProblem?> problem();
+
+  /// Открыть настройки, где [problem] решается: системные для
+  /// выключенной геолокации, приложения — для запрета. Не бросает.
+  Future<void> openSettings(LocationProblem problem);
 }
 
 /// Грубая точность (ACCESS_COARSE_LOCATION): нужен город, а не подъезд —
@@ -30,6 +51,37 @@ class GeolocatorLocationService implements LocationService {
           permission == LocationPermission.always;
     } catch (_) {
       return false;
+    }
+  }
+
+  @override
+  Future<LocationProblem?> problem() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return LocationProblem.serviceOff;
+      }
+      return switch (await Geolocator.checkPermission()) {
+        LocationPermission.denied => LocationProblem.denied,
+        LocationPermission.deniedForever => LocationProblem.deniedForever,
+        _ => null,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async {
+    try {
+      switch (problem) {
+        case LocationProblem.serviceOff:
+          await Geolocator.openLocationSettings();
+        case LocationProblem.denied:
+        case LocationProblem.deniedForever:
+          await Geolocator.openAppSettings();
+      }
+    } catch (_) {
+      // настройки не открылись — заметка в шторке всё равно объясняет, что делать
     }
   }
 

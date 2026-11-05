@@ -29,6 +29,12 @@ class _Location implements LocationService {
     await gate?.future;
     return point;
   }
+
+  @override
+  Future<LocationProblem?> problem() async => null;
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async {}
 }
 
 /// Ближайший город — всегда Казань.

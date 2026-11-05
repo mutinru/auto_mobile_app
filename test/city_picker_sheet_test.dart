@@ -9,13 +9,14 @@ import 'package:auto_podbor_mobile/screens/new_order_screen.dart';
 import 'package:auto_podbor_mobile/state/city_locator.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 import 'package:auto_podbor_mobile/widgets/city_picker_sheet.dart';
 
 /// Геопозиция без плагина: [point] — что «вернул GPS», [calls] — сколько раз спросили.
 class FakeLocation implements LocationService {
   FakeLocation(this.point, {this.granted = true});
 
-  final (double, double)? point;
+  (double, double)? point;
 
   /// Что ответит [isGranted] — доступ уже дан или нет.
   final bool granted;
@@ -29,6 +30,17 @@ class FakeLocation implements LocationService {
     calls++;
     return point;
   }
+
+  /// Что ответит [problem] после неудачи.
+  LocationProblem? problemValue;
+  final opened = <LocationProblem>[];
+
+  @override
+  Future<LocationProblem?> problem() async => problemValue;
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async =>
+      opened.add(problem);
 }
 
 const kazan = (55.79, 49.12);
@@ -148,6 +160,65 @@ void main() {
     await tester.pumpAndSettle();
     await done(tester);
     expect(result.single, {'Химки'});
+  });
+
+  group('неудача геопозиции — в самой шторке (QA №20)', () {
+    Future<FakeLocation> fail(
+      WidgetTester tester,
+      LocationProblem? problem,
+    ) async {
+      final location = FakeLocation(null)..problemValue = problem;
+      await pumpPicker(
+        tester,
+        locator: CityLocator(MockCityRepository(), location),
+      );
+      await tester.tap(find.text('Определить по геопозиции'));
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsNothing);
+      return location;
+    }
+
+    testWidgets('запрет навсегда — «Открыть настройки»', (tester) async {
+      final location = await fail(tester, LocationProblem.deniedForever);
+      expect(
+        find.text('Приложению запрещён доступ к геопозиции'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Открыть настройки'));
+      expect(location.opened, [LocationProblem.deniedForever]);
+    });
+
+    testWidgets('геолокация выключена — «Включить»', (tester) async {
+      final location = await fail(tester, LocationProblem.serviceOff);
+      expect(find.text('Геолокация на телефоне выключена'), findsOneWidget);
+      await tester.tap(find.text('Включить'));
+      expect(location.opened, [LocationProblem.serviceOff]);
+    });
+
+    testWidgets('доступ есть, точки нет — общий текст без кнопки', (
+      tester,
+    ) async {
+      await fail(tester, null);
+      expect(
+        find.textContaining('Не удалось определить город'),
+        findsOneWidget,
+      );
+      expect(find.byType(CtaFlat), findsNothing);
+    });
+
+    testWidgets('повтор с успехом — заметка уходит, город выбран', (
+      tester,
+    ) async {
+      final location = await fail(tester, LocationProblem.denied);
+      expect(find.textContaining('нажмите ещё раз'), findsOneWidget);
+
+      location.point = khimki;
+      await tester.tap(find.text('Определить по геопозиции'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('нажмите ещё раз'), findsNothing);
+      expect(find.text('Химки  ×'), findsOneWidget);
+    });
   });
 
   test('локатор запоминает удачу и не запоминает неудачу', () async {
