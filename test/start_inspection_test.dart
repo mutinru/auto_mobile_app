@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
+import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/current_user.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/models/vin_kind.dart';
+import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
+import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
@@ -54,6 +59,17 @@ class _CountingRepository extends MockOrderRepository {
       licensePlate: licensePlate,
     );
   }
+}
+
+/// Сервер успел завести кандидата, а ответ до клиента не дошёл: заказ
+/// после этого отдаётся уже с машиной.
+class _LostAnswerRepository extends MockOrderRepository {
+  _LostAnswerRepository(this.order) : super(orders: [order]);
+
+  Order order;
+
+  @override
+  Future<Order> fetchOrder(int id) async => order;
 }
 
 /// «Начать осмотр» в подборе: обязательность видна, ошибки — все сразу.
@@ -253,5 +269,58 @@ void main() {
 
     expect(find.text('Сфотографируйте одометр'), findsOneWidget);
     expect(repo.added, 0);
+  });
+
+  testWidgets('вернулись с экрана кандидата без машины — карточка перечитана', (
+    tester,
+  ) async {
+    const executor = UserSummary(id: 10, name: 'Максим К.');
+    final sourcing = order.copyWith(executor: executor);
+    final repo = _LostAnswerRepository(sourcing);
+    final auth = AuthService()
+      ..debugSetToken('t')
+      ..debugSetUser(
+        const CurrentUser(id: 10, name: 'Максим К.', email: 'm@example.com'),
+      );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: OrderDetailScreen(
+          store: OrderStore(
+            repo,
+            catalog: MockCarCatalogRepository(),
+            cities: MockCityRepository(),
+          ),
+          orderId: sourcing.id,
+          viewerIsCustomer: false,
+          auth: auth,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Sorento'), findsNothing);
+
+    await tester.tap(find.text('Осмотреть новый вариант'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StartInspectionScreen), findsOneWidget);
+
+    repo.order = sourcing.copyWith(
+      cars: const [
+        OrderCar(
+          id: 501,
+          brand: 'Kia',
+          model: 'Sorento',
+          year: 2021,
+          vinMasked: '—',
+          inspectionId: 77,
+          inspectionStatus: 'in_progress',
+        ),
+      ],
+    );
+    Navigator.of(tester.element(find.byType(StartInspectionScreen))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StartInspectionScreen), findsNothing);
+    expect(find.textContaining('Sorento'), findsWidgets);
   });
 }

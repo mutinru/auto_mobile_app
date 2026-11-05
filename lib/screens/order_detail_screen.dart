@@ -203,7 +203,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         ),
       ),
     );
-    if (car == null || !mounted) return;
+    if (!mounted) return;
+    if (car == null) {
+      // отказ или «назад» — сервер мог успеть завести кандидата (QA №6)
+      await refreshOrder().catchError((_) {});
+      return;
+    }
     await _load();
     if (mounted && widget.auth != null && car.inspectionId != null) {
       await _openInspection(car);
