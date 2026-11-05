@@ -91,50 +91,23 @@ class InspectionSummaryScreen extends StatelessWidget {
                         )
                       else
                         for (final p in defective) ReportDefectItem(panel: p),
-
-                      const SizedBox(height: 22),
-                      const SectionHead(
-                        'Подпись клиента',
-                        extra: 'обязательно',
-                      ),
-                      // .sign-pad
-                      Container(
-                        height: 84,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: context.colors.bg1,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: context.colors.line,
-                            width: 1.5,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Text(
-                          'Подпись пока не поддерживается',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: context.colors.text3,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
-                BottomCta(
-                  children: [
-                    // без onSendReport отправлять нечего (осмотр только
-                    // смотрят) — кнопки нет, а не пустая
-                    if (onSendReport case final send?)
+                // без onSendReport отправлять нечего (осмотр только смотрят) —
+                // нижней панели нет, а не пустая кнопка. «Скачать PDF» и
+                // подпись клиента из макета 09 не перенесены (QA №9)
+                if (onSendReport case final send?)
+                  BottomCta(
+                    children: [
                       CtaPrimary(
                         label: sendLabel,
                         icon: Icons.send,
                         // то же правило проверит сервер при отправке
                         onPressed: store.isReportComplete ? send : null,
                       ),
-                    CtaGhost(label: 'Скачать PDF', onPressed: () {}),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),

@@ -111,4 +111,29 @@ void main() {
     expect(find.text('НЕ ХВАТАЕТ'), findsNothing);
     expect(send().onPressed, isNotNull);
   });
+
+  testWidgets('сводка без заглушек: ни PDF, ни подписи (QA №9)', (
+    tester,
+  ) async {
+    final store = InspectionStore(MockInspectionRepository());
+    await store.load();
+    Future<void> show({VoidCallback? send}) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: InspectionSummaryScreen(store: store, onSendReport: send),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await show(send: () {});
+    expect(find.text('Скачать PDF'), findsNothing);
+    expect(find.textContaining('ПОДПИСЬ'), findsNothing);
+    expect(find.text('Отправить отчёт клиенту'), findsOneWidget);
+
+    // только просмотр — нижней панели нет совсем
+    await show();
+    expect(find.byType(BottomCta), findsNothing);
+  });
 }
