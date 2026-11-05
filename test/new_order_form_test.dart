@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
+import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/new_order_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
@@ -17,6 +18,12 @@ void main() {
     expect(yearProblem(2027, now: now), isNull);
     expect(yearProblem(1989, now: now), 'Год — от 1990 до 2027');
     expect(yearProblem(2028, now: now), isNotNull);
+  });
+
+  test('mileageProblem — потолок сервера, 2 000 000 км', () {
+    expect(mileageProblem(0), isNull);
+    expect(mileageProblem(2000000), isNull);
+    expect(mileageProblem(2000001), 'Пробег — не больше 2 000 000 км');
   });
 
   Future<void> openForm(WidgetTester tester) async {
@@ -79,5 +86,60 @@ void main() {
     await submit(tester);
 
     expect(find.textContaining('Год — от 1990'), findsOneWidget);
+  });
+
+  testWidgets('пробег за потолком — ошибка до отправки (QA №19)', (
+    tester,
+  ) async {
+    await openForm(tester);
+    await pickCamry(tester);
+    await tester.enterText(find.byType(TextField).at(1), '3000000');
+    await submit(tester);
+    expect(find.text('Пробег — не больше 2 000 000 км'), findsOneWidget);
+
+    // на границе пробег проходит — дальше форма спрашивает город
+    ScaffoldMessenger.of(
+      tester.element(find.byType(NewOrderScreen)),
+    ).clearSnackBars();
+    await tester.enterText(find.byType(TextField).at(1), '2000000');
+    await submit(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Пробег — не больше 2 000 000 км'), findsNothing);
+    expect(find.text('Выберите город поиска'), findsOneWidget);
+  });
+
+  testWidgets('форма осмотра: пробег за потолком — ошибка до отправки', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: NewInspectionScreen(
+          store: OrderStore(
+            MockOrderRepository(),
+            catalog: MockCarCatalogRepository(),
+            cities: MockCityRepository(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Выбрать марку и модель'));
+    await pickCamry(tester);
+
+    Finder field(String label) => find.descendant(
+      of: find.byWidgetPredicate(
+        (w) => w is FieldBoxInput && w.label == label,
+      ),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(field('Год'), '2019');
+    await tester.enterText(field('Пробег'), '3000000');
+    await tester.ensureVisible(find.text('Разместить осмотр'));
+    await tester.tap(find.text('Разместить осмотр'));
+    await tester.pump();
+
+    expect(find.text('Пробег — не больше 2 000 000 км'), findsOneWidget);
+    expect(find.byType(NewInspectionScreen), findsOneWidget);
   });
 }

@@ -737,6 +737,14 @@ String? yearProblem(int year, {DateTime? now}) {
   return null;
 }
 
+/// Потолок пробега — ручное зеркало `OrderController::MAX_MILEAGE` на
+/// бекенде: и «Пробег до» подбора, и пробег со слов продавца, и одометр.
+const maxMileageKm = 2000000;
+
+/// Пробег за потолком сервера — текст ошибки до отправки (QA №19).
+String? mileageProblem(int km) =>
+    km > maxMileageKm ? 'Пробег — не больше ${money(maxMileageKm)} км' : null;
+
 /// Бюджет целиком: «2 000 000 — 2 400 000 ₽», «от …» (без потолка) или
 /// «до …»; без обеих границ — null.
 String? budgetRange(int? min, int? max) {

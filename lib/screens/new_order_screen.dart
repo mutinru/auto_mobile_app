@@ -117,12 +117,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   Future<void> _submit() async {
     final year = int.tryParse(_yearController.text);
+    final mileage = int.tryParse(_mileageController.text.replaceAll(' ', ''));
     final problem = switch (null) {
       _
           when _brandController.text.trim().isEmpty ||
               _modelController.text.trim().isEmpty =>
         'Укажите марку и модель',
       _ when year != null && yearProblem(year) != null => yearProblem(year),
+      _ when mileage != null && mileageProblem(mileage) != null =>
+        mileageProblem(mileage),
       // без города исполнитель не поймёт, где искать; сервер тоже требует
       _ when _cities.isEmpty => 'Выберите город поиска',
       _ => null,
@@ -140,7 +143,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         brand: _brandController.text.trim(),
         model: _modelController.text.trim(),
         yearFrom: year,
-        mileageTo: int.tryParse(_mileageController.text.replaceAll(' ', '')),
+        mileageTo: mileage,
         budgetMin: _budgetMin,
         budgetMax: _budgetMax,
         cities: _cities.toList(),

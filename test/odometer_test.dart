@@ -12,6 +12,7 @@ import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 
 /// Машина заказа 2047 с другим пробегом по одометру; флаг расхождения —
@@ -86,6 +87,30 @@ void main() {
     final odometer = c.validate();
     expect(odometer?.km, 148000);
     expect(odometer?.photoPath, '/tmp/odo.jpg');
+  });
+
+  test('одометр за потолком сервера — ошибка у цифр (QA №19)', () {
+    final c = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    c.text.text = '2000001';
+    expect(c.validate(), isNull);
+    expect(c.error, 'Пробег — не больше 2 000 000 км');
+
+    c.text.text = '2000000';
+    expect(c.validate()?.km, 2000000);
+  });
+
+  testWidgets('ошибка потолка стоит у поля, а не под блоком', (tester) async {
+    final c = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    c.text.text = '2500000';
+    c.validate();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: Scaffold(body: OdometerCapture(controller: c)),
+      ),
+    );
+    final field = tester.widget<FieldBoxInput>(find.byType(FieldBoxInput));
+    expect(field.error, 'Пробег — не больше 2 000 000 км');
   });
 
   testWidgets('до осмотра — пробег со слов продавца', (tester) async {

@@ -19,6 +19,13 @@ class OdometerCaptureController extends ChangeNotifier {
 
   int? get km => int.tryParse(text.text.replaceAll(' ', ''));
 
+  /// Ошибка — про сами цифры (нет их или они за потолком), а не про фото
+  /// или отказ сервера: тогда она стоит у поля.
+  bool get _kmWrong {
+    final value = km;
+    return value == null || mileageProblem(value) != null;
+  }
+
   OdometerCaptureController() {
     // поправили цифры — ошибка блока уходит
     text.addListener(() {
@@ -46,7 +53,8 @@ class OdometerCaptureController extends ChangeNotifier {
     final value = km;
     final error = value == null
         ? 'Укажите пробег по одометру'
-        : (_photoPath == null ? 'Сфотографируйте одометр' : null);
+        : mileageProblem(value) ??
+              (_photoPath == null ? 'Сфотографируйте одометр' : null);
     if (error != null) {
       setError(error);
       return null;
@@ -76,9 +84,9 @@ class OdometerCapture extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final c = controller;
-        // нет цифр — ошибка у поля, иначе (нет фото, отказ сервера) — под
-        // блоком, а рамкой подсвечена кнопка фото, если дело в ней
-        final kmError = c.km == null ? c.error : null;
+        // нет цифр или они за потолком — ошибка у поля, иначе (нет фото,
+        // отказ сервера) — под блоком, а рамкой подсвечена кнопка фото
+        final kmError = c._kmWrong ? c.error : null;
         final otherError = kmError == null ? c.error : null;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

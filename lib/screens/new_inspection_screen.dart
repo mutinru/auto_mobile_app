@@ -377,6 +377,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _ when yearProblem(year) != null => yearProblem(year),
       _ when mileageText.isNotEmpty && mileage == null =>
         'Пробег — числом, в км',
+      _ when mileage != null && mileageProblem(mileage) != null =>
+        mileageProblem(mileage),
       _ when _city == null => 'Укажите город осмотра',
       _ when address.isEmpty => 'Укажите адрес осмотра',
       _ when vin.isNotEmpty && !_isVinOrBody(vin) =>
