@@ -114,7 +114,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       // адрес могут поправить — сервер возьмёт центр города
       if (based.cities.isNotEmpty) _city = CityChoice(based.cities.first);
       _addressController.text = based.address ?? '';
-      _phoneController.text = _sellerDigits(based.sellerPhone ?? '');
+      _phoneController.text = phoneMaskText(based.sellerPhone ?? '');
     }
     if (_city == null) _detectCity();
   }
@@ -341,21 +341,6 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _brandController.text = choice.brand;
       _modelController.text = choice.model;
     });
-  }
-
-  /// «+79161234567» прежнего заказа → «916 123 45 67» для поля с маской.
-  static String _sellerDigits(String phone) {
-    var digits = phone.replaceAll(RegExp(r'\D'), '');
-    if (digits.length == 11 &&
-        (digits.startsWith('7') || digits.startsWith('8'))) {
-      digits = digits.substring(1);
-    }
-    return const PhoneMask()
-        .formatEditUpdate(
-          TextEditingValue.empty,
-          TextEditingValue(text: digits),
-        )
-        .text;
   }
 
   Future<void> _submit() async {

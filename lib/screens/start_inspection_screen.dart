@@ -10,6 +10,8 @@ import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';
 import '../widgets/odometer_capture.dart';
+import '../widgets/phone_input.dart';
+import '../widgets/seller_phone_sheet.dart';
 import '../widgets/vin_capture.dart';
 
 /// Экран 05 макета — «новый осмотр · автомобиль».
@@ -47,6 +49,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
   late final _modelController = TextEditingController(text: widget.order.model);
   final _yearController = TextEditingController();
   final _plateController = TextEditingController();
+  final _sellerController = TextEditingController();
 
   late final _vin = widget.vin ?? VinCaptureController();
   late final _odometer = widget.odometer ?? OdometerCaptureController();
@@ -64,6 +67,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     'model',
     'year',
     'license_plate',
+    'seller_phone',
   };
 
   @override
@@ -84,6 +88,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     clearOnEdit(_modelController, ['brand', 'model']);
     clearOnEdit(_yearController, ['year']);
     clearOnEdit(_plateController, ['license_plate']);
+    clearOnEdit(_sellerController, ['seller_phone']);
   }
 
   @override
@@ -92,6 +97,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
     _modelController.dispose();
     _yearController.dispose();
     _plateController.dispose();
+    _sellerController.dispose();
     if (widget.vin == null) _vin.dispose();
     if (widget.odometer == null) _odometer.dispose();
     super.dispose();
@@ -128,6 +134,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
         'year': 'Укажите год выпуска'
       else if (yearProblem(year) != null)
         'year': yearProblem(year)!,
+      'seller_phone': ?sellerPhoneProblem(_sellerController.text),
     };
     setState(() => _errors = errors);
     if (errors.isNotEmpty || vin == null || odometer == null) return;
@@ -144,6 +151,7 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
             ? null
             : _plateController.text.trim(),
         odometer: odometer,
+        sellerPhone: phoneFromMask(_sellerController.text),
       );
       if (mounted) Navigator.of(context).pop(car);
     } on ApiException catch (e) {
@@ -245,6 +253,16 @@ class _StartInspectionScreenState extends State<StartInspectionScreen> {
                   FieldBox(
                     label: 'Клиент',
                     value: widget.order.customer.name,
+                  ),
+
+                  const SizedBox(height: 22),
+                  // заметка подборщика: заказчику сервер номер не отдаёт
+                  const SectionHead('Продавец', extra: 'только для вас'),
+                  PhoneField(controller: _sellerController),
+                  FieldError(_errors['seller_phone']),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(sellerPhoneNote, style: context.text.fieldNote),
                   ),
 
                   const SizedBox(height: 22),

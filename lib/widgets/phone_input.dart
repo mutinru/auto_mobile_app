@@ -27,6 +27,32 @@ String cooldownWhen(Duration left, {DateTime? now}) {
   );
 }
 
+/// «+79161234567» с сервера → «916 123 45 67» для [PhoneField] с маской.
+String phoneMaskText(String phone) {
+  var digits = phone.replaceAll(RegExp(r'\D'), '');
+  if (digits.length == 11 &&
+      (digits.startsWith('7') || digits.startsWith('8'))) {
+    digits = digits.substring(1);
+  }
+  return const PhoneMask()
+      .formatEditUpdate(TextEditingValue.empty, TextEditingValue(text: digits))
+      .text;
+}
+
+/// Цифры из [PhoneField] (10 после +7) → `+7XXXXXXXXXX`; пусто — null.
+String? phoneFromMask(String text) {
+  final digits = text.replaceAll(RegExp(r'\D'), '');
+  return digits.isEmpty ? null : '+7$digits';
+}
+
+/// Ошибка для необязательного телефона продавца: введён, но не 10 цифр.
+String? sellerPhoneProblem(String text) {
+  final digits = text.replaceAll(RegExp(r'\D'), '');
+  return digits.isNotEmpty && digits.length != 10
+      ? 'Телефон продавца — 10 цифр после +7'
+      : null;
+}
+
 /// `+79001234567` → `+7 900 123 45 67`; не российский номер — как есть.
 String formatPhone(String phone) {
   final match = RegExp(r'^\+7(\d{3})(\d{3})(\d{2})(\d{2})$').firstMatch(phone);

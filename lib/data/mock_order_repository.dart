@@ -623,8 +623,10 @@ class MockOrderRepository implements OrderRepository {
     required CapturedVin vin,
     required CapturedOdometer odometer,
     String? licensePlate,
+    String? sellerPhone,
   }) async {
     lastVin = vin;
+    lastSellerPhone = sellerPhone;
     lastOdometer = odometer;
     final v = vin.value;
     final id = DateTime.now().millisecondsSinceEpoch;
@@ -639,7 +641,29 @@ class MockOrderRepository implements OrderRepository {
       mileageKm: odometer.km,
       inspectionId: id,
       inspectionStatus: 'in_progress',
+      sellerPhone: sellerPhone,
     );
+  }
+
+  /// Телефон продавца последнего кандидата — для тестов экрана кандидата.
+  String? lastSellerPhone;
+
+  @override
+  Future<OrderCar> updateCarSellerPhone(
+    int orderId,
+    int carId,
+    String? sellerPhone,
+  ) async {
+    final order = await fetchOrder(orderId);
+    final car = order.cars
+        .firstWhere((c) => c.id == carId)
+        .withSellerPhone(sellerPhone);
+    _replace(
+      order.copyWith(
+        cars: [for (final c in order.cars) c.id == carId ? car : c],
+      ),
+    );
+    return car;
   }
 
   /// Последний VIN, снятый исполнителем, — для тестов экранов начала осмотра.

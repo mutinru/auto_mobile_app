@@ -303,13 +303,28 @@ class ApiOrderRepository implements OrderRepository {
     required CapturedVin vin,
     required CapturedOdometer odometer,
     String? licensePlate,
+    String? sellerPhone,
   }) async {
     final json = await _withCapture('/orders/$orderId/cars', vin, odometer, {
       'brand': brand,
       'model': model,
       'year': '$year',
       'license_plate': ?licensePlate,
+      'seller_phone': ?sellerPhone,
     });
+    return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<OrderCar> updateCarSellerPhone(
+    int orderId,
+    int carId,
+    String? sellerPhone,
+  ) async {
+    final json = await _client.patch(
+      '/orders/$orderId/cars/$carId/seller-phone',
+      {'seller_phone': sellerPhone},
+    );
     return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
   }
 

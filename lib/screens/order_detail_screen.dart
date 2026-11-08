@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
@@ -13,6 +14,7 @@ import '../models/order_status.dart';
 import '../models/user_summary.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 import '../state/inspection_store.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
@@ -21,6 +23,8 @@ import '../widgets/executor_box.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/order_status_card.dart';
 import '../widgets/phone_contact.dart';
+import '../widgets/phone_input.dart';
+import '../widgets/seller_phone_sheet.dart';
 import '../widgets/purchase_sheet.dart';
 import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
@@ -191,6 +195,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     } catch (e) {
       if (mounted) showApiError(context, e);
     }
+  }
+
+  /// Смотрит назначенный подборщик — ему телефон продавца и его правка.
+  bool _isAssignedExecutor(Order order) =>
+      !widget.viewerIsCustomer &&
+      widget.auth?.user != null &&
+      order.executor?.id == widget.auth!.user!.id;
+
+  /// Телефон продавца кандидата: машина — из ответа сервера.
+  Future<void> _editSellerPhone(Order order, OrderCar car) async {
+    final updated = await showSellerPhoneSheet(
+      context,
+      car: car,
+      onSave: (phone) =>
+          widget.store.updateCarSellerPhone(order.id, car.id, phone),
+    );
+    if (updated == null || !mounted) return;
+    final current = _order ?? order;
+    final next = current.copyWith(
+      cars: [for (final c in current.cars) c.id == updated.id ? updated : c],
+    );
+    setState(() => _order = next);
+    widget.store.replaceOrder(next);
   }
 
   /// Новый кандидат приходит с начатым осмотром — открываем его сразу,
@@ -465,6 +492,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 onTap: car.inspectionId != null && _canOpenInspection
                     ? () => _openInspection(car)
                     : null,
+                // телефон продавца — заметка подборщика; заказчику сервер
+                // его не отдаёт, но и показывать незачем
+                showSellerPhone: _isAssignedExecutor(order),
+                onEditSellerPhone: order.status == OrderStatus.cancelled
+                    ? null
+                    : () => _editSellerPhone(order, car),
               ),
           ],
           if (_canCompletePurchase(order)) ...[
@@ -585,10 +618,21 @@ class _CustomerBox extends StatelessWidget {
 /// осмотр, исход покупки или вердикт. Купленная — в зелёной рамке, как
 /// выбранный отклик: в длинном списке её видно сразу. Тап открывает осмотр.
 class _CandidateCard extends StatelessWidget {
-  const _CandidateCard({required this.car, this.onTap});
+  const _CandidateCard({
+    required this.car,
+    this.onTap,
+    this.showSellerPhone = false,
+    this.onEditSellerPhone,
+  });
 
   final OrderCar car;
   final VoidCallback? onTap;
+
+  /// Подборщику — строка телефона продавца (или «Добавить»).
+  final bool showSellerPhone;
+
+  /// Правка номера; null — заказ отменён, только показ.
+  final VoidCallback? onEditSellerPhone;
 
   /// Цвет плашки: идущий осмотр — синий, покупка — зелёный, дальше вердикт;
   /// «не подошла» и «осмотр не начат» — нейтральные.
@@ -622,48 +666,165 @@ class _CandidateCard extends StatelessWidget {
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        car.title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: c.text1,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Pill(car.inspectionLabel, color: _pillColor(c)),
-                      if (comment != null && comment.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 7),
-                          child: Text(
-                            comment,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            car.title,
                             style: TextStyle(
-                              fontSize: 12,
-                              height: 1.4,
-                              color: c.text2,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: c.text1,
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 7),
+                          Pill(car.inspectionLabel, color: _pillColor(c)),
+                          if (comment != null && comment.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 7),
+                              child: Text(
+                                comment,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.4,
+                                  color: c.text2,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (onTap != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.chevron_right, size: 20, color: c.text2),
                     ],
-                  ),
+                  ],
                 ),
-                if (onTap != null) ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right, size: 20, color: c.text2),
-                ],
+                if (showSellerPhone)
+                  _SellerPhoneLine(
+                    phone: car.sellerPhone,
+                    onEdit: onEditSellerPhone,
+                  ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Телефон продавца в карточке кандидата — только подборщику: номер с
+/// «Скопировать» и «Позвонить», тап по номеру — правка. Номера нет —
+/// «Добавить телефон продавца».
+class _SellerPhoneLine extends StatelessWidget {
+  const _SellerPhoneLine({required this.phone, this.onEdit});
+
+  final String? phone;
+  final VoidCallback? onEdit;
+
+  void _copy(BuildContext context, String phone) {
+    Clipboard.setData(ClipboardData(text: formatPhone(phone)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Номер продавца скопирован')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final phone = this.phone;
+    if (phone == null) {
+      if (onEdit == null) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: TextButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('Телефон продавца · только для вас'),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            textStyle: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 11),
+        Container(height: 1, color: c.line),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Продавец · только для вас',
+                        style: TextStyle(fontSize: 11.5, color: c.text2),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              formatPhone(phone),
+                              style: TextStyle(
+                                fontFamily: AppTheme.monoFamily,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: c.text1,
+                              ),
+                            ),
+                          ),
+                          if (onEdit != null) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.edit_outlined, size: 14, color: c.text2),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Скопировать',
+              onPressed: () => _copy(context, phone),
+              icon: Icon(Icons.copy_rounded, size: 19, color: c.text1),
+            ),
+            IconButton.filled(
+              tooltip: 'Позвонить',
+              onPressed: () => callPhone(context, phone),
+              style: IconButton.styleFrom(
+                backgroundColor: c.modeBuy,
+                foregroundColor: c.modeBuyInk,
+              ),
+              icon: const Icon(Icons.call, size: 19),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

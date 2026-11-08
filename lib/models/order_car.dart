@@ -27,6 +27,7 @@ class OrderCar {
     this.inspectionOutcome,
     this.verdict,
     this.verdictComment,
+    this.sellerPhone,
   });
 
   final int id;
@@ -69,6 +70,11 @@ class OrderCar {
   /// Вердикт разового осмотра — у кандидатов подбора его нет.
   final InspectionVerdict? verdict;
   final String? verdictComment;
+
+  /// Телефон продавца — заметка подборщика для себя. Сервер отдаёт его
+  /// только назначенному исполнителю подбора (`Car::sellerPhoneVisibleTo`),
+  /// заказчику — никогда.
+  final String? sellerPhone;
 
   String get title => '$brand $model $year';
 
@@ -114,6 +120,31 @@ class OrderCar {
       ),
       verdict: inspectionVerdictFromApi(inspection?['verdict'] as String?),
       verdictComment: inspection?['verdict_comment'] as String?,
+      sellerPhone: json['seller_phone'] as String?,
     );
   }
+
+  /// Та же машина с другим телефоном продавца — ответ правки номера.
+  OrderCar withSellerPhone(String? phone) => OrderCar(
+    id: id,
+    brand: brand,
+    model: model,
+    year: year,
+    vinMasked: vinMasked,
+    vinKind: vinKind,
+    vinPhotoUrl: vinPhotoUrl,
+    vinPhotoThumbUrl: vinPhotoThumbUrl,
+    vinMismatch: vinMismatch,
+    mileageKm: mileageKm,
+    customerMileageKm: customerMileageKm,
+    mileageMismatch: mileageMismatch,
+    odometerPhotoUrl: odometerPhotoUrl,
+    odometerPhotoThumbUrl: odometerPhotoThumbUrl,
+    inspectionId: inspectionId,
+    inspectionStatus: inspectionStatus,
+    inspectionOutcome: inspectionOutcome,
+    verdict: verdict,
+    verdictComment: verdictComment,
+    sellerPhone: phone,
+  );
 }

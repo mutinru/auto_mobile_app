@@ -8,6 +8,7 @@ import '../models/available_page.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
+import '../models/order_car.dart';
 import '../models/payout.dart';
 import '../models/time_slot.dart';
 import '../widgets/api_error.dart';
@@ -479,6 +480,14 @@ class OrderStore extends ChangeNotifier {
 
   /// Свежий заказ с сервера — в списки, где он есть (мутация, перечитывание
   /// открытой детали).
+  /// Телефон продавца кандидата (заметка подборщика); машина — из ответа
+  /// сервера, заказ в списках обновляет экран через [replaceOrder].
+  Future<OrderCar> updateCarSellerPhone(
+    int orderId,
+    int carId,
+    String? sellerPhone,
+  ) => _repository.updateCarSellerPhone(orderId, carId, sellerPhone);
+
   void replaceOrder(Order order) {
     final mine = _myOrders.indexWhere((o) => o.id == order.id);
     if (mine != -1) _myOrders = [..._myOrders]..[mine] = order;

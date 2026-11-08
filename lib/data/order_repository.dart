@@ -139,7 +139,8 @@ abstract class OrderRepository {
   /// осмотр. Сервер создаёт машину и осмотр со всеми пунктами одной
   /// транзакцией: у вернувшейся машины уже есть [OrderCar.inspectionId].
   /// [vin] — снят с таблички вместе с фото; в одном подборе не повторяется.
-  /// [odometer] — пробег по приборке с её фото.
+  /// [odometer] — пробег по приборке с её фото. [sellerPhone] (+7XXXXXXXXXX)
+  /// — заметка подборщика для себя, заказчику сервер её не отдаёт.
   Future<OrderCar> addCar(
     int orderId, {
     required String brand,
@@ -148,7 +149,16 @@ abstract class OrderRepository {
     required CapturedVin vin,
     required CapturedOdometer odometer,
     String? licensePlate,
+    String? sellerPhone,
   });
+
+  /// Телефон продавца кандидата — поменять или стереть (null). Только
+  /// назначенный подборщик; возвращает машину с новым номером.
+  Future<OrderCar> updateCarSellerPhone(
+    int orderId,
+    int carId,
+    String? sellerPhone,
+  );
 
   /// Начать разовый осмотр — бекенд сам создаёт все пункты (кузов и extra).
   /// [vin] с фото таблички и [odometer] с фото приборки заменяют то, что

@@ -17,6 +17,7 @@ import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
+import 'package:auto_podbor_mobile/widgets/phone_input.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 
 /// Мок, который считает добавленные машины: форма с ошибками не должна
@@ -47,6 +48,7 @@ class _CountingRepository extends MockOrderRepository {
     required CapturedVin vin,
     required CapturedOdometer odometer,
     String? licensePlate,
+    String? sellerPhone,
   }) {
     added++;
     return super.addCar(
@@ -57,6 +59,7 @@ class _CountingRepository extends MockOrderRepository {
       vin: vin,
       odometer: odometer,
       licensePlate: licensePlate,
+      sellerPhone: sellerPhone,
     );
   }
 }
@@ -322,5 +325,57 @@ void main() {
 
     expect(find.byType(StartInspectionScreen), findsNothing);
     expect(find.textContaining('Sorento'), findsWidgets);
+  });
+
+  Finder sellerPhone() => find.descendant(
+    of: find.byType(PhoneField),
+    matching: find.byType(TextField),
+  );
+
+  /// Поле продавца — в конце формы: ListView строит его, только докрутив.
+  Future<void> typeSellerPhone(WidgetTester tester, String text) async {
+    await tester.scrollUntilVisible(
+      sellerPhone(),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(sellerPhone(), text);
+  }
+
+  testWidgets('телефон продавца уходит на сервер как +7…', (tester) async {
+    final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    final odometer = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    final repo = await open(tester, vin, odometer);
+    await tester.enterText(find.byType(TextField).at(0), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await typeSellerPhone(tester, '9161234567');
+    await start(tester);
+    await tester.pumpAndSettle();
+
+    expect(repo.added, 1);
+    expect(repo.lastSellerPhone, '+79161234567');
+  });
+
+  testWidgets('без телефона продавца кандидат заводится, с неполным — нет', (
+    tester,
+  ) async {
+    final vin = VinCaptureController()..setPhoto('/tmp/plate.jpg');
+    vin.text.text = 'XW8ZZZ61ZKG100111';
+    final odometer = OdometerCaptureController()..setPhoto('/tmp/odo.jpg');
+    final repo = await open(tester, vin, odometer);
+    await tester.enterText(find.byType(TextField).at(0), '64000');
+    await tester.enterText(find.byType(TextField).at(2), '2020');
+    await typeSellerPhone(tester, '91612');
+    await start(tester);
+
+    expect(find.text('Телефон продавца — 10 цифр после +7'), findsOneWidget);
+    expect(repo.added, 0);
+
+    await typeSellerPhone(tester, '');
+    await start(tester);
+    await tester.pumpAndSettle();
+    expect(repo.added, 1);
+    expect(repo.lastSellerPhone, isNull);
   });
 }
