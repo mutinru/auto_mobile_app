@@ -315,7 +315,10 @@ class _FeedCardView extends StatelessWidget {
               const SizedBox(height: 11),
               Row(
                 children: [
-                  Avatar(initialsOf(card.executorName!)),
+                  Avatar(
+                    initialsOf(card.executorName!),
+                    url: card.executorAvatarUrl,
+                  ),
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text.rich(

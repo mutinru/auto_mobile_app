@@ -1,3 +1,4 @@
+import 'inspection_panel.dart' show mediaUrl;
 import 'order_status.dart';
 
 /// Шаг таймлайна «Как шла работа» на публичной карточке заказа.
@@ -31,6 +32,7 @@ class PublicOrder {
     this.carsInspected = 0,
     this.carsRejected = 0,
     this.executorName,
+    this.executorAvatarUrl,
     this.executorCompleted,
   });
 
@@ -44,6 +46,7 @@ class PublicOrder {
   final int carsInspected;
   final int carsRejected;
   final String? executorName;
+  final String? executorAvatarUrl;
   final int? executorCompleted;
   final List<TimelineStep> timeline;
 
@@ -60,6 +63,7 @@ class PublicOrder {
       carsInspected: json['cars_inspected'] as int? ?? 0,
       carsRejected: json['cars_rejected'] as int? ?? 0,
       executorName: executor?['name'] as String?,
+      executorAvatarUrl: mediaUrl(executor?['avatar_url'] as String?),
       executorCompleted: executor?['completed_orders'] as int?,
       timeline: (json['timeline'] as List? ?? const [])
           .map((t) => TimelineStep.fromJson(t as Map<String, dynamic>))

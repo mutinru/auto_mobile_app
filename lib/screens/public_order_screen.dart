@@ -290,7 +290,11 @@ class _PublicOrderScreenState extends State<PublicOrderScreen> {
             ),
             child: Row(
               children: [
-                Avatar(initialsOf(order.executorName!), size: 54),
+                Avatar(
+                  initialsOf(order.executorName!),
+                  size: 54,
+                  url: order.executorAvatarUrl,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

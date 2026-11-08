@@ -534,7 +534,7 @@ class OrderFoot extends StatelessWidget {
     return Row(
       children: [
         if (hasExecutor)
-          Avatar(initialsOf(executor.name))
+          Avatar(initialsOf(executor.name), url: executor.avatarUrl)
         else
           // в макете: <div class="avatar" style="background:var(--bg-3);color:var(--text-3)">?</div>
           Container(
@@ -589,7 +589,7 @@ class OrderFoot extends StatelessWidget {
     final customer = order.customer;
     return Row(
       children: [
-        Avatar(initialsOf(customer.name)),
+        Avatar(initialsOf(customer.name), url: customer.avatarUrl),
         const SizedBox(width: 9),
         Expanded(
           child: Text.rich(

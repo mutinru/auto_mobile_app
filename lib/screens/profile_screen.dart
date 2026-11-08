@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
 import '../util/ru_plural.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/avatar_editor.dart';
 import '../widgets/change_phone_sheet.dart';
 import '../widgets/edit_name_sheet.dart';
 import '../widgets/executor_stats.dart';
@@ -194,7 +195,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                         child: Row(
                           children: [
-                            Avatar(initialsOf(user?.name ?? '—'), size: 54),
+                            // тап по аватару — фото профиля, по остальной
+                            // шапке — имя
+                            if (user == null)
+                              Avatar(initialsOf('—'), size: 54)
+                            else
+                              AvatarEditor(
+                                name: user.name,
+                                url: user.avatarUrl,
+                                onUpload: widget.auth.uploadAvatar,
+                                onDelete: widget.auth.deleteAvatar,
+                              ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(

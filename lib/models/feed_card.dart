@@ -1,3 +1,4 @@
+import '../models/inspection_panel.dart' show mediaUrl;
 import '../models/order_status.dart';
 
 /// Карточка публичной витрины (GET /api/public/feed).
@@ -10,6 +11,7 @@ class FeedCard {
     this.budgetMin,
     this.budgetMax,
     this.executorName,
+    this.executorAvatarUrl,
     this.executorCompleted,
     this.assessed,
     this.total,
@@ -25,6 +27,7 @@ class FeedCard {
   final int? budgetMin;
   final int? budgetMax;
   final String? executorName;
+  final String? executorAvatarUrl;
   final int? executorCompleted;
 
   /// прогресс последнего осмотра, если он начат
@@ -46,6 +49,7 @@ class FeedCard {
       budgetMin: json['budget_min'] as int?,
       budgetMax: json['budget_max'] as int?,
       executorName: executor?['name'] as String?,
+      executorAvatarUrl: mediaUrl(executor?['avatar_url'] as String?),
       executorCompleted: executor?['completed_orders'] as int?,
       assessed: progress?['assessed'] as int?,
       total: progress?['total'] as int?,

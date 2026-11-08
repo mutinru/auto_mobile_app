@@ -472,7 +472,11 @@ class _CustomerBox extends StatelessWidget {
         children: [
           Row(
             children: [
-              Avatar(initialsOf(order.customer.name), size: 36),
+              Avatar(
+                initialsOf(order.customer.name),
+                size: 36,
+                url: order.customer.avatarUrl,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/code_channel.dart';
@@ -218,6 +219,53 @@ class AuthService extends ChangeNotifier {
       throw ApiException(
         response.statusCode,
         _extractMessage(response.body, fallback: 'Не удалось сохранить имя'),
+      );
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+    notifyListeners();
+  }
+
+  /// Загрузить или заменить аватар (POST /me/avatar). [path] — уже
+  /// обрезанный квадрат; сервер всё равно режет центр и пережимает в
+  /// JPEG 512×512. Ответ — профиль в форме GET /me.
+  Future<void> uploadAvatar(String path) async {
+    final request =
+        http.MultipartRequest(
+            'POST',
+            Uri.parse('${ApiConfig.baseUrl}/me/avatar'),
+          )
+          ..headers['Accept'] = 'application/json'
+          ..headers['Authorization'] = 'Bearer $_token'
+          ..files.add(await http.MultipartFile.fromPath('avatar', path));
+    _applyProfile(
+      await HttpTransport.send(request),
+      fallback: 'Не удалось загрузить фото',
+    );
+  }
+
+  /// Удалить аватар (DELETE /me/avatar) — снова инициалы.
+  Future<void> deleteAvatar() async {
+    _applyProfile(
+      await HttpTransport.request(
+        'DELETE',
+        Uri.parse('${ApiConfig.baseUrl}/me/avatar'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      ),
+      fallback: 'Не удалось удалить фото',
+    );
+  }
+
+  /// Ответ правки профиля: профиль целиком или ошибка с текстом сервера.
+  void _applyProfile(http.Response response, {required String fallback}) {
+    if (response.statusCode != 200) {
+      if (response.statusCode == 401) expireSession();
+      throw ApiException(
+        response.statusCode,
+        _extractMessage(response.body, fallback: fallback),
       );
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;

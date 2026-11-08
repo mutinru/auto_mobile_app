@@ -39,6 +39,11 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Обрезка аватара квадратом (image_cropper → uCrop). -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <!-- Значок пуша в строке состояния — белый силуэт логотипа
              (drawable-*/ic_notification.png из design/icons/icons/source). -->
         <meta-data

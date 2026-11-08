@@ -1,3 +1,4 @@
+import 'inspection_panel.dart' show mediaUrl;
 import 'notification_category.dart';
 import 'payout.dart';
 import 'user_summary.dart';
@@ -9,6 +10,7 @@ class CurrentUser {
     required this.name,
     required this.email,
     this.phone,
+    this.avatarUrl,
     this.registeredAt,
     this.rating,
     this.reviewsCount = 0,
@@ -24,6 +26,9 @@ class CurrentUser {
 
   /// `+79001234567`; null — аккаунт входит по почте и номер не привязан.
   final String? phone;
+
+  /// Свой аватар (POST/DELETE /me/avatar); null — инициалы.
+  final String? avatarUrl;
   final DateTime? registeredAt;
 
   /// Своя сводка исполнителя для профиля; rating == null — отзывов нет.
@@ -77,6 +82,7 @@ class CurrentUser {
     name: json['name'] as String,
     email: json['email'] as String,
     phone: json['phone'] as String?,
+    avatarUrl: mediaUrl(json['avatar_url'] as String?),
     registeredAt: json['registered_at'] != null
         ? DateTime.tryParse(json['registered_at'] as String)
         : null,

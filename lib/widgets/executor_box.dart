@@ -42,7 +42,11 @@ class ExecutorBox extends StatelessWidget {
         children: [
           Row(
             children: [
-              Avatar(initialsOf(executor.name), size: 36),
+              Avatar(
+                initialsOf(executor.name),
+                size: 36,
+                url: executor.avatarUrl,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

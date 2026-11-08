@@ -154,22 +154,28 @@ class Pill extends StatelessWidget {
   }
 }
 
-/// .avatar — кружок с инициалами и градиентом из макета.
+/// .avatar — кружок с инициалами и градиентом из макета. С [url] — фото
+/// пользователя той же формы; пока грузится или не загрузилось — инициалы.
 class Avatar extends StatelessWidget {
-  const Avatar(this.initials, {super.key, this.size = 26});
+  const Avatar(this.initials, {super.key, this.size = 26, this.url});
 
   final String initials;
   final double size;
 
+  /// Аватар с сервера (квадрат 512×512); null — только инициалы.
+  final String? url;
+
+  bool get _large => size >= 48;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final fallback = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        shape: size >= 48 ? BoxShape.rectangle : BoxShape.circle,
-        borderRadius: size >= 48 ? BorderRadius.circular(17) : null,
+        shape: _large ? BoxShape.rectangle : BoxShape.circle,
+        borderRadius: _large ? BorderRadius.circular(17) : null,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -178,9 +184,27 @@ class Avatar extends StatelessWidget {
       ),
       child: Text(
         initials,
-        style: context.text.avatar.copyWith(fontSize: size >= 48 ? 17 : 10),
+        style: context.text.avatar.copyWith(fontSize: _large ? 17 : 10),
       ),
     );
+    final url = this.url;
+    if (url == null) return fallback;
+
+    // декодируем под размер на экране, а не все 512 px на каждую карточку
+    final px = (size * MediaQuery.devicePixelRatioOf(context)).ceil();
+    final image = Image.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      cacheWidth: px,
+      frameBuilder: (_, child, frame, sync) =>
+          frame == null && !sync ? fallback : child,
+      errorBuilder: (_, _, _) => fallback,
+    );
+    return _large
+        ? ClipRRect(borderRadius: BorderRadius.circular(17), child: image)
+        : ClipOval(child: image);
   }
 }
 

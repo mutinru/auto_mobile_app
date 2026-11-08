@@ -1,9 +1,12 @@
+import 'inspection_panel.dart' show mediaUrl;
+
 /// Представление пользователя в контексте заказа (UserResource на бекенде):
 /// без контактов, но со сводкой исполнителя — она нужна в откликах.
 class UserSummary {
   const UserSummary({
     required this.id,
     required this.name,
+    this.avatarUrl,
     this.rating,
     this.reviewsCount = 0,
     this.completedOrdersCount = 0,
@@ -12,6 +15,9 @@ class UserSummary {
 
   final int id;
   final String name;
+
+  /// Аватар — публичная ссылка на JPEG 512×512; null — инициалы.
+  final String? avatarUrl;
 
   /// Средняя оценка с одним знаком; null, пока отзывов нет. Считает сервер,
   /// локально не пересчитываем.
@@ -29,6 +35,7 @@ class UserSummary {
   factory UserSummary.fromJson(Map<String, dynamic> json) => UserSummary(
     id: json['id'] as int,
     name: json['name'] as String,
+    avatarUrl: mediaUrl(json['avatar_url'] as String?),
     // PHP отдаёт и 5, и 4.8 — num, а не double
     rating: (json['rating'] as num?)?.toDouble(),
     reviewsCount: json['reviews_count'] as int? ?? 0,
