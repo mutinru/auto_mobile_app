@@ -593,11 +593,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                       'Исполнители видят вашу цену и могут предложить свою. Выбираете вы.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: context.colors.text3,
-                        height: 1.45,
-                      ),
+                      style: context.text.fieldNote,
                     ),
                   ),
                 ],
@@ -660,11 +656,11 @@ class _FieldNote extends StatelessWidget {
         offset: const Offset(0, -4),
         child: Text(
           text,
-          style: TextStyle(
-            fontSize: 11,
-            height: 1.45,
-            color: error ? context.colors.defectText : context.colors.text3,
-          ),
+          style: error
+              ? context.text.fieldNote.copyWith(
+                  color: context.colors.defectText,
+                )
+              : context.text.fieldNote,
         ),
       ),
     );

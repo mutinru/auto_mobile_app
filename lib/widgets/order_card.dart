@@ -411,7 +411,7 @@ class _VerdictRow extends StatelessWidget {
             child: Icon(
               verdict.icon,
               size: 15,
-              color: verdict.color(context.colors),
+              color: context.colors.textFor(verdict.color(context.colors)),
             ),
           ),
           const SizedBox(width: 10),
@@ -424,7 +424,9 @@ class _VerdictRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    color: verdict.color(context.colors),
+                    color: context.colors.textFor(
+                      verdict.color(context.colors),
+                    ),
                   ),
                 ),
                 if (comment != null && comment!.isNotEmpty)

@@ -146,11 +146,7 @@ class PayoutFields extends StatelessWidget {
           ],
           Text(
             'Заказчик увидит реквизиты только после того, как вы закончите осмотр.',
-            style: TextStyle(
-              fontSize: 11.5,
-              color: context.colors.text3,
-              height: 1.4,
-            ),
+            style: context.text.fieldNote.copyWith(fontSize: 11.5, height: 1.4),
           ),
         ],
       ),

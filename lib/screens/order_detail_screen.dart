@@ -607,12 +607,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 10,
-        letterSpacing: 1.2,
-        color: context.colors.text3,
-        fontWeight: FontWeight.w600,
-      ),
+      style: context.text.sectionTitle,
     );
   }
 }

@@ -45,6 +45,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.backdrop,
     required this.sheetShadow,
     required this.cardShadow,
+    required this.chipEdge,
+    required this.trackIdle,
     required this.knob,
     required this.knobInk,
     required this.avatarFrom,
@@ -119,6 +121,15 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Лёгкая тень карточек — только в светлой теме, в тёмной прозрачна.
   final Color cardShadow;
 
+  /// Рамка невыбранного чипа. В тёмной теме прозрачна: белый на тёмном
+  /// и так виден. В светлой — как [line]: белый чип на светло-сером фоне
+  /// без рамки на солнце теряет границы.
+  final Color chipEdge;
+
+  /// Невыбранная часть дорожки слайдера. В тёмной — [bg1], как в макете;
+  /// в светлой bg1 белый и сливается с фоном — берём [line].
+  final Color trackIdle;
+
   /// Бегунок переключателя темы и иконка на нём.
   final Color knob;
   final Color knobInk;
@@ -178,6 +189,8 @@ class AppColors extends ThemeExtension<AppColors> {
     backdrop: Color(0x8C000000),
     sheetShadow: Color(0x8C000000),
     cardShadow: Color(0x00000000),
+    chipEdge: Color(0x00000000),
+    trackIdle: Color(0xFF15181D),
     knob: Color(0xFFF2F4F7),
     knobInk: Color(0xFF0B0D10),
     avatarFrom: Color(0xFF5A6470),
@@ -225,6 +238,8 @@ class AppColors extends ThemeExtension<AppColors> {
     backdrop: Color(0x5212151A),
     sheetShadow: Color(0x2412151A),
     cardShadow: Color(0x0A12151A),
+    chipEdge: Color(0xFFC8CED7),
+    trackIdle: Color(0xFFC8CED7),
     knob: Color(0xFF12151A),
     knobInk: Color(0xFFFFFFFF),
     avatarFrom: Color(0xFFD5DAE1),
@@ -273,6 +288,8 @@ class AppColors extends ThemeExtension<AppColors> {
       backdrop: l(backdrop, other.backdrop),
       sheetShadow: l(sheetShadow, other.sheetShadow),
       cardShadow: l(cardShadow, other.cardShadow),
+      chipEdge: l(chipEdge, other.chipEdge),
+      trackIdle: l(trackIdle, other.trackIdle),
       knob: l(knob, other.knob),
       knobInk: l(knobInk, other.knobInk),
       avatarFrom: l(avatarFrom, other.avatarFrom),

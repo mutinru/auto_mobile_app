@@ -324,10 +324,7 @@ class FieldLabel extends StatelessWidget {
         Expanded(child: text),
         Text(
           'необязательно',
-          style: context.text.fieldLabel.copyWith(
-            color: context.colors.text3,
-            letterSpacing: 0,
-          ),
+          style: context.text.fieldLabelNote,
         ),
       ],
     );
@@ -481,7 +478,12 @@ class FieldBoxInput extends StatelessWidget {
               padding: const EdgeInsets.only(top: 6),
               child: Text(
                 helper!,
-                style: TextStyle(fontSize: 12, color: context.colors.text2),
+                // тёмная тема — text2, как было в макете
+                style: context.text.fieldNote.copyWith(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: context.colors.isLight ? null : context.colors.text2,
+                ),
               ),
             ),
         ],
@@ -562,7 +564,7 @@ class AppChip extends StatelessWidget {
           color: on ? active.withValues(alpha: 0.12) : context.colors.bg1,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: on ? active.withValues(alpha: 0.5) : Colors.transparent,
+            color: on ? active.withValues(alpha: 0.5) : context.colors.chipEdge,
           ),
         ),
         child: Text(

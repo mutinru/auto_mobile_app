@@ -167,7 +167,7 @@ class _ReportCard extends StatelessWidget {
                       'Полный отчёт ›',
                       style: TextStyle(
                         fontSize: 12,
-                        color: context.colors.statusDone,
+                        color: context.colors.doneText,
                       ),
                     ),
                 ],

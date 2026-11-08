@@ -248,7 +248,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     data: SliderThemeData(
                       trackHeight: 4,
                       activeTrackColor: context.colors.statusDone,
-                      inactiveTrackColor: context.colors.bg1,
+                      inactiveTrackColor: context.colors.trackIdle,
                       thumbColor: context.colors.text1,
                       overlayColor: context.colors.statusDone.withValues(
                         alpha: 0.12,

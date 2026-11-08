@@ -26,7 +26,7 @@ class OrderStatusPill extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
-          color: status.color(context.colors),
+          color: context.colors.textFor(status.color(context.colors)),
         ),
       ),
     );

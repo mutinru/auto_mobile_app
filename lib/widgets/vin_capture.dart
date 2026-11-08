@@ -563,7 +563,7 @@ class _KindSwitch extends StatelessWidget {
           if (toBody)
             Text(
               'у японских праворульных и части старых машин',
-              style: TextStyle(fontSize: 11.5, color: context.colors.text3),
+              style: context.text.fieldNote.copyWith(fontSize: 11.5),
             ),
         ],
       ),
@@ -713,7 +713,7 @@ class CapturedPhotoRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Icon(Icons.check_circle, size: 14, color: context.colors.statusDone),
+          Icon(Icons.check_circle, size: 14, color: context.colors.doneText),
           const SizedBox(width: 5),
           Text(
             label,

@@ -268,7 +268,7 @@ class PriceResetLink extends StatelessWidget {
           child: Text(
             label,
             style: context.text.orderMeta.copyWith(
-              color: context.colors.statusDone,
+              color: context.colors.doneText,
               fontWeight: FontWeight.w600,
             ),
           ),

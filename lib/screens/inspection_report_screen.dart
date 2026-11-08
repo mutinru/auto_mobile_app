@@ -287,12 +287,7 @@ class _PanelReportSheet extends StatelessWidget {
           children: [
             Text(
               panel.zone.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                letterSpacing: 1.2,
-                fontWeight: FontWeight.w600,
-                color: context.colors.text3,
-              ),
+              style: context.text.sectionTitle,
             ),
             const SizedBox(height: 2),
             Row(

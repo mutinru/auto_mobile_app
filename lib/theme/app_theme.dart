@@ -88,6 +88,11 @@ class AppTheme {
         contentTextStyle: TextStyle(fontFamily: fontFamily, color: c.text1),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(color: c.statusDone),
+      // TextButton без своего цвета брал primary (statusDone) — на солнце
+      // зелёные буквы на белом не читались; буквы — doneText
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: c.doneText),
+      ),
       dialogTheme: DialogThemeData(backgroundColor: c.bg1),
       timePickerTheme: _timePicker(c, greenSoft),
       datePickerTheme: _datePicker(c),
@@ -228,6 +233,21 @@ class AppText extends ThemeExtension<AppText> {
   /// Вес обычного текста: в светлой теме плотнее (см. AppTheme._lightWeight).
   FontWeight? get _regular => c.isLight ? FontWeight.w500 : null;
 
+  /// Подписи полей и секций — 10 px заглавными с разрядкой: тонкие буквы.
+  /// text3 по контрасту проходит, но на солнце такая мелочь бледнеет —
+  /// в светлой теме чёрные (text1) и жирнее: от значения подпись отличают
+  /// размер и заглавные. Тёмная — как в макете.
+  Color get _label => c.isLight ? c.text1 : c.text3;
+
+  /// Пометка рядом с подписью («необязательно», «с учётом торга») — на
+  /// ступень светлее подписи, чтобы не сливалась с ней.
+  Color get _labelNote => c.isLight ? c.text2 : c.text3;
+
+  /// Серое «необязательно» справа от подписи поля.
+  TextStyle get fieldLabelNote =>
+      fieldLabel.copyWith(letterSpacing: 0, color: _labelNote);
+  FontWeight get _labelWeight => c.isLight ? FontWeight.w700 : FontWeight.w600;
+
   /// .detail-title — заголовок экрана
   TextStyle get detailTitle => TextStyle(
     fontSize: 19,
@@ -239,17 +259,17 @@ class AppText extends ThemeExtension<AppText> {
   /// .detail-eyebrow — надстрочник над заголовком
   TextStyle get detailEyebrow => TextStyle(
     fontSize: 10,
-    fontWeight: FontWeight.w600,
+    fontWeight: _labelWeight,
     letterSpacing: 1.2, // 0.12em
-    color: c.text3,
+    color: _label,
   );
 
   /// .section-title — подпись секции
   TextStyle get sectionTitle => TextStyle(
     fontSize: 10,
-    fontWeight: FontWeight.w600,
+    fontWeight: _labelWeight,
     letterSpacing: 1.2,
-    color: c.text3,
+    color: _label,
   );
 
   /// .section-extra — правая подпись секции (моно)
@@ -257,7 +277,7 @@ class AppText extends ThemeExtension<AppText> {
     fontFamily: AppTheme.monoFamily,
     fontSize: 11,
     fontWeight: _regular,
-    color: c.text3,
+    color: _labelNote,
   );
 
   /// .order-car — название авто в карточке заказа
@@ -302,14 +322,24 @@ class AppText extends ThemeExtension<AppText> {
   /// .field-label — подпись поля формы
   TextStyle get fieldLabel => TextStyle(
     fontSize: 10,
-    fontWeight: FontWeight.w600,
+    fontWeight: _labelWeight,
     letterSpacing: 1.2,
-    color: c.text3,
+    color: _label,
   );
 
   /// .field-box — значение внутри поля
   TextStyle get fieldValue =>
       TextStyle(fontSize: 14, fontWeight: _regular, color: c.text1);
+
+  /// Пояснение под полем («Подставим марку, модель и год»). На солнце
+  /// мелкий серый текст пропадает — в светлой теме чёрный, как подпись;
+  /// от неё отличается регистром. Тёмная — text3, как в макете.
+  TextStyle get fieldNote => TextStyle(
+    fontSize: 11,
+    height: 1.45,
+    fontWeight: _regular,
+    color: c.isLight ? c.text1 : c.text3,
+  );
 
   /// .field-box.empty — плейсхолдер
   TextStyle get fieldPlaceholder =>

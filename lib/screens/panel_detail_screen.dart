@@ -202,12 +202,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                           children: [
                             Text(
                               panel.zone,
-                              style: TextStyle(
-                                fontSize: 10,
-                                letterSpacing: 1.2,
-                                color: context.colors.text3,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: context.text.sectionTitle,
                             ),
                             Text(
                               panel.name,
@@ -465,12 +460,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 10,
-        letterSpacing: 1.2,
-        color: context.colors.text3,
-        fontWeight: FontWeight.w600,
-      ),
+      style: context.text.sectionTitle,
     );
   }
 }
@@ -660,7 +650,7 @@ class _DefectChip extends StatelessWidget {
           border: Border.all(
             color: on
                 ? context.colors.statusProgress.withValues(alpha: 0.5)
-                : Colors.transparent,
+                : context.colors.chipEdge,
           ),
         ),
         child: Text(
