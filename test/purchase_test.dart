@@ -104,9 +104,11 @@ void main() {
     expect(find.text('Какую машину купили?'), findsNothing);
     expect(find.text('Зафиксировать покупку'), findsNothing);
     expect(find.text('Оставить отзыв'), findsOneWidget);
-    // исход — по-русски, а не сырое purchased/rejected
+    // купленная — по-русски, а не сырое purchased; у некупленной исход
+    // «не подошла» не выводится — остаётся статус осмотра
     expect(find.text('КУПЛЕНА'), findsOneWidget);
-    expect(find.text('НЕ ПОДОШЛА'), findsOneWidget);
+    expect(find.text('НЕ ПОДОШЛА'), findsNothing);
+    expect(find.text('ОСМОТРЕНА'), findsOneWidget);
 
     final updated = await store.fetchOrder(3001);
     expect(updated.status, OrderStatus.completed);
@@ -147,7 +149,17 @@ void main() {
         'status': 'completed',
         'outcome': 'rejected',
       }).inspectionLabel,
-      'не подошла',
+      'осмотрена',
+    );
+    // некупленная с вердиктом — вердикт подборщика, а не «не подошла»
+    expect(
+      car({
+        'id': 5,
+        'status': 'completed',
+        'outcome': 'rejected',
+        'verdict': 'with_reservations',
+      }).inspectionLabel,
+      'с оговорками',
     );
     // незнакомое значение не попадает на экран как есть
     final unknown = car({'id': 5, 'status': 'archived', 'outcome': 'returned'});

@@ -634,14 +634,14 @@ class _CandidateCard extends StatelessWidget {
   /// Правка номера; null — заказ отменён, только показ.
   final VoidCallback? onEditSellerPhone;
 
-  /// Цвет плашки: идущий осмотр — синий, покупка — зелёный, дальше вердикт;
-  /// «не подошла» и «осмотр не начат» — нейтральные.
+  /// Цвет плашки: идущий осмотр — синий, покупка — зелёный, дальше вердикт
+  /// (и у некупленных после покупки); «осмотрена» и «осмотр не начат» —
+  /// нейтральные.
   Color? _pillColor(AppColors c) {
     if (car.inspectionStatus == 'in_progress') return c.statusInfo;
     if (car.inspectionOutcome == InspectionOutcome.purchased) {
       return c.statusDone;
     }
-    if (car.inspectionOutcome != null) return null;
     return car.verdict?.color(c);
   }
 

@@ -5,6 +5,7 @@ import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_outcome.dart';
+import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_response.dart';
@@ -138,6 +139,7 @@ void main() {
             inspectionId: 902,
             inspectionStatus: 'completed',
             inspectionOutcome: InspectionOutcome.rejected,
+            verdict: InspectionVerdict.withReservations,
           ),
         ],
       ),
@@ -153,6 +155,8 @@ void main() {
     }
 
     expect(edge('КУПЛЕНА'), AppColors.light.buyEdge);
-    expect(edge('НЕ ПОДОШЛА'), AppColors.light.line);
+    // некупленная — с вердиктом подборщика, без «не подошла»
+    expect(edge('С ОГОВОРКАМИ'), AppColors.light.line);
+    expect(find.text('НЕ ПОДОШЛА'), findsNothing);
   });
 }

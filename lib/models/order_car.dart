@@ -79,12 +79,16 @@ class OrderCar {
   String get title => '$brand $model $year';
 
   /// Подпись в списке кандидатов: идущий осмотр — прежде всего (его
-  /// дозавершают и после покупки другой машины, когда исход уже «не
-  /// подошла»), дальше исход покупки, вердикт и статус осмотра. Статус у
+  /// дозавершают и после покупки другой машины), дальше «куплена»,
+  /// вердикт и статус осмотра. Исход «не подошла» не выводим: сервер
+  /// ставит его всем некупленным при покупке, он ничего не добавляет к
+  /// «куплена» у соседней машины и прятал бы вердикт подборщика. Статус у
   /// бекенда — строка без энама, незнакомое значение не выводим как есть.
   String get inspectionLabel {
     if (inspectionStatus == 'in_progress') return 'идёт осмотр';
-    if (inspectionOutcome != null) return inspectionOutcome!.label;
+    if (inspectionOutcome == InspectionOutcome.purchased) {
+      return inspectionOutcome!.label;
+    }
     if (verdict != null) return verdict!.label.toLowerCase();
     if (inspectionId == null) return 'осмотр не начат';
     return switch (inspectionStatus) {

@@ -58,9 +58,9 @@ void main() {
     final done = closed(otherStatus: 'completed');
     expect(done.hasUnfinishedInspection, isFalse);
     expect(done.statusLabel, 'выполнен');
-    // идущий осмотр важнее исхода «не подошла» — его ещё доделывают
+    // идущий осмотр — его ещё доделывают; некупленная — без «не подошла»
     expect(closed().cars.last.inspectionLabel, 'идёт осмотр');
-    expect(done.cars.last.inspectionLabel, 'не подошла');
+    expect(done.cars.last.inspectionLabel, 'осмотрена');
   });
 
   Future<void> pumpTaken(WidgetTester tester, Order order) async {
