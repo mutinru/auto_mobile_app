@@ -102,7 +102,7 @@ class OrderCard extends StatelessWidget {
             // .order-foot
             Container(height: 1, color: context.colors.line),
             const SizedBox(height: 12),
-            OrderFoot(order: order),
+            OrderFoot(order: order, asExecutor: asExecutor),
           ],
         ),
       ),
@@ -516,14 +516,18 @@ class _AgainButton extends StatelessWidget {
   }
 }
 
-/// .order-foot — аватар, строка про исполнителя, цена.
+/// .order-foot — аватар, строка про другую сторону заказа, цена. Заказчику
+/// — исполнитель (или отклики), исполнителю во «Взятых» — заказчик: себя
+/// он и так знает.
 class OrderFoot extends StatelessWidget {
-  const OrderFoot({super.key, required this.order});
+  const OrderFoot({super.key, required this.order, this.asExecutor = false});
 
   final Order order;
+  final bool asExecutor;
 
   @override
   Widget build(BuildContext context) {
+    if (asExecutor) return _customer(context);
     final executor = order.executor;
     final hasExecutor = executor != null;
 
@@ -569,6 +573,36 @@ class OrderFoot extends StatelessWidget {
                   _responsesLabel(order.responsesCount, order.isInspection),
                   style: context.text.orderExec,
                 ),
+        ),
+        if (_price(order) != null)
+          Text(
+            _price(order)!,
+            style: context.text.orderPrice.copyWith(
+              fontFamily: AppTheme.monoFamily,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _customer(BuildContext context) {
+    final customer = order.customer;
+    return Row(
+      children: [
+        Avatar(initialsOf(customer.name)),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              text: customer.name,
+              style: TextStyle(
+                color: context.colors.text1,
+                fontWeight: FontWeight.w600,
+              ),
+              children: const [TextSpan(text: ' · заказчик')],
+            ),
+            style: context.text.orderExec,
+          ),
         ),
         if (_price(order) != null)
           Text(
