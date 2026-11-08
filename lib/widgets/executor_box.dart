@@ -6,15 +6,26 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'app_ui.dart';
 import 'executor_stats.dart';
+import 'phone_contact.dart';
 
 /// Назначенный исполнитель заказа: имя, рейтинг, цена. У осмотра ещё
 /// телефон продавца — бекенд отдаёт его только заказчику и выбранному
-/// исполнителю, у подбора его нет.
+/// исполнителю, у подбора его нет. У подбора заказчику — телефон самого
+/// исполнителя с «Позвонить» ([phone]).
 class ExecutorBox extends StatelessWidget {
-  const ExecutorBox({super.key, required this.order, this.onShowReviews});
+  const ExecutorBox({
+    super.key,
+    required this.order,
+    this.onShowReviews,
+    this.phone,
+  });
 
   final Order order;
   final VoidCallback? onShowReviews;
+
+  /// Телефон исполнителя для заказчика (Order.counterpartPhone); null —
+  /// строки нет. Исполнителю, который смотрит сам на себя, не передаётся.
+  final String? phone;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +107,8 @@ class ExecutorBox extends StatelessWidget {
               ],
             ),
           ],
+          if (phone case final phone? when phone.isNotEmpty)
+            PhoneCallRow(label: 'Телефон исполнителя', phone: phone),
         ],
       ),
     );

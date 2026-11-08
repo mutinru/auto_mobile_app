@@ -46,6 +46,7 @@ class Order {
     this.listingSite,
     this.hasListing = false,
     this.sellerPhone,
+    this.counterpartPhone,
     this.askingPrice,
     this.executor,
     this.responses = const [],
@@ -134,6 +135,12 @@ class Order {
   /// Телефон продавца: бекенд отдаёт его только заказчику и выбранному
   /// исполнителю, остальным ключа в ответе просто нет.
   final String? sellerPhone;
+
+  /// Телефон другой стороны подбора: заказчику — исполнителя, исполнителю —
+  /// заказчика. Сервер открывает его с выбора исполнителя и прячет в
+  /// отменённом заказе; у разового осмотра — всегда null
+  /// (`Order::counterpartPhoneFor` на бекенде).
+  final String? counterpartPhone;
 
   /// Цена, которую назначил заказчик (у осмотра — точка отсчёта для откликов).
   final int? askingPrice;
@@ -309,6 +316,7 @@ class Order {
     OrderStatus? status,
     int? price,
     UserSummary? executor,
+    String? counterpartPhone,
     List<OrderResponse>? responses,
     int? responsesCount,
     List<OrderCar>? cars,
@@ -363,6 +371,9 @@ class Order {
     listingSite: listingSite,
     hasListing: hasListing,
     sellerPhone: sellerPhone,
+    counterpartPhone: clearExecutor
+        ? null
+        : (counterpartPhone ?? this.counterpartPhone),
     askingPrice: askingPrice ?? this.askingPrice,
     customer: customer,
     executor: clearExecutor ? null : (executor ?? this.executor),
@@ -421,6 +432,7 @@ class Order {
     // старый бекенд поля не знает — тогда объявление есть, если пришла ссылка
     hasListing: json['has_listing'] as bool? ?? json['listing_url'] != null,
     sellerPhone: json['seller_phone'] as String?,
+    counterpartPhone: json['counterpart_phone'] as String?,
     askingPrice: json['asking_price'] as int?,
     customer: UserSummary.fromJson(json['customer'] as Map<String, dynamic>),
     executor: json['executor'] != null

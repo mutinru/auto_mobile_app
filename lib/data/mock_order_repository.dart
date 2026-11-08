@@ -588,6 +588,8 @@ class MockOrderRepository implements OrderRepository {
       status: order.isInspection ? OrderStatus.scheduled : OrderStatus.sourcing,
       price: response.proposedPrice,
       executor: response.executor,
+      // как Order::counterpartPhoneFor: у подбора номера открываются сторонам
+      counterpartPhone: order.isInspection ? null : '+79000000010',
       executorDeadlineAt: order.isInspection
           ? DateTime.now().add(const Duration(hours: 24))
           : null,

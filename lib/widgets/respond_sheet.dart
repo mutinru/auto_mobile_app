@@ -7,6 +7,7 @@ import 'api_error.dart';
 import 'app_sheet.dart';
 import 'app_ui.dart';
 import 'payout_fields.dart';
+import 'phone_contact.dart';
 import 'price_box.dart';
 
 /// Отклик на свободный заказ. true — отклик отправлен, null — лист закрыли.
@@ -120,6 +121,14 @@ class RespondSheetState extends State<RespondSheet> {
           maxLength: 1000,
           minHeight: 56,
         ),
+        // подбор: номера открываются сторонам с выбора исполнителя
+        if (!widget.order.isInspection) ...[
+          const SizedBox(height: 4),
+          const PhoneExchangeNote(
+            'Если заказчик выберет вас, вы увидите телефоны друг друга — '
+            'сможете созвониться напрямую.',
+          ),
+        ],
         if (widget.requiresPayout) ...[
           const SizedBox(height: 8),
           const SectionHead('Куда заказчик переведёт оплату'),

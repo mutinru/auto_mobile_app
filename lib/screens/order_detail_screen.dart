@@ -20,6 +20,7 @@ import '../widgets/confirm_sheet.dart';
 import '../widgets/executor_box.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/order_status_card.dart';
+import '../widgets/phone_contact.dart';
 import '../widgets/purchase_sheet.dart';
 import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
@@ -444,7 +445,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             ExecutorBox(
               order: order,
               onShowReviews: () => _showReviews(order, order.executor!),
+              // исполнителю сервер отдаёт номер заказчика — он ниже, в «Заказчике»
+              phone: widget.viewerIsCustomer ? order.counterpartPhone : null,
             ),
+          ],
+          if (!widget.viewerIsCustomer && order.counterpartPhone != null) ...[
+            const SizedBox(height: 22),
+            const SectionHead('Заказчик'),
+            _CustomerBox(order: order, phone: order.counterpartPhone!),
           ],
           // кандидаты — то, ради чего заказчик открывает подбор: сразу под
           // исполнителем, до отзыва и откликов
@@ -490,6 +498,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           if (widget.viewerIsCustomer && order.responses.isNotEmpty) ...[
             const SizedBox(height: 22),
             SectionHead('Отклики', extra: '${order.responses.length}'),
+            if (order.status == OrderStatus.awaitingExecutor &&
+                order.responses.any(
+                  (r) => r.status == OrderResponseStatus.pending,
+                ))
+              const PhoneExchangeNote(
+                'Когда вы выберете исполнителя, вы увидите телефоны друг '
+                'друга — сможете созвониться напрямую.',
+              ),
             // выбранный — первым, за ним ждущие решения, решённые — в конце
             for (final r in [
               ...order.responses.where(
@@ -516,6 +532,49 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               onPressed: _cancelling ? null : () => _cancel(order),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Заказчик подбора для исполнителя: имя и телефон с «Позвонить» — номер
+/// сервер открывает с выбора исполнителя.
+class _CustomerBox extends StatelessWidget {
+  const _CustomerBox({required this.order, required this.phone});
+
+  final Order order;
+  final String phone;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: c.bg1,
+        border: Border.all(color: c.line),
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Avatar(initialsOf(order.customer.name), size: 36),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  order.customer.name,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: c.text1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          PhoneCallRow(label: 'Телефон заказчика', phone: phone),
         ],
       ),
     );
