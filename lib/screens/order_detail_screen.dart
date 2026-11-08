@@ -17,10 +17,11 @@ import '../state/inspection_store.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';
-import '../widgets/executor_stats.dart';
+import '../widgets/executor_box.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/order_status_card.dart';
 import '../widgets/purchase_sheet.dart';
+import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
 import '../widgets/verdict_sheet.dart';
 import 'executor_reviews_screen.dart';
@@ -216,6 +217,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   Future<void> _accept(int responseId) async {
+    if (_accepting) return;
     setState(() => _accepting = true);
     try {
       await widget.store.acceptResponse(widget.orderId, responseId);
@@ -415,6 +417,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     ),
                     decoration: BoxDecoration(
                       color: context.colors.bg1,
+                      border: Border.all(color: context.colors.chipEdge),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -437,42 +440,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           ],
           if (order.executor != null) ...[
             const SizedBox(height: 22),
-            _SectionLabel('Исполнитель'),
-            const SizedBox(height: 8),
-            _InfoRow(
-              label: order.executor!.name,
-              trailing: order.price != null ? '${money(order.price!)} ₽' : null,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 13),
-              child: ExecutorStats(
-                user: order.executor!,
-                onTap: () => _showReviews(order, order.executor!),
-              ),
+            const SectionHead('Исполнитель'),
+            ExecutorBox(
+              order: order,
+              onShowReviews: () => _showReviews(order, order.executor!),
             ),
           ],
-          OrderReviewSection(
-            order: order,
-            viewerIsCustomer: widget.viewerIsCustomer,
-            onWrite: () => _writeReview(order),
-          ),
+          // кандидаты — то, ради чего заказчик открывает подбор: сразу под
+          // исполнителем, до отзыва и откликов
           if (order.cars.isNotEmpty) ...[
             const SizedBox(height: 22),
-            _SectionLabel('Кандидаты'),
-            const SizedBox(height: 8),
+            SectionHead('Кандидаты', extra: '${order.cars.length}'),
             for (final car in order.cars)
-              _InfoRow(
-                label: car.title,
-                // комментарий к вердикту — то, ради чего заказчик открывает итог
-                subtitle: car.verdictComment,
-                trailing: car.inspectionLabel,
-                // исход покупки важнее вердикта; вердикт — его цветом
-                trailingColor:
-                    car.inspectionOutcome == InspectionOutcome.purchased
-                    ? context.colors.statusDone
-                    : (car.inspectionOutcome == null
-                          ? car.verdict?.color(context.colors)
-                          : null),
+              _CandidateCard(
+                car: car,
                 onTap: car.inspectionId != null && _canOpenInspection
                     ? () => _openInspection(car)
                     : null,
@@ -501,89 +482,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               onPressed: () => _startInspection(order),
             ),
           ],
+          OrderReviewSection(
+            order: order,
+            viewerIsCustomer: widget.viewerIsCustomer,
+            onWrite: () => _writeReview(order),
+          ),
           if (widget.viewerIsCustomer && order.responses.isNotEmpty) ...[
             const SizedBox(height: 22),
-            _SectionLabel('Отклики'),
-            const SizedBox(height: 8),
-            for (final r in order.responses)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(
-                  color: context.colors.bg1,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.executor.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: context.colors.text1,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          ExecutorStats(
-                            user: r.executor,
-                            onTap: () => _showReviews(order, r.executor),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${money(r.proposedPrice)} ₽',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: context.colors.text2,
-                            ),
-                          ),
-                          if (r.message != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              r.message!,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: context.colors.text3,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    if (r.status == OrderResponseStatus.pending)
-                      ElevatedButton(
-                        onPressed: _accepting ? null : () => _accept(r.id),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.colors.statusDone,
-                          foregroundColor: context.colors.modeBuyInk,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          'Принять',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        r.status.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: context.colors.text3,
-                        ),
-                      ),
-                  ],
-                ),
+            SectionHead('Отклики', extra: '${order.responses.length}'),
+            // выбранный — первым, за ним ждущие решения, решённые — в конце
+            for (final r in [
+              ...order.responses.where(
+                (r) => r.status == OrderResponseStatus.accepted,
+              ),
+              ...order.responses.where(
+                (r) => r.status == OrderResponseStatus.pending,
+              ),
+              ...order.responses.where((r) => !r.status.isActive),
+            ])
+              ResponseCard(
+                response: r,
+                askingPrice: order.askingPrice,
+                onAccept: r.status == OrderResponseStatus.pending
+                    ? () => _accept(r.id)
+                    : null,
+                onShowReviews: () => _showReviews(order, r.executor),
               ),
           ],
           if (widget.viewerIsCustomer && order.canCancel) ...[
@@ -599,88 +522,87 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
+/// Кандидат подбора: машина, комментарий к вердикту и плашка — идёт
+/// осмотр, исход покупки или вердикт. Купленная — в зелёной рамке, как
+/// выбранный отклик: в длинном списке её видно сразу. Тап открывает осмотр.
+class _CandidateCard extends StatelessWidget {
+  const _CandidateCard({required this.car, this.onTap});
 
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text.toUpperCase(),
-      style: context.text.sectionTitle,
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    this.subtitle,
-    this.trailing,
-    this.trailingColor,
-    this.onTap,
-  });
-  final String label;
-  final String? subtitle;
-  final String? trailing;
-  final Color? trailingColor;
+  final OrderCar car;
   final VoidCallback? onTap;
 
+  /// Цвет плашки: идущий осмотр — синий, покупка — зелёный, дальше вердикт;
+  /// «не подошла» и «осмотр не начат» — нейтральные.
+  Color? _pillColor(AppColors c) {
+    if (car.inspectionStatus == 'in_progress') return c.statusInfo;
+    if (car.inspectionOutcome == InspectionOutcome.purchased) {
+      return c.statusDone;
+    }
+    if (car.inspectionOutcome != null) return null;
+    return car.verdict?.color(c);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-        decoration: BoxDecoration(
-          color: context.colors.bg1,
-          borderRadius: BorderRadius.circular(12),
+    final c = context.colors;
+    final comment = car.verdictComment;
+    final bought = car.inspectionOutcome == InspectionOutcome.purchased;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: bought ? Color.alphaBlend(c.buySoft, c.bg1) : c.bg1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: bought
+              ? BorderSide(color: c.buyEdge, width: 1.5)
+              : BorderSide(color: c.line),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(fontSize: 13, color: context.colors.text1),
-                  ),
-                  if (subtitle case final subtitle? when subtitle.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        car.title,
                         style: TextStyle(
-                          fontSize: 11.5,
-                          color: context.colors.text2,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: c.text1,
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (trailing != null)
-              Text(
-                trailing!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: trailingColor == null
-                      ? context.colors.text2
-                      : context.colors.textFor(trailingColor!),
+                      const SizedBox(height: 7),
+                      Pill(car.inspectionLabel, color: _pillColor(c)),
+                      if (comment != null && comment.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 7),
+                          child: Text(
+                            comment,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.4,
+                              color: c.text2,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            if (onTap != null) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.chevron_right, size: 16, color: context.colors.text3),
-            ],
-          ],
+                if (onTap != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right, size: 20, color: c.text2),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

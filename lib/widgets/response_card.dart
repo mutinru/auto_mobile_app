@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../models/order_response.dart';
+import '../models/order_response_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'app_ui.dart';
 import 'executor_stats.dart';
 
-/// .resp — отклик исполнителя на заказ-осмотр (order-types.html, кадр 04).
+/// .resp — отклик исполнителя на заказ (order-types.html, кадр 04).
 /// Цена заказчика — точка отсчёта: рядом с ценой отклика видна разница
 /// с ней. Под именем — .resp-stats: рейтинг и число отзывов исполнителя.
+///
+/// Решённый отклик несёт плашку статуса у имени; выбранный ещё и в
+/// зелёной рамке — в списке откликов подбора его видно сразу.
 class ResponseCard extends StatelessWidget {
   const ResponseCard({
     super.key,
@@ -37,16 +41,29 @@ class ResponseCard extends StatelessWidget {
         : ('+${money(diff)} ₽', c.progressText);
   }
 
+  /// Плашка у имени: null — отклик ждёт решения.
+  Widget? _statusPill(AppColors c) => switch (response.status) {
+    OrderResponseStatus.pending => null,
+    OrderResponseStatus.accepted => Pill('Выбран', color: c.statusDone),
+    final status => Pill(status.label),
+  };
+
   @override
   Widget build(BuildContext context) {
-    final delta = _delta(context.colors);
+    final c = context.colors;
+    final delta = _delta(c);
+    final chosen = response.status == OrderResponseStatus.accepted;
+    final pill = _statusPill(c);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
       decoration: BoxDecoration(
-        color: context.colors.bg1,
-        border: Border.all(color: context.colors.line),
+        color: chosen ? Color.alphaBlend(c.buySoft, c.bg1) : c.bg1,
+        border: Border.all(
+          color: chosen ? c.buyEdge : c.line,
+          width: chosen ? 1.5 : 1,
+        ),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -60,13 +77,21 @@ class ResponseCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      response.executor.name,
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: context.colors.text1,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            response.executor.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: c.text1,
+                            ),
+                          ),
+                        ),
+                        if (pill != null) ...[const SizedBox(width: 8), pill],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     ExecutorStats(

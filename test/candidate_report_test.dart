@@ -85,7 +85,7 @@ void main() {
   ) async {
     await pump(tester);
     expect(find.text(comment), findsOneWidget);
-    expect(find.text('с оговорками'), findsOneWidget);
+    expect(find.text('С ОГОВОРКАМИ'), findsOneWidget);
   });
 
   testWidgets('осмотренный кандидат открывает отчёт с итогом', (tester) async {

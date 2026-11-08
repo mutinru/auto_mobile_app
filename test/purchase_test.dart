@@ -105,8 +105,8 @@ void main() {
     expect(find.text('Зафиксировать покупку'), findsNothing);
     expect(find.text('Оставить отзыв'), findsOneWidget);
     // исход — по-русски, а не сырое purchased/rejected
-    expect(find.text('куплена'), findsOneWidget);
-    expect(find.text('не подошла'), findsOneWidget);
+    expect(find.text('КУПЛЕНА'), findsOneWidget);
+    expect(find.text('НЕ ПОДОШЛА'), findsOneWidget);
 
     final updated = await store.fetchOrder(3001);
     expect(updated.status, OrderStatus.completed);
