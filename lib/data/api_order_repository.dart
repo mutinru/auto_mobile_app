@@ -12,6 +12,7 @@ import '../models/vin_kind.dart';
 import '../models/vin_report.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
+import 'photo_upload.dart';
 
 class ApiOrderRepository implements OrderRepository {
   ApiOrderRepository(this._client);
@@ -330,24 +331,32 @@ class ApiOrderRepository implements OrderRepository {
 
   /// VIN с фото таблички и пробег с фото одометра — одной формой; 422
   /// по полям (`vin`, `mileage_km`, фото) экран раскладывает по блокам.
+  /// Снимки уходят сжатыми копиями (`withUploadCopy`): полный кадр камеры
+  /// таблички — до 8 МБ.
   Future<Map<String, dynamic>> _withCapture(
     String path,
     CapturedVin vin,
     CapturedOdometer odometer,
     Map<String, String> fields,
-  ) async {
-    return _client.multipart(
-      path,
-      fields: {
-        ...fields,
-        'vin': vin.value,
-        'vin_kind': vin.kind.apiValue,
-        'mileage_km': '${odometer.km}',
-      },
-      files: [
-        await http.MultipartFile.fromPath('vin_photo', vin.photoPath),
-        await http.MultipartFile.fromPath('odometer_photo', odometer.photoPath),
-      ],
+  ) {
+    return withUploadCopy(
+      vin.photoPath,
+      (vinPhoto) => withUploadCopy(
+        odometer.photoPath,
+        (odometerPhoto) async => _client.multipart(
+          path,
+          fields: {
+            ...fields,
+            'vin': vin.value,
+            'vin_kind': vin.kind.apiValue,
+            'mileage_km': '${odometer.km}',
+          },
+          files: [
+            await http.MultipartFile.fromPath('vin_photo', vinPhoto),
+            await http.MultipartFile.fromPath('odometer_photo', odometerPhoto),
+          ],
+        ),
+      ),
     );
   }
 

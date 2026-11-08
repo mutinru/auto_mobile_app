@@ -207,6 +207,7 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                                   : () => openPhotoViewer(
                                       context,
                                       car.vinPhotoUrl!,
+                                      thumbUrl: car.vinPhotoThumbUrl,
                                     ),
                               child: Row(
                                 children: [

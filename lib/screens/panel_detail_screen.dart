@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -45,7 +46,10 @@ class PanelDetailScreen extends StatefulWidget {
 class _PanelDetailScreenState extends State<PanelDetailScreen> {
   late String _panelId = widget.panelId;
 
-  bool _uploading = false;
+  /// Снимок, который сейчас уходит на сервер: плитка «+» показывает его
+  /// под крутилкой, чтобы исполнитель сразу видел, что снял.
+  String? _uploadingPath;
+  bool get _uploading => _uploadingPath != null;
 
   final _conditionKey = GlobalKey();
   final _defectKey = GlobalKey();
@@ -135,22 +139,18 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
     );
     if (source == null) return;
 
-    // сжимаем на устройстве: бекенд принимает до 10 МБ, а снимки
-    // современных камер легко больше
-    final picked = await ImagePicker().pickImage(
-      source: source,
-      maxWidth: 2000,
-      imageQuality: 85,
-    );
+    // без пересжатия здесь: снимок сожмёт отправка (photo_upload.dart),
+    // иначе JPEG пережимался бы дважды
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked == null || !mounted) return;
 
-    setState(() => _uploading = true);
+    setState(() => _uploadingPath = picked.path);
     try {
       await widget.store.uploadPhoto(_panelId, picked.path);
     } catch (e) {
       if (mounted) showApiError(context, e);
     } finally {
-      if (mounted) setState(() => _uploading = false);
+      if (mounted) setState(() => _uploadingPath = null);
     }
   }
 
@@ -348,6 +348,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                   onTap: () => openPhotoGallery(
                                     context,
                                     [for (final p in panel.photos) p.url],
+                                    thumbUrls: [
+                                      for (final p in panel.photos) p.thumbUrl,
+                                    ],
                                     initialIndex: i,
                                     onDelete: store.readOnly
                                         ? null
@@ -365,7 +368,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Image.network(
-                                      photo.url,
+                                      photo.thumbUrl,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, _, _) => Icon(
                                         Icons.broken_image_outlined,
@@ -384,6 +387,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                 child: Container(
                                   width: 72,
                                   height: 72,
+                                  clipBehavior: Clip.antiAlias,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
@@ -391,16 +395,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                       width: 1.5,
                                     ),
                                   ),
-                                  child: _uploading
-                                      ? const Center(
-                                          child: SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        )
+                                  child: _uploadingPath != null
+                                      ? _UploadingTile(path: _uploadingPath!)
                                       : Icon(
                                           Icons.add,
                                           color: context.colors.text3,
@@ -675,6 +671,36 @@ class _DefectChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Плитка снимка, который уходит на сервер: сам снимок под крутилкой.
+class _UploadingTile extends StatelessWidget {
+  const _UploadingTile({required this.path});
+
+  final String path;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.file(
+          File(path),
+          fit: BoxFit.cover,
+          // полный кадр камеры — не раскодируем его целиком ради плитки
+          cacheWidth: (72 * MediaQuery.devicePixelRatioOf(context)).round(),
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+        ),
+        const Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ],
     );
   }
 }

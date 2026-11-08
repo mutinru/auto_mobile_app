@@ -206,10 +206,8 @@ class _VinCameraScreenState extends State<VinCameraScreen>
   /// Своя камера не поднялась — снимаем системной, как раньше, без рамки:
   /// съёмка таблички не должна становиться тупиком.
   Future<void> _systemCamera() async {
-    final shot = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 2000,
-    );
+    // полный кадр — для распознавания; на сервер его сожмёт отправка
+    final shot = await ImagePicker().pickImage(source: ImageSource.camera);
     if (shot == null || !mounted) return;
     Navigator.of(context).pop(VinShot(path: shot.path));
   }

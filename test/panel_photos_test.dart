@@ -72,6 +72,48 @@ void main() {
       panel.photos.single.url,
       '${ApiConfig.origin}/api/media/photos/42?signature=x',
     );
+    // без превью плитка берёт полный кадр
+    expect(panel.photos.single.thumbUrl, panel.photos.single.url);
+  });
+
+  test('превью фото — своя абсолютная ссылка', () {
+    final panel = InspectionPanel.fromJson({
+      'id': 'hood',
+      'name': 'Капот',
+      'zone': 'Перед',
+      'status': 'ok',
+      'condition': 'good',
+      'defects': <dynamic>[],
+      'photo_count': 1,
+      'photos': [
+        {
+          'id': 42,
+          'url': '/api/media/photos/42?signature=x',
+          'thumb_url': '/api/media/photos/42/thumb?signature=y',
+        },
+      ],
+    });
+
+    expect(
+      panel.photos.single.thumbUrl,
+      '${ApiConfig.origin}/api/media/photos/42/thumb?signature=y',
+    );
+  });
+
+  testWidgets('плитка грузит превью, просмотр — полный кадр поверх превью', (
+    tester,
+  ) async {
+    final store = await storeWithPhotos(1);
+    await openDetail(tester, store);
+
+    final tile = tester.widget<Image>(thumb(0)).image as NetworkImage;
+    expect(tile.url, endsWith('/1.thumb.jpg'));
+
+    await tester.tap(thumb(0));
+    await tester.pumpAndSettle();
+    final viewer = tester.widget<PhotoViewer>(find.byType(PhotoViewer));
+    expect(viewer.urls.single, endsWith('/1.jpg'));
+    expect(viewer.thumbUrls!.single, endsWith('/1.thumb.jpg'));
   });
 
   testWidgets('тап по миниатюре открывает фото с листанием', (tester) async {

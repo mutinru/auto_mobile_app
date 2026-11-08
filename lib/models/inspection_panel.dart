@@ -5,10 +5,17 @@ import 'panel_status.dart';
 /// Снимок детали: id — для удаления (DELETE /photos/{id}), url — абсолютная
 /// подписанная ссылка, Bearer не нужен.
 class PanelPhoto {
-  const PanelPhoto({required this.id, required this.url});
+  const PanelPhoto({required this.id, required this.url, String? thumbUrl})
+    : thumbUrl = thumbUrl ?? url;
 
   final int id;
+
+  /// Полный кадр — для просмотра на весь экран.
   final String url;
+
+  /// Превью до 480 px (`thumb_url`) — для плиток: полный кадр в плитке
+  /// 72×72 качал бы мегабайты. Без превью — тот же [url].
+  final String thumbUrl;
 }
 
 /// Пункт осмотра: деталь кузова на схеме или пункт вне её
@@ -121,6 +128,7 @@ class InspectionPanel {
           PanelPhoto(
             id: (p as Map<String, dynamic>)['id'] as int,
             url: _absolute(p['url'] as String),
+            thumbUrl: mediaUrl(p['thumb_url'] as String?),
           ),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,

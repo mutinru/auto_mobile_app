@@ -7,10 +7,12 @@ class Car {
     required this.year,
     required this.vinMasked,
     this.vinPhotoUrl,
+    this.vinPhotoThumbUrl,
     this.mileageKm,
     this.customerMileageKm,
     this.mileageMismatch = false,
     this.odometerPhotoUrl,
+    this.odometerPhotoThumbUrl,
   });
 
   final String brand;
@@ -22,6 +24,9 @@ class Car {
 
   /// Фото таблички VIN — подписанная ссылка, Bearer не нужен.
   final String? vinPhotoUrl;
+
+  /// Превью таблички — подложка просмотра, пока грузится полный кадр.
+  final String? vinPhotoThumbUrl;
 
   /// Пробег по одометру — снял исполнитель; null у старых осмотров.
   final int? mileageKm;
@@ -35,6 +40,9 @@ class Car {
   /// Фото приборки — подписанная ссылка, Bearer не нужен.
   final String? odometerPhotoUrl;
 
+  /// Превью приборки — подложка просмотра, пока грузится полный кадр.
+  final String? odometerPhotoThumbUrl;
+
   String get title => '$brand $model $year';
 
   /// «127 450 км» или null без пробега.
@@ -46,10 +54,14 @@ class Car {
     year: json['year'] as int,
     vinMasked: json['vin_masked'] as String,
     vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
+    vinPhotoThumbUrl: mediaUrl(json['vin_photo_thumb_url'] as String?),
     mileageKm: json['mileage_km'] as int?,
     customerMileageKm: json['customer_mileage_km'] as int?,
     mileageMismatch: json['mileage_mismatch'] as bool? ?? false,
     odometerPhotoUrl: mediaUrl(json['odometer_photo_url'] as String?),
+    odometerPhotoThumbUrl: mediaUrl(
+      json['odometer_photo_thumb_url'] as String?,
+    ),
   );
 }
 

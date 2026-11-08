@@ -266,7 +266,11 @@ class MockInspectionRepository implements InspectionRepository {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     final id = _nextPhotoId++;
     panel.photos.add(
-      PanelPhoto(id: id, url: 'http://localhost/mock/photo/$id.jpg'),
+      PanelPhoto(
+        id: id,
+        url: 'http://localhost/mock/photo/$id.jpg',
+        thumbUrl: 'http://localhost/mock/photo/$id.thumb.jpg',
+      ),
     );
     panel.photoCount++;
     return _withMissing(panel);

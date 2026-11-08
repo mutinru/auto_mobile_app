@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import 'api_client.dart';
 import 'inspection_repository.dart';
+import 'photo_upload.dart';
 
 /// Реализация поверх Laravel API (routes/api.php).
 ///
@@ -71,10 +72,13 @@ class ApiInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
-    return _multipart(
-      '/inspections/$inspectionId/panels/$panelId/photos',
-      await http.MultipartFile.fromPath('photo', filePath),
+  Future<InspectionPanel> uploadPhoto(String panelId, String filePath) {
+    return withUploadCopy(
+      filePath,
+      (upload) async => _multipart(
+        '/inspections/$inspectionId/panels/$panelId/photos',
+        await http.MultipartFile.fromPath('photo', upload),
+      ),
     );
   }
 

@@ -196,7 +196,11 @@ class _InspectionReportScreenState extends State<InspectionReportScreen> {
         if (store.car!.vinPhotoUrl case final url?) ...[
           const SizedBox(height: 22),
           const SectionHead('Табличка VIN', extra: 'сняли на осмотре'),
-          VinPlateRow(vinMasked: store.car!.vinMasked, photoUrl: url),
+          VinPlateRow(
+            vinMasked: store.car!.vinMasked,
+            photoUrl: url,
+            thumbUrl: store.car!.vinPhotoThumbUrl,
+          ),
         ],
         ..._mileage(store.car!),
 
@@ -253,6 +257,7 @@ List<Widget> _mileage(Car car) {
       value: kmLabel(km)!,
       caption: 'фото одометра',
       photoUrl: car.odometerPhotoUrl,
+      thumbUrl: car.odometerPhotoThumbUrl,
     ),
     if (car.mileageMismatch && claimed != null)
       MileageMismatchNote(km: km, claimedKm: claimed),
@@ -389,6 +394,7 @@ class _PanelReportSheet extends StatelessWidget {
                         onTap: () => openPhotoGallery(
                           context,
                           [for (final p in panel.photos) p.url],
+                          thumbUrls: [for (final p in panel.photos) p.thumbUrl],
                           initialIndex: i,
                         ),
                         child: Container(
@@ -401,7 +407,7 @@ class _PanelReportSheet extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Image.network(
-                            photo.url,
+                            photo.thumbUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => Icon(
                               Icons.broken_image_outlined,

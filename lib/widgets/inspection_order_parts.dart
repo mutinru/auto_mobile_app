@@ -209,10 +209,16 @@ class _MismatchNote extends StatelessWidget {
 /// («со слов продавца»); после — по одометру, рядом заявленное. Тап по
 /// строке с одометром открывает фото приборки.
 class _MileageRow extends StatelessWidget {
-  const _MileageRow({required this.text, this.photoUrl, this.alert = false});
+  const _MileageRow({
+    required this.text,
+    this.photoUrl,
+    this.thumbUrl,
+    this.alert = false,
+  });
 
   final String text;
   final String? photoUrl;
+  final String? thumbUrl;
   final bool alert;
 
   static _MileageRow? of(Order order) {
@@ -226,6 +232,7 @@ class _MileageRow extends StatelessWidget {
           if (claimed != null) 'заявлено ${money(claimed)}',
         ].join(' · '),
         photoUrl: car!.odometerPhotoUrl,
+        thumbUrl: car.odometerPhotoThumbUrl,
         alert: car.mileageMismatch,
       );
     }
@@ -250,7 +257,7 @@ class _MileageRow extends StatelessWidget {
     );
     if (url == null) return row;
     return InkWell(
-      onTap: () => openPhotoViewer(context, url),
+      onTap: () => openPhotoViewer(context, url, thumbUrl: thumbUrl),
       borderRadius: BorderRadius.circular(6),
       child: row,
     );

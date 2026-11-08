@@ -150,10 +150,8 @@ class OdometerCapture extends StatelessWidget {
   }
 
   Future<void> _shoot() async {
-    final shot = await ImagePicker().pickImage(
-      source: ImageSource.camera,
-      maxWidth: 2000,
-    );
+    // сжимает отправка (photo_upload.dart), не пикер
+    final shot = await ImagePicker().pickImage(source: ImageSource.camera);
     if (shot != null) controller.setPhoto(shot.path);
   }
 }

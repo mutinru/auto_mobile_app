@@ -241,7 +241,8 @@ class VinCapture extends StatelessWidget {
     final shot = await openVinCamera(context, controller.kind);
     if (shot == null || !context.mounted) return;
 
-    // на сервер — полный кадр: доказательство с контекстом
+    // на сервер — весь кадр, не рамка: доказательство с контекстом
+    // (сжатый при отправке, photo_upload.dart)
     controller.setPhoto(shot.path);
     controller._setScanning(true);
     var (found, how) = (null as String?, _Recognition.none);

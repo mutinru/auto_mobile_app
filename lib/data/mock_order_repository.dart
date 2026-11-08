@@ -416,6 +416,7 @@ class MockOrderRepository implements OrderRepository {
           customerMileageKm: car.customerMileageKm,
           mileageMismatch: car.mileageMismatch,
           odometerPhotoUrl: car.odometerPhotoUrl,
+          odometerPhotoThumbUrl: car.odometerPhotoThumbUrl,
           inspectionId: car.inspectionId,
           inspectionStatus: 'completed',
           verdict: verdict,

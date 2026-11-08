@@ -15,11 +15,13 @@ class OrderCar {
     required this.vinMasked,
     this.vinKind,
     this.vinPhotoUrl,
+    this.vinPhotoThumbUrl,
     this.vinMismatch = false,
     this.mileageKm,
     this.customerMileageKm,
     this.mileageMismatch = false,
     this.odometerPhotoUrl,
+    this.odometerPhotoThumbUrl,
     this.inspectionId,
     this.inspectionStatus,
     this.inspectionOutcome,
@@ -39,6 +41,9 @@ class OrderCar {
   /// Фото таблички — подписанная ссылка (Bearer не нужен), живёт около часа.
   final String? vinPhotoUrl;
 
+  /// Превью таблички — подложка просмотра, пока грузится полный кадр.
+  final String? vinPhotoThumbUrl;
+
   /// Заказчик указал один VIN, а исполнитель снял с машины другой.
   final bool vinMismatch;
 
@@ -53,6 +58,9 @@ class OrderCar {
 
   /// Фото приборки — подписанная ссылка, живёт около часа.
   final String? odometerPhotoUrl;
+
+  /// Превью приборки — подложка просмотра, пока грузится полный кадр.
+  final String? odometerPhotoThumbUrl;
 
   final int? inspectionId;
   final String? inspectionStatus;
@@ -90,11 +98,15 @@ class OrderCar {
       vinMasked: json['vin_masked'] as String,
       vinKind: vinKindFromApi(json['vin_kind'] as String?),
       vinPhotoUrl: mediaUrl(json['vin_photo_url'] as String?),
+      vinPhotoThumbUrl: mediaUrl(json['vin_photo_thumb_url'] as String?),
       vinMismatch: json['vin_mismatch'] as bool? ?? false,
       mileageKm: json['mileage_km'] as int?,
       customerMileageKm: json['customer_mileage_km'] as int?,
       mileageMismatch: json['mileage_mismatch'] as bool? ?? false,
       odometerPhotoUrl: mediaUrl(json['odometer_photo_url'] as String?),
+      odometerPhotoThumbUrl: mediaUrl(
+        json['odometer_photo_thumb_url'] as String?,
+      ),
       inspectionId: inspection?['id'] as int?,
       inspectionStatus: inspection?['status'] as String?,
       inspectionOutcome: inspectionOutcomeFromApi(

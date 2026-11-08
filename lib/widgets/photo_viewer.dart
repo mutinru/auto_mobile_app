@@ -5,16 +5,23 @@ import '../theme/app_theme.dart';
 import 'api_error.dart';
 import 'confirm_sheet.dart';
 
-/// Одно фото на весь экран: табличка VIN, одометр.
-void openPhotoViewer(BuildContext context, String url) =>
-    openPhotoGallery(context, [url]);
+/// Одно фото на весь экран: табличка VIN, одометр. [thumbUrl] — превью,
+/// которое видно, пока грузится полный кадр.
+void openPhotoViewer(BuildContext context, String url, {String? thumbUrl}) =>
+    openPhotoGallery(
+      context,
+      [url],
+      thumbUrls: thumbUrl == null ? null : [thumbUrl],
+    );
 
 /// Фото на весь экран с листанием, начиная с [initialIndex]. С [onDelete]
 /// — кнопка «Удалить» (исполнитель на идущем осмотре): после удаления
 /// просмотр закрывается, деталь уже подменена ответом сервера.
+/// [thumbUrls] — превью тех же фото по порядку (подложка до полного кадра).
 void openPhotoGallery(
   BuildContext context,
   List<String> urls, {
+  List<String>? thumbUrls,
   int initialIndex = 0,
   Future<void> Function(int index)? onDelete,
 }) {
@@ -22,6 +29,7 @@ void openPhotoGallery(
     MaterialPageRoute(
       builder: (_) => PhotoViewer(
         urls: urls,
+        thumbUrls: thumbUrls,
         initialIndex: initialIndex,
         onDelete: onDelete,
       ),
@@ -35,11 +43,16 @@ class PhotoViewer extends StatefulWidget {
   const PhotoViewer({
     super.key,
     required this.urls,
+    this.thumbUrls,
     this.initialIndex = 0,
     this.onDelete,
-  });
+  }) : assert(thumbUrls == null || thumbUrls.length == urls.length);
 
   final List<String> urls;
+
+  /// Превью тех же фото: из плиток они уже в кеше, поэтому снимок виден
+  /// сразу, а резкость догружается.
+  final List<String>? thumbUrls;
   final int initialIndex;
   final Future<void> Function(int index)? onDelete;
 
@@ -103,6 +116,18 @@ class _PhotoViewerState extends State<PhotoViewer> {
                     child: Image.network(
                       widget.urls[i],
                       fit: BoxFit.contain,
+                      frameBuilder: (context, child, frame, _) {
+                        final thumb = widget.thumbUrls?[i];
+                        if (frame != null || thumb == null) return child;
+                        return SizedBox.expand(
+                          child: Image.network(
+                            thumb,
+                            fit: BoxFit.contain,
+                            // нет превью — ждём полный кадр, как раньше
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                        );
+                      },
                       errorBuilder: (_, _, _) => Icon(
                         Icons.broken_image_outlined,
                         size: 32,
@@ -170,16 +195,19 @@ class VinPlateRow extends StatelessWidget {
     super.key,
     required this.vinMasked,
     required this.photoUrl,
+    this.thumbUrl,
   });
 
   final String vinMasked;
   final String photoUrl;
+  final String? thumbUrl;
 
   @override
   Widget build(BuildContext context) => PhotoFactRow(
     value: 'VIN $vinMasked',
     caption: 'фото таблички',
     photoUrl: photoUrl,
+    thumbUrl: thumbUrl,
   );
 }
 
@@ -191,17 +219,23 @@ class PhotoFactRow extends StatelessWidget {
     required this.value,
     required this.caption,
     required this.photoUrl,
+    this.thumbUrl,
   });
 
   final String value;
   final String caption;
   final String? photoUrl;
 
+  /// Превью фото — подложка просмотра, пока грузится полный кадр.
+  final String? thumbUrl;
+
   @override
   Widget build(BuildContext context) {
     final url = photoUrl;
     return InkWell(
-      onTap: url == null ? null : () => openPhotoViewer(context, url),
+      onTap: url == null
+          ? null
+          : () => openPhotoViewer(context, url, thumbUrl: thumbUrl),
       borderRadius: BorderRadius.circular(13),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
