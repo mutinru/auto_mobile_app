@@ -1,44 +1,25 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../config/api_config.dart';
 import '../firebase_options_dev.dart' as dev;
 import '../firebase_options_prod.dart' as prod;
+import 'local_notifications.dart';
 import 'push_messaging.dart';
+import 'push_provider.dart';
 
-/// Каналы Android: бекенд указывает их в android.notification.channel_id.
-const _channels = [
-  AndroidNotificationChannel(
-    'orders',
-    'Заказы',
-    description: 'Отклики, выбор исполнителя, оплата, споры',
-    importance: Importance.high,
-  ),
-  AndroidNotificationChannel(
-    'new_orders',
-    'Новые заказы рядом',
-    description: 'Новые заказы в городах вашей подписки',
-    importance: Importance.high,
-  ),
-  AndroidNotificationChannel(
-    'chat',
-    'Поддержка',
-    description: 'Ответы поддержки',
-    importance: Importance.high,
-  ),
-];
-
-/// [PushMessaging] на firebase_messaging и flutter_local_notifications.
+/// [PushMessaging] на firebase_messaging; в открытом приложении пуш
+/// показывается локально ([LocalNotifications]) — FCM его не покажет.
 class FirebasePushMessaging implements PushMessaging {
-  final _local = FlutterLocalNotificationsPlugin();
-  final _localTaps = StreamController<PushMessage>.broadcast();
+  final _local = LocalNotifications();
 
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
+
+  @override
+  PushProvider get provider => PushProvider.fcm;
 
   @override
   Future<void> init() async {
@@ -48,22 +29,7 @@ class FirebasePushMessaging implements PushMessaging {
           ? dev.DefaultFirebaseOptions.currentPlatform
           : prod.DefaultFirebaseOptions.currentPlatform,
     );
-    await _local.initialize(
-      settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@drawable/ic_notification'),
-      ),
-      onDidReceiveNotificationResponse: (response) {
-        final message = _decode(response.payload);
-        if (message != null) _localTaps.add(message);
-      },
-    );
-    final android = _local
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    for (final channel in _channels) {
-      await android?.createNotificationChannel(channel);
-    }
+    await _local.init();
   }
 
   @override
@@ -91,7 +57,7 @@ class FirebasePushMessaging implements PushMessaging {
   @override
   Stream<PushMessage> get onTap => StreamGroup.merge([
     FirebaseMessaging.onMessageOpenedApp.map(_fromRemote),
-    _localTaps.stream,
+    _local.taps,
   ]);
 
   @override
@@ -99,50 +65,15 @@ class FirebasePushMessaging implements PushMessaging {
     final remote = await _fcm.getInitialMessage();
     if (remote != null) return _fromRemote(remote);
     // запуск тапом по уведомлению, показанному локально
-    final launch = await _local.getNotificationAppLaunchDetails();
-    if (launch?.didNotificationLaunchApp ?? false) {
-      return _decode(launch!.notificationResponse?.payload);
-    }
-    return null;
+    return _local.launchTap();
   }
 
   @override
-  Future<void> show(PushMessage message) {
-    // тот же канал, что указал бекенд в android.notification.channel_id
-    final type = message.data['type'];
-    final id = switch (type) {
-      'chat_message' => 'chat',
-      'new_order' || 'new_orders' => 'new_orders',
-      _ => 'orders',
-    };
-    final channel = _channels.firstWhere((c) => c.id == id);
-    return _local.show(
-      // id — чтобы новые не затирали друг друга
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000 % 0x7fffffff,
-      title: message.title,
-      body: message.body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          channel.id,
-          channel.name,
-          channelDescription: channel.description,
-          importance: Importance.high,
-          priority: Priority.high,
-        ),
-      ),
-      payload: jsonEncode(message.data),
-    );
-  }
+  Future<void> show(PushMessage message) => _local.show(message);
 
   static PushMessage _fromRemote(RemoteMessage remote) => PushMessage(
     title: remote.notification?.title,
     body: remote.notification?.body,
     data: remote.data,
   );
-
-  static PushMessage? _decode(String? payload) {
-    if (payload == null || payload.isEmpty) return null;
-    final data = jsonDecode(payload);
-    return data is Map<String, dynamic> ? PushMessage(data: data) : null;
-  }
 }

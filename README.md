@@ -291,17 +291,36 @@ Firebase Cloud Messaging, проект `bitnebit-c70ca`; у dev и prod свои
 --out=lib/firebase_options_dev.dart
 --android-out=android/app/src/dev/google-services.json` (и так же для prod).
 
+- **Два сервиса, выбор по телефону** — `AutoPushMessaging` на каждом запуске:
+  RuStore (`RuStorePushMessaging`, пакет `flutter_rustore_push`), если у сборки
+  есть проект RuStore, а RuStore установлен и доступен; иначе Firebase
+  (`FirebasePushMessaging`). Токен уходит на сервер с `provider`
+  (`PushProvider` — зеркало `App\Push\PushProvider`), сервер шлёт через тот же
+  сервис. Сменился сервис — новый токен сессии заменяет прежний на сервере,
+  дублей нет. iOS — только Firebase.
+- **RuStore** — ID проекта (RuStore Консоль → Push-уведомления → Проекты) в
+  `BuildConfig.RUSTORE_PUSH_PROJECT_ID` у flavor-а (`android/app/build.gradle.kts`).
+  Проект привязан к пакету и SHA-256 ключа подписи, поэтому он есть только у
+  prod (релизный ключ — `android/key.properties`); у dev пусто — там только
+  Firebase. SDK инициализирует `BitNeBitApplication` (не мета-строка
+  `project_id`: пустая сломала бы dev), Dart спрашивает о проекте через канал
+  `bitnebit/push` в `MainActivity`. Версия `ru.rustore.sdk:pushclient` в
+  `build.gradle.kts` — та же, что у плагина. Пушам RuStore нужен установленный
+  RuStore с входом в аккаунт и разрешением на работу в фоне.
 - **`PushService`** (`lib/push/`) — один на приложение, создаётся в `main()`.
-  Firebase — только через `PushMessaging` (`FirebasePushMessaging`; в тестах
-  фейк). Сбой инициализации пуши выключает, приложение живёт.
+  Сервис пушей — только через `PushMessaging` (в тестах фейк). Сбой
+  инициализации пуши выключает, приложение живёт.
 - **Регистрация** — на каждую новую сессию: системный запрос разрешения (один
-  раз за запуск, сразу после входа) и `POST /me/devices`; обновление FCM-токена
+  раз за запуск, сразу после входа) и `POST /me/devices`; обновление токена
   — повторно. Выход отдельно не шлём: сервер стирает устройство вместе с
   токеном сессии.
-- **Открытое приложение** — система пуш не показывает: `PushService` обновляет
-  бейдж и показывает его через `flutter_local_notifications` (каналы `orders` и
-  `chat`). Ответ поддержки при открытом чате (`SupportUnread.chatOpen`) не
-  показывается.
+- **Открытое приложение** — FCM пуш не показывает: `PushService` обновляет
+  бейдж и показывает его через `flutter_local_notifications`
+  (`LocalNotifications`, каналы `orders`, `new_orders`, `chat` — их же заводит
+  и для RuStore). Ответ поддержки при открытом чате (`SupportUnread.chatOpen`)
+  не показывается. SDK RuStore показывает пуш сам и в открытом приложении —
+  `RuStorePushMessaging.show()` пустой, иначе задвоится; ответ поддержки при
+  открытом чате RuStore всё же покажет.
 - **Тап** → `PushTarget` (`lib/models/push_target.dart`) → `_RootGate._openPush`:
   заказ — `openOrderScreen()` поверх текущего экрана и «прочитано» по
   `notification_id`; `response_rejected` — лента; поддержка — `pushSupportChat()`.
@@ -310,7 +329,8 @@ Firebase Cloud Messaging, проект `bitnebit-c70ca`; у dev и prod свои
 - Значок в строке состояния — `res/drawable-*/ic_notification.png`, белый
   силуэт логотипа (`design/icons/icons/source/car-transparent.png` по
   альфа-каналу, 24dp с полями по 2dp). Подключён в манифесте
-  (`default_notification_icon`) и в `FirebasePushMessaging.init()`.
+  (`default_notification_icon` у Firebase и RuStore) и в
+  `LocalNotifications.init()`.
 - Классический FCM-токен (`getToken`, помечен deprecated в firebase_messaging
   17 в пользу FID): бекенд шлёт по `message.token`.
 

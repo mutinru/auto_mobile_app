@@ -9,3 +9,7 @@
 -dontwarn com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 -dontwarn com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions$Builder
 -dontwarn com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
+
+# RuStore Push SDK: Parcelable-классы передаются в приложение RuStore по IPC —
+# R8 не должен их переименовывать (правило из документации RuStore).
+-keep public class com.vk.push.** extends android.os.Parcelable

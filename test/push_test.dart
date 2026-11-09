@@ -9,14 +9,22 @@ import 'package:auto_podbor_mobile/data/mock_notification_repository.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/push_target.dart';
+import 'package:auto_podbor_mobile/push/auto_push_messaging.dart';
 import 'package:auto_podbor_mobile/push/push_messaging.dart';
+import 'package:auto_podbor_mobile/push/push_provider.dart';
 import 'package:auto_podbor_mobile/push/push_service.dart';
 import 'package:auto_podbor_mobile/state/notification_unread.dart';
 import 'package:auto_podbor_mobile/state/support_unread.dart';
 
-/// Firebase в тестах не поднять — PushService ходит через этот фейк.
+/// Firebase и RuStore в тестах не поднять — PushService ходит через этот фейк.
 class FakePushMessaging implements PushMessaging {
+  FakePushMessaging({this.provider = PushProvider.fcm});
+
+  @override
+  final PushProvider provider;
+
   bool failInit = false;
+  int inits = 0;
   String? token = 'fcm-1';
   PushMessage? launchedBy;
   int permissionRequests = 0;
@@ -28,6 +36,7 @@ class FakePushMessaging implements PushMessaging {
 
   @override
   Future<void> init() async {
+    inits++;
     if (failInit) throw StateError('нет Play Services');
   }
 
@@ -240,6 +249,63 @@ void main() {
       expect(taps, hasLength(1));
       expect((taps.single as OrderTarget).orderId, 5);
       push.dispose();
+    });
+  });
+
+  group('AutoPushMessaging', () {
+    late FakePushMessaging rustore;
+    late FakePushMessaging firebase;
+
+    setUp(() {
+      rustore = FakePushMessaging(provider: PushProvider.rustore)
+        ..token = 'rustore-1';
+      firebase = FakePushMessaging();
+    });
+
+    AutoPushMessaging auto(Future<bool> Function() ready) => AutoPushMessaging(
+      rustoreReady: ready,
+      rustore: () => rustore,
+      firebase: () => firebase,
+    );
+
+    test(
+      'RuStore доступен — токен RuStore уходит с provider rustore',
+      () async {
+        final auth = AuthService();
+        final devices = MockDeviceRepository();
+        final push = PushService(
+          auth: auth,
+          devices: devices,
+          messaging: auto(() async => true),
+        );
+        await push.start();
+        auth.debugSetToken('session-1');
+        await pumpEventQueue();
+
+        expect(devices.registered, ['rustore-1']);
+        expect(devices.providers, [PushProvider.rustore]);
+        expect(firebase.inits, 0, reason: 'Firebase не поднимаем');
+        push.dispose();
+      },
+    );
+
+    test('RuStore нет или проверка упала — Firebase', () async {
+      final none = auto(() async => false);
+      await none.init();
+      expect(none.provider, PushProvider.fcm);
+
+      final broken = auto(() async => throw StateError('нет RuStore'));
+      await broken.init();
+      expect(broken.provider, PushProvider.fcm);
+      expect(rustore.inits, 0);
+    });
+
+    test('RuStore доступен, но не поднялся — Firebase', () async {
+      rustore.failInit = true;
+      final messaging = auto(() async => true);
+      await messaging.init();
+      expect(messaging.provider, PushProvider.fcm);
+      expect(await messaging.getToken(), 'fcm-1');
     });
   });
 }

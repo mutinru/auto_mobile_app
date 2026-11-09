@@ -54,6 +54,7 @@ dependencies:
   image: ^4.12.0
   flutter_image_compress: ^2.5.1
   image_cropper: ^12.2.1
+  flutter_rustore_push: ^7.5.0
 
 dev_dependencies:
   flutter_test:

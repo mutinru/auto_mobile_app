@@ -68,7 +68,7 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
 4. **Энамы Dart и PHP — ручные зеркала.** Пара живёт в репозитории бекенда
    (`CodeChannel` ↔ `App\Sms\CodeChannel`, остальные ↔ `App\Enums\*`, в том
    числе `ConversationType` и `ChatRole` чата, `NotificationType` ленты и
-   `VinKind`).
+   `VinKind`; `PushProvider` ↔ `App\Push\PushProvider`).
    Меняя энам здесь, скажи пользователю: парная правка сама себя не сделает.
    Так же зеркалится лимит фото на деталь: `InspectionPanel.maxPhotos` ↔
    `Photo::MAX_PER_PANEL`.

@@ -9,13 +9,13 @@ import '../state/notification_unread.dart';
 import '../state/support_unread.dart';
 import 'push_messaging.dart';
 
-/// Пуши: один на приложение, создаётся в main(). Регистрирует FCM-токен
-/// после входа, в открытом приложении обновляет бейджи и показывает пуш
+/// Пуши: один на приложение, создаётся в main(). Регистрирует пуш-токен
+/// (FCM или RuStore — [PushMessaging.provider]) после входа, в открытом приложении обновляет бейджи и показывает пуш
 /// локально, тап превращает в [PushTarget] для корня ([taps]). Экраны сам
 /// не открывает: навигация — дело _RootGate.
 ///
-/// Сбой Firebase не роняет приложение — пуши просто выключены, остаётся
-/// опрос бейджей.
+/// Сбой сервиса пушей не роняет приложение — пуши просто выключены,
+/// остаётся опрос бейджей.
 class PushService {
   PushService({
     required this._auth,
@@ -117,13 +117,13 @@ class PushService {
       final token = await _messaging.getToken();
       if (token != null) await _register(token);
     } catch (e) {
-      debugPrint('FCM-токен не получен: $e');
+      debugPrint('Пуш-токен не получен: $e');
     }
   }
 
   Future<void> _register(String token) async {
     try {
-      await _devices.register(token, platform);
+      await _devices.register(token, platform, _messaging.provider);
     } catch (e) {
       // следующий вход или обновление токена попробуют снова
       _registeredFor = null;

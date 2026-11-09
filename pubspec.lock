@@ -435,6 +435,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.35"
+  flutter_rustore_push:
+    dependency: "direct main"
+    description:
+      name: flutter_rustore_push
+      sha256: d4be63fa354315524b962cd86c799118f651082a09fd805a897129fbb9340651
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.5.0"
   flutter_secure_storage:
     dependency: "direct main"
     description:

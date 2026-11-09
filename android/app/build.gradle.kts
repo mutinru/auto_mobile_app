@@ -42,16 +42,26 @@ android {
         versionName = flutter.versionName
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     flavorDimensions += "env"
 
+    // RUSTORE_PUSH_PROJECT_ID — ID проекта пушей из RuStore Консоли
+    // (Push-уведомления → Проекты). Не секрет: он и так в APK. Проект привязан
+    // к applicationId и SHA-256 ключа подписи, поэтому у dev (отладочный ключ)
+    // его нет — там пуши только через Firebase. Пусто — RuStore выключен.
     productFlavors {
         create("dev") {
             dimension = "env"
             applicationId = "com.bitnebit.dev"
+            buildConfigField("String", "RUSTORE_PUSH_PROJECT_ID", "\"\"")
         }
         create("prod") {
             dimension = "env"
             applicationId = "com.bitnebit.app"
+            buildConfigField("String", "RUSTORE_PUSH_PROJECT_ID", "\"s91Xpi0VAe7XhuVTkZPktBSis9w3nkaC\"")
         }
     }
 
@@ -89,4 +99,7 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // SDK пушей RuStore — для ручной инициализации в BitNeBitApplication.
+    // Версия — та же, что у плагина flutter_rustore_push (его build.gradle).
+    implementation("ru.rustore.sdk:pushclient:7.5.0")
 }

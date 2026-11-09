@@ -1,4 +1,6 @@
-/// Пуш, как его видит приложение: заголовок, текст и data из FCM.
+import 'push_provider.dart';
+
+/// Пуш, как его видит приложение: заголовок, текст и data из FCM или RuStore.
 class PushMessage {
   const PushMessage({this.title, this.body, this.data = const {}});
 
@@ -7,11 +9,15 @@ class PushMessage {
   final Map<String, dynamic> data;
 }
 
-/// Тонкая прослойка над Firebase и локальными уведомлениями: [PushService]
-/// ходит только через неё, поэтому тестируется на фейке без Firebase.
-/// Реализация — [FirebasePushMessaging].
+/// Тонкая прослойка над сервисом пушей и локальными уведомлениями:
+/// [PushService] ходит только через неё, поэтому тестируется на фейке.
+/// Реализации — [FirebasePushMessaging] и [RuStorePushMessaging]; какую
+/// взять на этом телефоне, решает [AutoPushMessaging].
 abstract class PushMessaging {
-  /// Поднять Firebase и каналы уведомлений. Бросает, если пуши здесь
+  /// Сервис, чей токен отдаёт [getToken], — уходит на сервер вместе с ним.
+  PushProvider get provider;
+
+  /// Поднять сервис и каналы уведомлений. Бросает, если пуши здесь
   /// недоступны (нет Play Services, iOS без настройки).
   Future<void> init();
 
@@ -31,6 +37,7 @@ abstract class PushMessaging {
   /// Пуш, тапом по которому приложение запустили.
   Future<PushMessage?> initialTap();
 
-  /// Показать пуш локально (приложение открыто).
+  /// Показать пуш локально (приложение открыто). RuStore показывает сам —
+  /// у него это пустая операция.
   Future<void> show(PushMessage message);
 }

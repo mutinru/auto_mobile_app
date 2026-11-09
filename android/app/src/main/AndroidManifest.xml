@@ -14,7 +14,7 @@
 
     <application
         android:label="БитНеБит"
-        android:name="${applicationName}"
+        android:name=".BitNeBitApplication"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity
@@ -52,6 +52,15 @@
         <!-- Пуш без channel_id — в канал заказов; каналы создаёт PushService. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="orders" />
+        <!-- То же для пушей RuStore: их SDK показывает сам. Инициализация —
+             в BitNeBitApplication (не project_id здесь): у dev-сборки проекта
+             RuStore нет. -->
+        <meta-data
+            android:name="ru.rustore.sdk.pushclient.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="ru.rustore.sdk.pushclient.default_notification_channel_id"
             android:value="orders" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

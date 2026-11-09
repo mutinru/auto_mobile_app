@@ -19,7 +19,7 @@ import 'models/order.dart';
 import 'models/order_kind.dart';
 import 'models/push_target.dart';
 import 'navigation/section_nav.dart';
-import 'push/firebase_push_messaging.dart';
+import 'push/auto_push_messaging.dart';
 import 'push/push_service.dart';
 import 'screens/intent_screen.dart';
 import 'screens/my_orders_screen.dart';
@@ -64,11 +64,12 @@ Future<void> main() async {
     auth,
     ApiNotificationRepository(ApiClient(auth)),
   )..start();
-  // пуши: Firebase поднимается в фоне, первый кадр его не ждёт
+  // пуши: сервис (RuStore или Firebase) выбирается и поднимается в фоне,
+  // первый кадр его не ждёт
   final push = PushService(
     auth: auth,
     devices: ApiDeviceRepository(ApiClient(auth)),
-    messaging: FirebasePushMessaging(),
+    messaging: AutoPushMessaging(),
     notifications: notifications,
     support: unread,
   );
