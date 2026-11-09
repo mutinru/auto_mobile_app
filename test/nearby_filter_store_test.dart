@@ -15,7 +15,8 @@ import 'package:auto_podbor_mobile/state/nearby_filter_store.dart';
 class _Location implements LocationService {
   _Location(this.point, {this.granted = true});
 
-  final (double, double)? point;
+  /// Не final: GPS может ответить со второй попытки.
+  (double, double)? point;
   final bool granted;
   Completer<void>? gate;
   int calls = 0;
@@ -200,6 +201,32 @@ void main() {
     await pumpEventQueue();
     expect(s.filter.cities, {'Казань'});
     expect(s.isAutoCity, isTrue);
+  });
+
+  test('GPS не ответил при загрузке — locate() пробует снова', () async {
+    final location = _Location(null);
+    final s = store(location);
+    await s.load();
+    expect(s.filter.cities, isEmpty);
+
+    location.point = (55.79, 49.12);
+    expect(await s.locate(), {'Казань'});
+    expect(s.filter.cities, {'Казань'});
+    expect(s.isAutoCity, isTrue);
+    // город по GPS не сохраняется
+    expect(writes, isEmpty);
+  });
+
+  test('locate() при своём городе фильтр не трогает', () async {
+    saved = jsonEncode({
+      ...const NearbyFilter(cities: {'Тула'}).toJson(),
+      'city_chosen': true,
+    });
+    final s = store(_Location((55.79, 49.12)));
+    await s.load();
+    expect(await s.locate(), {'Казань'});
+    expect(s.filter.cities, {'Тула'});
+    expect(s.cityChosen, isTrue);
   });
 
   test('GPS не дал точку — фильтр пустой', () async {

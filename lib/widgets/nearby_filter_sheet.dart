@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/location_service.dart';
 import '../state/city_locator.dart';
 import '../data/city_repository.dart';
 import '../models/nearby_filter.dart';
@@ -18,6 +20,10 @@ import 'city_picker_sheet.dart';
 /// [cities] добавляет чип «Другой город…» с поиском по справочнику,
 /// [locator] — строку «Определить по геопозиции» в нём (QA 2026-11-05 №9):
 /// свой город возвращается, не сбрасывая остальные фильтры.
+/// [locateCity] — спросить город по GPS: ответ может прийти, пока шторка
+/// открыта, а не определился — заметка с причиной и «Повторить»;
+/// [autoCity] — его можно подставить (пользователь город не выбирал). «Сбросить» закрывает шторку и зовёт [onReset] — что такое
+/// умолчание, знает экран.
 /// Возвращает новый фильтр или null, если закрыли.
 Future<NearbyFilter?> showNearbyFilterSheet(
   BuildContext context, {
@@ -25,9 +31,11 @@ Future<NearbyFilter?> showNearbyFilterSheet(
   required List<String> cityOptions,
   required List<String> brandOptions,
   required Future<int> Function(NearbyFilter) countFor,
+  required VoidCallback onReset,
   CityRepository? cities,
   CityLocator? locator,
-  Set<String> defaultCities = const {},
+  Future<Set<String>> Function()? locateCity,
+  bool autoCity = false,
 }) {
   return showModalBottomSheet<NearbyFilter>(
     context: context,
@@ -43,7 +51,9 @@ Future<NearbyFilter?> showNearbyFilterSheet(
       countFor: countFor,
       cities: cities,
       locator: locator,
-      defaultCities: defaultCities,
+      locateCity: locateCity,
+      autoCity: autoCity,
+      onReset: onReset,
     ),
   );
 }
@@ -56,7 +66,9 @@ class _NearbyFilterSheet extends StatefulWidget {
     required this.countFor,
     required this.cities,
     required this.locator,
-    required this.defaultCities,
+    required this.locateCity,
+    required this.autoCity,
+    required this.onReset,
   });
 
   final NearbyFilter initial;
@@ -66,8 +78,9 @@ class _NearbyFilterSheet extends StatefulWidget {
   final CityRepository? cities;
   final CityLocator? locator;
 
-  /// Город по GPS — к нему возвращает «Сбросить», а не к «все города».
-  final Set<String> defaultCities;
+  final Future<Set<String>> Function()? locateCity;
+  final bool autoCity;
+  final VoidCallback onReset;
 
   @override
   State<_NearbyFilterSheet> createState() => _NearbyFilterSheetState();
@@ -103,6 +116,55 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     });
     _countedKey = _countKey;
     _recount();
+    _awaitGpsCity();
+  }
+
+  /// Город по GPS, пока не пришёл, — «определяем…» у заголовка «Город».
+  bool _locating = false;
+
+  /// Известный город по GPS — подпись «по геопозиции».
+  Set<String> _gps = const {};
+
+  /// GPS спросили, а город не определился — заметка с причиной.
+  bool _gpsFailed = false;
+  LocationProblem? _gpsProblem;
+
+  /// Город по GPS приходит в открытую шторку: подставляем его, если
+  /// пользователь сам город не выбирал — ни раньше, ни уже в шторке.
+  /// Не определился — почему (выключена геолокация, нет доступа), чтобы
+  /// заметка сказала, что сделать.
+  Future<void> _awaitGpsCity() async {
+    final locate = widget.locateCity;
+    if (locate == null) return;
+    setState(() {
+      _locating = true;
+      _gpsFailed = false;
+      _gpsProblem = null;
+    });
+    var gps = const <String>{};
+    try {
+      gps = await locate();
+    } catch (_) {
+      // без GPS шторка работает как обычно
+    }
+    LocationProblem? problem;
+    if (gps.isEmpty) {
+      try {
+        problem = await widget.locator?.problem();
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() {
+      _locating = false;
+      _gps = gps;
+      _gpsFailed = gps.isEmpty;
+      _gpsProblem = problem;
+    });
+    if (gps.isEmpty || !widget.autoCity) return;
+    if (!setEquals(_filter.cities, widget.initial.cities)) return;
+    if (!setEquals(_filter.cities, gps)) {
+      _update(_filter.copyWith(cities: gps));
+    }
   }
 
   @override
@@ -137,16 +199,10 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     });
   }
 
-  /// Фильтр по умолчанию: без фильтров, город — по GPS.
-  NearbyFilter get _defaults =>
-      NearbyFilter(sort: _filter.sort, cities: widget.defaultCities);
-
-  bool get _atDefaults => _filter.toQuery() == _defaults.toQuery();
-
+  /// «Сбросить» работает всегда и закрывает шторку: сброс делает экран.
   void _reset() {
-    _priceController.clear();
-    // сортировка — не фильтр, сброс её не трогает
-    _update(_defaults);
+    Navigator.of(context).pop();
+    widget.onReset();
   }
 
   Future<void> _pickCities() async {
@@ -159,6 +215,46 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     if (next != null && mounted) _update(_filter.copyWith(cities: next));
   }
 
+  /// Город по GPS не определился: причина и что сделать — включить
+  /// геолокацию, открыть настройки или просто повторить (повтор и
+  /// спросит разрешение, если его ещё не давали).
+  Widget _gpsNote() {
+    final problem = _gpsProblem;
+    final (text, action) = switch (problem) {
+      LocationProblem.serviceOff => (
+        'Геолокация на телефоне выключена — город не определить',
+        'Включить',
+      ),
+      LocationProblem.deniedForever => (
+        'Приложению запрещён доступ к геопозиции',
+        'Открыть настройки',
+      ),
+      LocationProblem.denied => (
+        'Без доступа к геопозиции город не определить',
+        'Разрешить',
+      ),
+      null => ('Не удалось определить город по геопозиции', 'Повторить'),
+    };
+    final settings =
+        problem == LocationProblem.serviceOff ||
+        problem == LocationProblem.deniedForever;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(child: Text(text, style: context.text.fieldNote)),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: settings
+                ? () => widget.locator?.openSettings(problem!)
+                : _awaitGpsCity,
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+  }
+
   Set<String> _toggle(Set<String> set, String value) =>
       set.contains(value) ? ({...set}..remove(value)) : {...set, value};
 
@@ -169,8 +265,6 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
     final cities = {...widget.cityOptions, ..._filter.cities}.toList()..sort();
     final brands = {...widget.brandOptions, ..._filter.brands}.toList()..sort();
     final count = _count;
-    // ноль блокирует кнопку, только когда он про текущий фильтр
-    final nothing = count == 0 && !_counting;
     final work = context.colors.modeWork;
 
     Widget chips(List<Widget> children) => Padding(
@@ -240,7 +334,21 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
 
                     // без справочника выбирать из одного города незачем
                     if (cities.length > 1 || widget.cities != null) ...[
-                      const SectionHead('Город'),
+                      SectionHead(
+                        'Город',
+                        extra: _locating
+                            ? 'определяем…'
+                            : _gps.isNotEmpty && setEquals(_filter.cities, _gps)
+                            ? 'по геопозиции'
+                            : _gpsFailed && widget.autoCity
+                            ? 'не определён'
+                            : null,
+                      ),
+                      // свой город не выбран, а GPS не помог — сказать почему
+                      if (_gpsFailed &&
+                          widget.autoCity &&
+                          _filter.cities.isEmpty)
+                        _gpsNote(),
                       chips([
                         for (final city in cities)
                           AppChip(
@@ -319,19 +427,17 @@ class _NearbyFilterSheetState extends State<_NearbyFilterSheet> {
             ),
             BottomCta(
               children: [
+                // пустой результат — тоже результат: фильтр «осмотры в
+                // Казани» ставят и заранее, вместе с подпиской на пуши
                 CtaPrimary(
-                  label: nothing
-                      ? 'Ничего не найдено'
-                      : count == null || count == 0
+                  label: count == null || _counting
                       ? 'Показать заказы'
                       : 'Показать ${ordersCount(count)}',
-                  onPressed: nothing
-                      ? null
-                      : () => Navigator.of(context).pop(_filter),
+                  onPressed: () => Navigator.of(context).pop(_filter),
                 ),
                 CtaGhost(
                   label: 'Сбросить',
-                  onPressed: _atDefaults ? null : _reset,
+                  onPressed: _reset,
                 ),
               ],
             ),

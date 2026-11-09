@@ -74,6 +74,30 @@ class _Here implements LocationService {
   Future<void> openSettings(LocationProblem problem) async {}
 }
 
+/// GPS, который отвечает по команде теста ([gate]); [point] можно сменить
+/// между попытками.
+class _GatedHere implements LocationService {
+  _GatedHere(this.point);
+
+  (double, double)? point;
+  final gate = Completer<void>();
+
+  @override
+  Future<bool> isGranted() async => true;
+
+  @override
+  Future<(double, double)?> current() async {
+    await gate.future;
+    return point;
+  }
+
+  @override
+  Future<LocationProblem?> problem() async => null;
+
+  @override
+  Future<void> openSettings(LocationProblem problem) async {}
+}
+
 const _verified = VerificationSummary(passed: 4, total: 4, complete: true);
 const _unverified = VerificationSummary(passed: 1, total: 4, complete: false);
 
@@ -395,6 +419,181 @@ void main() {
         find.text('Геопозиция недоступна — показаны новые заказы'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('шторка фильтров: «Сбросить»', () {
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      expect(find.text('Фильтры'), findsOneWidget);
+    }
+
+    testWidgets('без фильтров — активна и просто закрывает шторку', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+
+      final reset = find.text('Сбросить');
+      await tester.ensureVisible(reset);
+      await tester.tap(reset);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Фильтры'), findsNothing);
+      expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
+    });
+
+    testWidgets('снимает фильтры шторки и «Мало откликов», закрывает', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Мало откликов'));
+      await tester.pumpAndSettle();
+      await openSheet(tester);
+      await tester.tap(find.text('Подбор'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Показать 1 заказ'));
+      await tester.pumpAndSettle();
+      expect(find.text('Подбор  ✕'), findsOneWidget);
+      expect(find.text('BMW X3 2017'), findsNothing);
+
+      await openSheet(tester);
+      // правка в шторке до сброса не должна уцелеть
+      await tester.tap(find.text('Все').first);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      final reset = find.text('Сбросить');
+      await tester.ensureVisible(reset);
+      await tester.tap(reset);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Фильтры'), findsNothing);
+      expect(find.text('Осмотр  ✕'), findsNothing);
+      expect(find.text('Подбор  ✕'), findsNothing);
+      // «Мало откликов» снято — BMW с тремя откликами снова в ленте
+      expect(find.text('BMW X3 2017'), findsOneWidget);
+      expect(find.text('Volkswagen Tiguan 2019+'), findsOneWidget);
+    });
+  });
+
+  testWidgets('пустой результат фильтра — кнопка всё равно применяет', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Мало откликов'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+    // у единственного осмотра (BMW) три отклика — под «Мало откликов» пусто
+    await tester.tap(find.text('Осмотр'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Показать 0 заказов'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Фильтры'), findsNothing);
+    expect(find.text('Осмотр  ✕'), findsOneWidget);
+    expect(find.text('Под фильтр ничего не подошло'), findsOneWidget);
+  });
+
+  group('шторка фильтров: город по GPS', () {
+    Widget withGps(LocationService location, NearbyFilterStore filters) =>
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: NearbyOrdersScreen(
+            store: OrderStore(
+              MockOrderRepository(),
+              catalog: MockCarCatalogRepository(),
+              cities: MockCityRepository(),
+            ),
+            verification: VerificationStatus(
+              MockVerificationRepository(passed: 4, required: false),
+            ),
+            filters: filters,
+          ),
+        );
+
+    NearbyFilterStore storeFor(LocationService location) =>
+        NearbyFilterStore.withStorage(
+          () async => null,
+          (_) async {},
+          CityLocator(MockCityRepository(), location),
+        );
+
+    testWidgets('GPS ответил при открытой шторке — город отмечен', (
+      tester,
+    ) async {
+      final location = _GatedHere((55.7558, 37.6173));
+      final filters = storeFor(location);
+      unawaited(filters.load());
+      await tester.pumpWidget(withGps(location, filters));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      expect(find.text('определяем…'), findsOneWidget);
+
+      location.gate.complete();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('определяем…'), findsNothing);
+      expect(find.text('по геопозиции'), findsOneWidget);
+
+      await tester.tap(find.textContaining('Показать'));
+      await tester.pumpAndSettle();
+      expect(find.text('Москва  ✕'), findsOneWidget);
+      expect(filters.isAutoCity, isTrue);
+    });
+
+    testWidgets('город не определился — заметка и «Повторить»', (
+      tester,
+    ) async {
+      final location = _GatedHere(null)..gate.complete();
+      final filters = storeFor(location);
+      await filters.load();
+      await tester.pumpWidget(withGps(location, filters));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+      expect(find.text('не определён'), findsOneWidget);
+      expect(
+        find.text('Не удалось определить город по геопозиции'),
+        findsOneWidget,
+      );
+
+      location.point = (55.7558, 37.6173);
+      await tester.tap(find.text('Повторить'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('по геопозиции'), findsOneWidget);
+      expect(
+        find.text('Не удалось определить город по геопозиции'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('GPS не ответил при заходе — шторка спрашивает снова', (
+      tester,
+    ) async {
+      final location = _GatedHere(null)..gate.complete();
+      final filters = storeFor(location);
+      await filters.load();
+      await tester.pumpWidget(withGps(location, filters));
+      await tester.pumpAndSettle();
+      expect(find.text('Москва  ✕'), findsNothing);
+
+      location.point = (55.7558, 37.6173);
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      expect(find.text('по геопозиции'), findsOneWidget);
     });
   });
 

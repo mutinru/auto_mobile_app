@@ -148,7 +148,11 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
           store.countAvailableOrders(f, fewResponses: _fewResponsesOnly),
       cities: store.cities,
       locator: store.locator,
-      defaultCities: _filters.gpsCities,
+      // при заходе на экран город мог не определиться — пробуем снова;
+      // шторка открывается сразу и подставит его, когда придёт
+      locateCity: _filters.locate,
+      autoCity: !_filters.cityChosen,
+      onReset: _resetFilters,
     );
     if (next != null) _filters.set(next, from: opened);
   }

@@ -101,20 +101,34 @@ class GeolocatorLocationService implements LocationService {
 
       // последняя известная точка приходит мгновенно, для города её хватает —
       // если она свежая: после перелёта в кеше лежит прошлый город
-      final last = await Geolocator.getLastKnownPosition();
-      final fresh =
-          last != null && DateTime.now().difference(last.timestamp) < _maxAge;
-      final position = fresh
-          ? last
-          : await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(
-                accuracy: LocationAccuracy.low,
-                timeLimit: Duration(seconds: 10),
-              ),
-            );
-      return (position.latitude, position.longitude);
+      final last = await _lastKnown();
+      if (last != null && DateTime.now().difference(last.timestamp) < _maxAge) {
+        return (last.latitude, last.longitude);
+      }
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        return (position.latitude, position.longitude);
+      } catch (_) {
+        // свежей точки не дождались (помещение, слабый сигнал) — старая
+        // лучше, чем никакой: город за это время меняется редко, а
+        // ошибся — пользователь поправит его в фильтре
+        return last == null ? null : (last.latitude, last.longitude);
+      }
     } catch (_) {
-      // таймаут, отказ платформы — для подсказки города это не ошибка
+      // отказ платформы — для подсказки города это не ошибка
+      return null;
+    }
+  }
+
+  static Future<Position?> _lastKnown() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } catch (_) {
       return null;
     }
   }
