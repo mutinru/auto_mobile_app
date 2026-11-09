@@ -173,7 +173,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (user == null) return;
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => SettingsScreen(auth: widget.auth),
+                          builder: (_) => SettingsScreen(
+                            auth: widget.auth,
+                            cities: widget.store.cities,
+                            locator: widget.store.locator,
+                          ),
                         ),
                       );
                     },

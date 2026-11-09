@@ -15,6 +15,12 @@ sealed class PushTarget {
           ? const SupportChatTarget()
           : null;
     }
+    // подписка на новые заказы: один заказ или сводка — в ленту «Заказы
+    // рядом», заказ там сверху (свободный заказ отдельным экраном не
+    // открывается — отклик прямо из ленты)
+    if (type == 'new_order' || type == 'new_orders') {
+      return const NearbyOrdersTarget();
+    }
 
     final orderId = int.tryParse('${data['order_id']}');
     final notificationType = notificationTypeFromApi(type);
@@ -59,4 +65,9 @@ class OrderTarget extends PushTarget {
 /// Ответ поддержки — открыть чат поддержки.
 class SupportChatTarget extends PushTarget {
   const SupportChatTarget();
+}
+
+/// Пуш подписки на новые заказы — открыть «Заказы рядом».
+class NearbyOrdersTarget extends PushTarget {
+  const NearbyOrdersTarget();
 }

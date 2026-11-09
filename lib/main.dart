@@ -262,6 +262,8 @@ class _RootGateState extends State<_RootGate> {
       case SupportChatTarget():
         final scope = SupportChatScope.maybeOf(context);
         if (scope != null) await pushSupportChat(Navigator.of(context), scope);
+      case NearbyOrdersTarget():
+        _openNearbyOrders();
       case OrderTarget():
         final feed = NotificationScope.maybeOf(context);
         final id = target.notificationId;

@@ -17,6 +17,8 @@ import '../widgets/app_ui.dart';
 import '../widgets/load_more.dart';
 import '../widgets/nearby_filter_sheet.dart';
 import '../widgets/notification_bell.dart';
+import '../widgets/order_alerts_prompt.dart';
+import '../widgets/order_alerts_sheet.dart';
 import '../widgets/respond_sheet.dart';
 import '../widgets/unread_badge.dart';
 import 'notifications_screen.dart';
@@ -155,6 +157,20 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
       onReset: _resetFilters,
     );
     if (next != null) _filters.set(next, from: opened);
+  }
+
+  /// Шторка подписки на новые заказы — с чипа и из карточки под лентой.
+  /// Новую подписку начинаем с городов фильтра: обычно они и нужны.
+  void _openOrderAlerts() {
+    final auth = widget.auth;
+    if (auth == null) return;
+    showOrderAlertsSheet(
+      context,
+      auth: auth,
+      cities: widget.store.cities,
+      locator: widget.store.locator,
+      suggested: _filters.filter.cities,
+    );
   }
 
   /// Город по GPS, если ленту опустошил только он, — тогда пустая лента
@@ -306,6 +322,32 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                           activeColor: context.colors.modeWork,
                           onTap: () => _setFewResponses(true),
                         ),
+                        // подписка на новые заказы — всегда на виду
+                        if (widget.auth != null)
+                          ListenableBuilder(
+                            listenable: widget.auth!,
+                            builder: (context, _) {
+                              final alerts = widget.auth!.user?.orderAlerts;
+                              if (alerts == null) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: AppChip(
+                                  key: const ValueKey('order-alerts-chip'),
+                                  label: alerts.isOn
+                                      ? 'Уведомления'
+                                      : 'Сообщать о новых',
+                                  icon: alerts.isOn
+                                      ? Icons.notifications_active_outlined
+                                      : Icons.notifications_none,
+                                  on: alerts.isOn,
+                                  activeColor: context.colors.modeWork,
+                                  onTap: _openOrderAlerts,
+                                ),
+                              );
+                            },
+                          ),
                         for (final (label, without) in _activeChips(
                           filter,
                         )) ...[
@@ -443,6 +485,14 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
               here: _here,
               canRespond: _canRespond,
               onRespond: () => _respond(order),
+            ),
+          // подписка на города фильтра — под пустой лентой и в конце списка
+          if (widget.auth != null && !store.hasMoreAvailable)
+            OrderAlertsPrompt(
+              auth: widget.auth!,
+              cities: _filters.filter.cities,
+              emptyFeed: orders.isEmpty,
+              onConfigure: _openOrderAlerts,
             ),
           if (store.hasMoreAvailable)
             Padding(

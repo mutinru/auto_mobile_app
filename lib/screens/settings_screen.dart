@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
+import '../data/city_repository.dart';
 import '../models/notification_category.dart';
+import '../state/city_locator.dart';
 import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/order_alerts_sheet.dart';
 
-/// Настройки — шестерёнка в профиле. Пока один раздел: пуши по категориям
-/// (PATCH /me/notifications). Глушится только пуш, лента пишется всегда.
+/// Настройки — шестерёнка в профиле: подписка на новые заказы по городам
+/// (PUT /me/order-alerts) и пуши по категориям (PATCH /me/notifications).
+/// Глушится только пуш, лента пишется всегда.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.auth});
+  const SettingsScreen({
+    super.key,
+    required this.auth,
+    this.cities,
+    this.locator,
+  });
 
   final AuthService auth;
+
+  /// Справочник и GPS для выбора городов подписки.
+  final CityRepository? cities;
+  final CityLocator? locator;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -52,6 +65,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(22, 4, 22, 18),
                 children: [
+                  const SectionHead('Новые заказы рядом'),
+                  ListenableBuilder(
+                    listenable: widget.auth,
+                    builder: (context, _) => _AlertsRow(
+                      summary:
+                          widget.auth.user?.orderAlerts.summary ?? 'Выключено',
+                      on: widget.auth.user?.orderAlerts.isOn ?? false,
+                      onTap: () => showOrderAlertsSheet(
+                        context,
+                        auth: widget.auth,
+                        cities: widget.cities,
+                        locator: widget.locator,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   const SectionHead('Push-уведомления'),
                   for (final category in NotificationCategory.values)
                     _CategoryRow(
@@ -160,6 +189,80 @@ class _CategoryRow extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Подписка на новые заказы — строка в стиле категорий, справа шеврон:
+/// настраивается в шторке, а не переключателем.
+class _AlertsRow extends StatelessWidget {
+  const _AlertsRow({
+    required this.summary,
+    required this.on,
+    required this.onTap,
+  });
+
+  final String summary;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Material(
+      color: c.bg1,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: c.line),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 10, 10, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: c.bg3,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  on
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_none,
+                  size: 17,
+                  color: c.text1,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Пуш о новых заказах',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: c.text1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      summary,
+                      style: TextStyle(fontSize: 11.5, color: c.text2),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: c.text3),
+            ],
           ),
         ),
       ),

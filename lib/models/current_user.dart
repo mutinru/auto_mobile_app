@@ -1,5 +1,6 @@
 import 'inspection_panel.dart' show mediaUrl;
 import 'notification_category.dart';
+import 'order_alerts.dart';
 import 'payout.dart';
 import 'user_summary.dart';
 
@@ -18,6 +19,7 @@ class CurrentUser {
     this.missedOrdersCount = 0,
     this.payout,
     this.pushMuted = const {},
+    this.orderAlerts = const OrderAlerts(),
   });
 
   final int id;
@@ -45,6 +47,9 @@ class CurrentUser {
 
   /// Категории, пуши которых заглушены (лента пишется всегда).
   final Set<NotificationCategory> pushMuted;
+
+  /// Подписка на новые заказы по городам (PUT /me/order-alerts).
+  final OrderAlerts orderAlerts;
 
   /// Тот же пользователь в форме, которую понимают ExecutorStats и экран
   /// отзывов.
@@ -98,5 +103,8 @@ class CurrentUser {
       for (final code in (json['push_muted'] as List<dynamic>? ?? const []))
         ?NotificationCategory.fromApi(code as String),
     },
+    orderAlerts: OrderAlerts.fromJson(
+      json['order_alerts'] as Map<String, dynamic>?,
+    ),
   );
 }

@@ -20,6 +20,12 @@ const _channels = [
     importance: Importance.high,
   ),
   AndroidNotificationChannel(
+    'new_orders',
+    'Новые заказы рядом',
+    description: 'Новые заказы в городах вашей подписки',
+    importance: Importance.high,
+  ),
+  AndroidNotificationChannel(
     'chat',
     'Поддержка',
     description: 'Ответы поддержки',
@@ -102,9 +108,14 @@ class FirebasePushMessaging implements PushMessaging {
 
   @override
   Future<void> show(PushMessage message) {
-    final channel = message.data['type'] == 'chat_message'
-        ? _channels[1]
-        : _channels[0];
+    // тот же канал, что указал бекенд в android.notification.channel_id
+    final type = message.data['type'];
+    final id = switch (type) {
+      'chat_message' => 'chat',
+      'new_order' || 'new_orders' => 'new_orders',
+      _ => 'orders',
+    };
+    final channel = _channels.firstWhere((c) => c.id == id);
     return _local.show(
       // id — чтобы новые не затирали друг друга
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000 % 0x7fffffff,

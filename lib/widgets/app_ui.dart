@@ -564,11 +564,15 @@ class AppChip extends StatelessWidget {
     this.onTap,
     this.activeColor,
     this.enabled = true,
+    this.icon,
   });
 
   final String label;
   final bool on;
   final VoidCallback? onTap;
+
+  /// Значок перед подписью — у чипа-действия, а не фильтра.
+  final IconData? icon;
 
   /// false — чип виден, но не нажимается и приглушён.
   final bool enabled;
@@ -591,13 +595,25 @@ class AppChip extends StatelessWidget {
             color: on ? active.withValues(alpha: 0.5) : context.colors.chipEdge,
           ),
         ),
-        child: Text(
-          label,
-          style: context.text.chip.copyWith(
-            color: on
+        child: Builder(
+          builder: (context) {
+            final color = on
                 ? context.colors.textFor(active)
-                : (enabled ? context.colors.text2 : context.colors.text3),
-          ),
+                : (enabled ? context.colors.text2 : context.colors.text3);
+            final text = Text(
+              label,
+              style: context.text.chip.copyWith(color: color),
+            );
+            if (icon == null) return text;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 15, color: color),
+                const SizedBox(width: 5),
+                text,
+              ],
+            );
+          },
         ),
       ),
     );

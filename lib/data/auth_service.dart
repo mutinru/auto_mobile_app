@@ -8,6 +8,7 @@ import '../config/api_config.dart';
 import '../models/code_channel.dart';
 import '../models/current_user.dart';
 import '../models/notification_category.dart';
+import '../models/order_alerts.dart';
 import '../models/payout.dart';
 import 'api_exception.dart';
 import 'http_transport.dart';
@@ -362,6 +363,33 @@ class AuthService extends ChangeNotifier {
         _extractMessage(
           response.body,
           fallback: 'Не удалось сохранить настройки',
+        ),
+      );
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+    notifyListeners();
+  }
+
+  /// Подписка на новые заказы (PUT /me/order-alerts) — целиком.
+  Future<void> updateOrderAlerts(OrderAlerts alerts) async {
+    final response = await HttpTransport.request(
+      'PUT',
+      Uri.parse('${ApiConfig.baseUrl}/me/order-alerts'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+      body: jsonEncode(alerts.toJson()),
+    );
+    if (response.statusCode != 200) {
+      if (response.statusCode == 401) expireSession();
+      throw ApiException(
+        response.statusCode,
+        _extractMessage(
+          response.body,
+          fallback: 'Не удалось сохранить подписку',
         ),
       );
     }
