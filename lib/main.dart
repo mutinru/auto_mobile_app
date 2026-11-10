@@ -467,6 +467,7 @@ class _RootGateState extends State<_RootGate> {
         () => _sectionScreen(HomeSection.nearby, store),
       ),
       onLogout: _logout,
+      onDeleteAccount: _deleteAccount,
     );
   });
 
@@ -475,6 +476,15 @@ class _RootGateState extends State<_RootGate> {
   /// пользователя выход не переживут.
   Future<void> _logout() async {
     await _auth.logout();
+    await widget.lastSection?.clear();
+    if (!mounted) return;
+    _nav.reset();
+  }
+
+  /// Удаление аккаунта: сессию стирает [AuthService.deleteAccount], дальше —
+  /// как выход. Ошибка (идут заказы) уходит в профиль, ничего не сбросив.
+  Future<void> _deleteAccount() async {
+    await _auth.deleteAccount();
     await widget.lastSection?.clear();
     if (!mounted) return;
     _nav.reset();

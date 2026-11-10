@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_controller.dart';
 import '../util/ru_plural.dart';
+import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/avatar_editor.dart';
 import '../widgets/change_phone_sheet.dart';
@@ -37,6 +38,7 @@ class ProfileScreen extends StatefulWidget {
     required this.onMyOrders,
     required this.onNearbyOrders,
     required this.onLogout,
+    required this.onDeleteAccount,
   });
 
   final AuthService auth;
@@ -53,11 +55,17 @@ class ProfileScreen extends StatefulWidget {
   /// Сессия уже стёрта — корень приложения возвращает к вопросу о намерении.
   final Future<void> Function() onLogout;
 
+  /// Удалить аккаунт (DELETE /me). Ошибку — идут заказы, нет сети —
+  /// пробрасывает: её показывает профиль, пользователь остаётся вошедшим.
+  final Future<void> Function() onDeleteAccount;
+
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  /// Идёт удаление аккаунта — строка не нажимается второй раз.
+  bool _deleting = false;
   @override
   void initState() {
     super.initState();
@@ -139,6 +147,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (ok == true) await widget.onLogout();
+  }
+
+  /// Удаление аккаунта — с подтверждением: оно необратимо. Google Play
+  /// требует эту кнопку в приложении; что удаляется — решает сервер
+  /// (AccountDeletion), текст диалога пересказывает его правило.
+  Future<void> _confirmDeleteAccount() async {
+    final c = context.colors;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: c.bg1,
+        title: Text(
+          'Удалить аккаунт?',
+          style: TextStyle(color: c.text1, fontSize: 17),
+        ),
+        content: Text(
+          'Имя, телефон, фото и реквизиты будут удалены без возможности '
+          'восстановления. Завершённые заказы, отчёты и отзывы останутся '
+          'без вашего имени. Открытые заказы без исполнителя отменятся.',
+          style: TextStyle(color: c.text2, fontSize: 13.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text('Отмена', style: TextStyle(color: c.text2)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              'Удалить',
+              style: TextStyle(
+                color: c.defectText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    try {
+      await widget.onDeleteAccount();
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
   }
 
   @override
@@ -472,6 +529,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         labelColor: context.colors.defectText,
                         trailing: const SizedBox.shrink(),
                         onTap: _confirmLogout,
+                      ),
+                      _SettingsRow(
+                        icon: Icons.person_remove_outlined,
+                        label: 'Удалить аккаунт',
+                        labelColor: context.colors.text3,
+                        trailing: _deleting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                        onTap: _deleting ? null : _confirmDeleteAccount,
                       ),
                     ],
                   ),

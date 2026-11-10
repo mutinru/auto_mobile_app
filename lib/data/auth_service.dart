@@ -420,6 +420,37 @@ class AuthService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Удалить аккаунт (DELETE /me). Сервер обезличивает его, а не стирает:
+  /// закрытые заказы и отзывы остаются без имени. 204 — сессия стирается
+  /// как при выходе (токен на сервере уже отозван, `/logout` не нужен).
+  /// 422 — идут заказы или ждёт выплата: [ApiException] с текстом сервера,
+  /// пользователь остаётся вошедшим. 401 — [expireSession].
+  Future<void> deleteAccount() async {
+    final response = await HttpTransport.request(
+      'DELETE',
+      Uri.parse('${ApiConfig.baseUrl}/me'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $_token',
+      },
+    );
+    if (response.statusCode == 401) {
+      expireSession();
+    }
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw ApiException(
+        response.statusCode,
+        _extractMessage(response.body, fallback: 'Не удалось удалить аккаунт'),
+      );
+    }
+
+    _token = null;
+    _user = null;
+    notifyListeners();
+    // хранилище может сбоить — сессия в памяти уже стёрта
+    await _storage.delete(key: _tokenKey).catchError((_) {});
+  }
+
   /// Первая ошибка валидации, иначе `message`, иначе [fallback] — как
   /// [ApiException.userMessage], но без сырого тела в худшем случае.
   String _extractMessage(String body, {String fallback = 'Ошибка входа'}) {

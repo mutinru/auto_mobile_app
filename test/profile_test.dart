@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
@@ -28,6 +29,7 @@ void main() {
     required bool required,
     CurrentUser? user,
     Future<void> Function()? onLogout,
+    Future<void> Function()? onDeleteAccount,
   }) => MaterialApp(
     theme: AppTheme.dark,
     home: ProfileScreen(
@@ -43,6 +45,7 @@ void main() {
       onMyOrders: () {},
       onNearbyOrders: () {},
       onLogout: onLogout ?? () async {},
+      onDeleteAccount: onDeleteAccount ?? () async {},
     ),
   );
 
@@ -71,6 +74,56 @@ void main() {
     await tester.tap(find.text('Выйти').last);
     await tester.pumpAndSettle();
     expect(loggedOut, 1);
+  });
+
+  testWidgets('«Удалить аккаунт» — с подтверждением, «Отмена» не удаляет', (
+    tester,
+  ) async {
+    tallScreen(tester);
+    var deleted = 0;
+    await tester.pumpWidget(
+      app(required: false, onDeleteAccount: () async => deleted++),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Удалить аккаунт'));
+    await tester.pumpAndSettle();
+    expect(find.text('Удалить аккаунт?'), findsOneWidget);
+
+    await tester.tap(find.text('Отмена'));
+    await tester.pumpAndSettle();
+    expect(deleted, 0);
+
+    await tester.tap(find.text('Удалить аккаунт'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Удалить'));
+    await tester.pumpAndSettle();
+    expect(deleted, 1);
+  });
+
+  testWidgets('удаление не прошло — текст сервера, профиль на месте', (
+    tester,
+  ) async {
+    tallScreen(tester);
+    await tester.pumpWidget(
+      app(
+        required: false,
+        onDeleteAccount: () async => throw ApiException(
+          422,
+          '{"message":"Удалить аккаунт пока нельзя — сначала завершите или отмените заказы: Kia Rio 2019."}',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Удалить аккаунт'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Удалить'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Удалить аккаунт пока нельзя'), findsOneWidget);
+    // строка снова нажимается
+    expect(find.text('Удалить аккаунт'), findsOneWidget);
   });
 
   testWidgets('верификация не обязательна — пункта про неё в профиле нет', (
