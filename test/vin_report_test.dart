@@ -10,7 +10,10 @@ import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
+import 'package:auto_podbor_mobile/models/payment.dart';
 import 'package:auto_podbor_mobile/models/vin_report.dart';
+import 'package:auto_podbor_mobile/payments/payment_flow.dart';
+import 'package:auto_podbor_mobile/payments/payment_sdk.dart';
 import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/vin_report_screen.dart';
@@ -37,6 +40,27 @@ class _LimitReached extends MockOrderRepository {
 }
 
 const _vin = MockOrderRepository.reportVin;
+
+/// Форма SDK без плагина.
+class _Sdk implements PaymentSdk {
+  _Sdk(this.result);
+
+  final SdkTokenResult result;
+  int calls = 0;
+
+  @override
+  Future<SdkTokenResult> tokenize(Payment payment) async {
+    calls++;
+    return result;
+  }
+
+  @override
+  Future<void> confirm(
+    Payment payment, {
+    required String url,
+    required String methodType,
+  }) async {}
+}
 
 /// Готовые отчёты по VIN в форме разового осмотра и купленные пакеты.
 void main() {
@@ -164,6 +188,42 @@ void main() {
     tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
     expect(find.text('Открыть отчёт'), findsOneWidget);
+  });
+
+  testWidgets('с провайдером покупка проходит формой SDK, потом отчёт', (
+    tester,
+  ) async {
+    final sdk = _Sdk(const SdkToken('tok', 'sbp'));
+    PaymentFlow.sdk = sdk;
+    addTearDown(() => PaymentFlow.sdk = const YooKassaSdk());
+    final repo = MockOrderRepository()..vinReportPaidInstantly = false;
+    await open(tester, repo);
+    await typeVin(tester, _vin);
+
+    await tester.tap(find.text('Купить за 299 ₽'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Оплатить 299 ₽'));
+    await tester.pumpAndSettle();
+
+    expect(sdk.calls, 1);
+    // вердикты — только из перечитанной после оплаты покупки
+    expect(find.text('Перекрашено крыло'), findsOneWidget);
+  });
+
+  testWidgets('закрыл форму оплаты — отчёт не открывается', (tester) async {
+    PaymentFlow.sdk = _Sdk(const SdkCanceled());
+    addTearDown(() => PaymentFlow.sdk = const YooKassaSdk());
+    final repo = MockOrderRepository()..vinReportPaidInstantly = false;
+    await open(tester, repo);
+    await typeVin(tester, _vin);
+
+    await tester.tap(find.text('Купить за 299 ₽'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Оплатить 299 ₽'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Перекрашено крыло'), findsNothing);
+    expect(await repo.fetchVinReportPurchases(), isEmpty);
   });
 
   testWidgets('купленные отчёты: пусто, затем пакет', (tester) async {

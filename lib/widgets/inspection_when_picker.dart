@@ -51,6 +51,10 @@ TimeOfDay? parseInspectTime(String? value) {
 /// времени города осмотра и ответит 422.
 const todayCutoffHour = 21;
 
+/// На сколько дней вперёд можно назначить осмотр — зеркало
+/// InspectionDay::MAX_DAYS_AHEAD на сервере (дальше — 422).
+const maxInspectionDaysAhead = 10;
+
 /// Первый день, на который ещё можно назначить осмотр: сегодня, а после
 /// [todayCutoffHour] — завтра.
 DateTime firstInspectionDay(DateTime now) {
@@ -147,7 +151,11 @@ class InspectionWhenPicker extends StatelessWidget {
       context: context,
       initialDate: value.date.isBefore(first) ? first : value.date,
       firstDate: first,
-      lastDate: _now.add(const Duration(days: 180)),
+      lastDate: DateTime(
+        _now.year,
+        _now.month,
+        _now.day,
+      ).add(const Duration(days: maxInspectionDaysAhead)),
     );
     if (picked != null) _changeDate(picked);
   }

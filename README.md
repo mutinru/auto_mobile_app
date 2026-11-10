@@ -106,6 +106,7 @@ lib/
   models/     доменные модели и enum'ы, зеркала PHP-энамов
   state/      OrderStore, InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
   push/       PushService, PushMessaging (обёртка над Firebase)
+  payments/   PaymentFlow — оплата по payment.checkout, PaymentSdk (ЮKassa)
   screens/    экраны
   widgets/    переиспользуемые блоки макета
   theme/      палитры (тёмная и светлая), тема, ThemeController
@@ -199,6 +200,28 @@ completed`, из `report_ready`/`payment_sent` — `disputed`; `cancelled` у п
 - реквизиты (карта или телефон+банк СБП) спрашивает форма отклика при первом
   отклике на осмотр (`RespondSheet`, `requiresPayout`), дальше — профиль
   («Реквизиты для выплат», `PATCH /me/payout`).
+
+**Оплата через платформу** (схема — в бекенде, `docs/plan-placement-payment.md`):
+пакет отчётов по VIN и комиссия за размещение разового осмотра (на сервере
+`INSPECTION_PLACEMENT_FEE`; 0 — бесплатно). Провайдера приложение не знает:
+платёж приходит с `checkout`, и `PaymentFlow` действует по `method`:
+
+- `sdk` — форма SDK ЮKassa (`yookassa_payments_flutter`, `YooKassaSdk`):
+  ключ SDK, магазин и способы — с сервера, в сборке ничего не вшито. Токен
+  формы уходит на `POST /payments/{id}/token`, платёж создаёт сервер; если он
+  вернул `confirmation_url` — подтверждение тем же SDK (3-D Secure, SberPay, СБП);
+- `redirect` — страница оплаты во встроенном браузере (Custom Tabs), затем
+  возврат в приложение (песочница `fake` на dev);
+- `paid` — уже оплачено (заглушка `instant`); незнакомый способ — «обновите
+  приложение».
+
+Итог — всегда с сервера (`GET /payments/{id}`), колбэку SDK не верим. Убил
+Android процесс посреди оплаты — итог не теряется: сервер узнаёт его вебхуком,
+экраны показывают новый статус при следующем чтении. Комиссия за размещение:
+цена — из `GET /config`, заказ ждёт оплаты в `awaitingPlacement` («Оплатить
+размещение» в карточке, `POST /orders/{id}/placement-payment`), деньги
+удерживаются до отчёта и возвращаются при отмене. Дата осмотра — не дальше
+`maxInspectionDaysAhead` (10) дней.
 
 `asking_price` — цена, которую просит продавец; `price` — согласованный гонорар
 исполнителя из принятого отклика. Путать их нельзя, на `price` завязаны карточка
@@ -395,6 +418,15 @@ IntentScreen (корень)
 Что из этого и в каком порядке доделывать — в `docs/backlog.md` репозитория
 бекенда (общий список бекенда и приложения).
 
+- **Оплата формой SDK ЮKassa не проверена вживую.** Нужны ключ мобильного
+  SDK и включённые менеджером ЮKassa платежи токеном; без них проверен только
+  путь страницы оплаты (`PAYMENT_GATEWAY=fake` на dev) и SDK — подделкой в
+  тестах. Для 3-D Secure карт некоторых банков SDK требует корневой
+  сертификат Минцифры (Russian Trusted Root CA) в network security config —
+  ещё не добавлен. Схема возврата из банка — `ym_app_scheme` у флейворов
+  (`bitnebit`, `bitnebitdev`); возврат со страницы оплаты по
+  `PAYMENT_RETURN_URL` не зарегистрирован — вкладку закрывают, и приложение
+  перечитывает платёж.
 - **iOS-сборка не проверена.** Ключи камеры, галереи и микрофона в `Info.plist`,
   iOS 15.5 и `ios/Podfile` настроены, но ни разу не собирались: Mac для этого
   не было. Первая сборка — `flutter build ios --flavor dev` на Mac.

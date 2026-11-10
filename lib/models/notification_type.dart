@@ -10,6 +10,8 @@ enum NotificationType {
   inspectionDatePassed,
   candidateInspected,
   paymentDue,
+  // заказ ждал решения и отменён сервером, комиссия за размещение вернулась
+  orderAutoCancelled,
   // исполнителю
   executorAssigned,
   responseRejected,
@@ -48,6 +50,7 @@ const _apiValues = {
   'dispute_opened': NotificationType.disputeOpened,
   'dispute_resolved': NotificationType.disputeResolved,
   'payment_due': NotificationType.paymentDue,
+  'order_auto_cancelled': NotificationType.orderAutoCancelled,
   'payment_confirm_due': NotificationType.paymentConfirmDue,
   'dispute_available': NotificationType.disputeAvailable,
 };

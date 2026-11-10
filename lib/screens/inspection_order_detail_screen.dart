@@ -4,6 +4,7 @@ import '../data/auth_service.dart';
 import '../models/order.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
+import '../payments/payment_flow.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
@@ -66,6 +67,7 @@ class _InspectionOrderDetailScreenState
   bool _accepting = false;
   bool _paying = false;
   bool _cancelling = false;
+  bool _payingPlacement = false;
 
   @override
   void initState() {
@@ -89,7 +91,8 @@ class _InspectionOrderDetailScreenState
   }
 
   @override
-  bool get refreshPaused => _loading || _accepting || _paying || _cancelling;
+  bool get refreshPaused =>
+      _loading || _accepting || _paying || _cancelling || _payingPlacement;
 
   /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
@@ -127,12 +130,42 @@ class _InspectionOrderDetailScreenState
     }
   }
 
+  /// Оплатить размещение: начатая оплата — та же, иначе сервер заведёт
+  /// новую. Итог — заказ с сервера: оплачен — он уже в ленте исполнителей.
+  Future<void> _payPlacement(Order order) async {
+    setState(() => _payingPlacement = true);
+    try {
+      final payment =
+          order.pendingPayment ??
+          (await widget.store.payPlacement(order.id)).pendingPayment;
+      if (payment != null && mounted) {
+        await runPayment(context, widget.store.repository, payment);
+      }
+      final updated = await widget.store.fetchOrder(order.id);
+      widget.store.replaceOrder(updated);
+      if (mounted) setState(() => _order = updated);
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _payingPlacement = false);
+    }
+  }
+
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
   Future<void> _cancel(Order order) async {
+    // размещение оплачено — при отмене сервер вернёт деньги
+    final refund =
+        order.placementFee != null &&
+        order.status != OrderStatus.awaitingPlacement;
     final ok = await showConfirmSheet(
       context,
       title: 'Отменить заказ?',
-      text: 'Отклики исполнителей будут отклонены. Вернуть заказ нельзя.',
+      text: order.status == OrderStatus.awaitingPlacement
+          ? 'Заказ ещё не опубликован — исполнители его не видели.'
+          : refund
+          ? 'Отклики исполнителей будут отклонены, деньги за размещение '
+                'вернутся на карту. Вернуть заказ нельзя.'
+          : 'Отклики исполнителей будут отклонены. Вернуть заказ нельзя.',
       confirmLabel: 'Отменить заказ',
       cancelLabel: 'Не отменять',
     );
@@ -246,6 +279,19 @@ class _InspectionOrderDetailScreenState
   List<Widget> _bottom(Order order) {
     if (!widget.viewerIsCustomer) return const [];
     return switch (order.status) {
+      OrderStatus.awaitingPlacement => [
+        BottomCta(
+          children: [
+            CtaPrimary(
+              label: order.placementFee == null
+                  ? 'Оплатить размещение'
+                  : 'Оплатить размещение · ${money(order.placementFee!)} ₽',
+              loading: _payingPlacement,
+              onPressed: () => _payPlacement(order),
+            ),
+          ],
+        ),
+      ],
       OrderStatus.reportReady => [
         BottomCta(
           children: [
@@ -325,6 +371,9 @@ class _InspectionOrderDetailScreenState
             const VinMismatchNote(),
           if (widget.viewerIsCustomer)
             ?mileageMismatchNoteFor(order.cars.firstOrNull),
+          if (widget.viewerIsCustomer &&
+              order.status == OrderStatus.awaitingPlacement)
+            ..._placement(order),
           if (widget.viewerIsCustomer &&
               order.status == OrderStatus.awaitingDecision)
             ..._decision(order),
@@ -412,6 +461,21 @@ class _InspectionOrderDetailScreenState
       ),
     );
   }
+
+  /// Заказ создан, но не опубликован: ждёт оплаты размещения. Оплатить —
+  /// нижняя кнопка, отменить — общая кнопка внизу списка.
+  List<Widget> _placement(Order order) => [
+    const SizedBox(height: 22),
+    const SectionHead('Оплата размещения'),
+    StatusNote(
+      icon: Icons.payments_outlined,
+      text:
+          'Исполнители увидят заказ после оплаты размещения'
+          '${order.placementFee == null ? '' : ' — ${money(order.placementFee!)} ₽'}. '
+          'Деньги спишутся, когда исполнитель пришлёт отчёт; отмените '
+          'заказ — вернутся. Не оплатите до дня осмотра — заказ отменится.',
+    ),
+  ];
 
   /// Исполнитель сорвал срок или день прошёл без него — заказчик решает.
   /// «Отменить заказ» — общая кнопка внизу (сервер отдаёт can_cancel).

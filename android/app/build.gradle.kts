@@ -44,6 +44,8 @@ android {
 
     buildFeatures {
         buildConfig = true
+        // resValue — схема возврата SDK ЮKassa (ym_app_scheme) у флейворов
+        resValues = true
     }
 
     flavorDimensions += "env"
@@ -57,10 +59,14 @@ android {
             dimension = "env"
             applicationId = "com.bitnebit.dev"
             buildConfigField("String", "RUSTORE_PUSH_PROJECT_ID", "\"\"")
+            // схема возврата из банка после SberPay и СБП (SDK ЮKassa); у dev
+            // своя — иначе на телефоне с обеими сборками Android спросит, куда
+            resValue("string", "ym_app_scheme", "bitnebitdev")
         }
         create("prod") {
             dimension = "env"
             applicationId = "com.bitnebit.app"
+            resValue("string", "ym_app_scheme", "bitnebit")
             buildConfigField("String", "RUSTORE_PUSH_PROJECT_ID", "\"s91Xpi0VAe7XhuVTkZPktBSis9w3nkaC\"")
         }
     }

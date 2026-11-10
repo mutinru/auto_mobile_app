@@ -88,7 +88,9 @@ class OrderCard extends StatelessWidget {
                 if (onReport != null) _ReportButton(onTap: onReport!),
                 if (onRepeat != null) _AgainButton(onTap: onRepeat!),
               ] else if (order.status.isAwaitingPayment ||
-                  order.status == OrderStatus.awaitingDecision)
+                  order.status == OrderStatus.awaitingDecision ||
+                  (order.status == OrderStatus.awaitingPlacement &&
+                      !asExecutor))
                 _ActionRow(order: order, asExecutor: asExecutor)
               else
                 _WhenRow(order: order),
@@ -235,6 +237,13 @@ class _ActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final price = order.price == null ? '' : ' ${money(order.price!)} ₽';
     final (text, icon, color) = switch (order.status) {
+      OrderStatus.awaitingPlacement => (
+        order.placementFee == null
+            ? 'Оплатите размещение — исполнители ещё не видят заказ'
+            : 'Оплатите размещение · ${money(order.placementFee!)} ₽',
+        Icons.payments_outlined,
+        context.colors.statusProgress,
+      ),
       OrderStatus.disputed => (
         'Открыт спор по оплате',
         Icons.gavel_rounded,

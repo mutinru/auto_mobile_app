@@ -2,16 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:url_launcher/url_launcher.dart';
-
 import '../data/address_repository.dart';
 import '../data/api_exception.dart';
 import '../data/auth_service.dart';
 import '../models/car_catalog.dart';
 import '../models/order.dart';
+import '../models/order_status.dart';
 import '../models/time_slot.dart';
 import '../models/vin_kind.dart';
 import '../models/vin_report.dart';
+import '../payments/payment_flow.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../util/listing_url.dart';
@@ -75,6 +75,11 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   late int _price;
   bool _submitting = false;
 
+  /// Комиссия за размещение с сервера (GET /config); 0 — бесплатно. Не
+  /// загрузилась — считаем 0: сервер всё равно решит сам, и неоплаченный
+  /// заказ придёт со статусом «ждёт оплаты».
+  int _placementFee = 0;
+
   /// Подсказка по ссылке: догадка сервера и адрес, к которому она относится.
   /// Отклонённые ✕ адреса больше не предлагаем.
   ListingGuess? _guess;
@@ -117,6 +122,18 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       _phoneController.text = phoneMaskText(based.sellerPhone ?? '');
     }
     if (_city == null) _detectCity();
+    _loadPlacementFee();
+  }
+
+  Future<void> _loadPlacementFee() async {
+    try {
+      final config = await widget.store.repository.fetchClientConfig();
+      if (mounted) {
+        setState(() => _placementFee = config.inspectionPlacementFee);
+      }
+    } catch (_) {
+      // нет связи — подпись кнопки без цены, остальное решит сервер
+    }
   }
 
   Future<void> _detectCity() async {
@@ -225,10 +242,21 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     if (!await confirmVinReportPurchase(context, check) || !mounted) return;
     setState(() => _buying = true);
     try {
-      final purchase = await widget.store.repository.purchaseVinReport(
-        check.vin,
-      );
+      final repository = widget.store.repository;
+      var purchase = await repository.purchaseVinReport(check.vin);
       if (!mounted) return;
+      // с провайдером покупка приходит неоплаченной — проводим платёж и
+      // перечитываем её: вердикты открываются только после оплаты
+      if (!purchase.paid && purchase.payment != null) {
+        final outcome = await runPayment(
+          context,
+          repository,
+          purchase.payment!,
+        );
+        if (!mounted || outcome != PaymentOutcome.paid) return;
+        purchase = await repository.fetchVinReportPurchase(purchase.id);
+        if (!mounted) return;
+      }
       if (purchase.paid) {
         setState(
           () => _vinCheck = VinReportCheck(
@@ -239,9 +267,13 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
           ),
         );
         await _openReport(purchase.id);
-      } else if (purchase.confirmationUrl case final url?) {
-        // задел под эквайринг: оплата у провайдера, отчёт появится в профиле
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      } else {
+        // деньги у банка, сервер ещё не знает итога — отчёт появится в профиле
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Оплата проверяется — отчёт появится в профиле'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) showApiError(context, e);
@@ -402,8 +434,18 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
         listingUrl: listing,
         sellerPhone: phoneDigits.isEmpty ? null : '+7$phoneDigits',
       );
+      // при комиссии заказ ждёт оплаты: проводим её сразу. Не оплатил —
+      // заказ всё равно создан, «Оплатить» останется в его карточке
+      var result = order;
+      final payment = order.pendingPayment;
+      if (order.status == OrderStatus.awaitingPlacement && payment != null) {
+        if (!mounted) return;
+        await runPayment(context, widget.store.repository, payment);
+        result = await widget.store.fetchOrder(order.id);
+        widget.store.replaceOrder(result);
+      }
       // созданный заказ — результатом: витрина по нему открывает «Мои заказы»
-      if (mounted) Navigator.of(context).pop(order);
+      if (mounted) Navigator.of(context).pop(result);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -586,8 +628,19 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
             ),
             BottomCta(
               children: [
+                if (_placementFee > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Размещение — ${money(_placementFee)} ₽. Деньги спишутся, '
+                      'когда исполнитель пришлёт отчёт; отмените заказ — вернутся.',
+                      style: context.text.fieldNote,
+                    ),
+                  ),
                 CtaPrimary(
-                  label: 'Разместить осмотр',
+                  label: _placementFee > 0
+                      ? 'Оплатить и разместить · ${money(_placementFee)} ₽'
+                      : 'Разместить осмотр',
                   loading: _submitting,
                   onPressed: _submit,
                 ),

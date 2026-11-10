@@ -1,10 +1,12 @@
 import 'package:http/http.dart' as http;
 
 import '../models/available_page.dart';
+import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
 import '../models/time_slot.dart';
@@ -402,6 +404,35 @@ class ApiOrderRepository implements OrderRepository {
   Future<VinReportPurchase> fetchVinReportPurchase(int id) async {
     final json = await _client.get('/vin-reports/purchases/$id');
     return VinReportPurchase.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ClientConfig> fetchClientConfig() async {
+    final json = await _client.get('/config');
+    return ClientConfig.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Order> payPlacement(int orderId) =>
+      _orderAction('/orders/$orderId/placement-payment');
+
+  @override
+  Future<Payment> fetchPayment(int id) async {
+    final json = await _client.get('/payments/$id');
+    return Payment.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Payment> submitPaymentToken(
+    int paymentId, {
+    required String token,
+    required String methodType,
+  }) async {
+    final json = await _client.post('/payments/$paymentId/token', {
+      'payment_token': token,
+      'payment_method_type': methodType,
+    });
+    return Payment.fromJson(json['data'] as Map<String, dynamic>);
   }
 
   /// Бекенд ждёт дату без времени — иначе валидация after_or_equal

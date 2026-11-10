@@ -4,6 +4,7 @@ import 'order_kind.dart';
 import 'order_response.dart';
 import 'order_response_status.dart';
 import 'order_status.dart';
+import 'payment.dart';
 import 'payout.dart';
 import 'report_summary.dart';
 import 'review.dart';
@@ -66,6 +67,8 @@ class Order {
     this.dispute,
     this.payout,
     this.reportSummary,
+    this.placementFee,
+    this.pendingPayment,
   });
 
   final int id;
@@ -241,6 +244,14 @@ class Order {
   /// Сводка отчёта до оплаты — тому же заказчику в тех же статусах.
   final ReportSummary? reportSummary;
 
+  /// Комиссия за размещение, ₽ — только заказчику; null — размещён бесплатно.
+  final int? placementFee;
+
+  /// Начатая и не завершённая оплата размещения — «Продолжить оплату»;
+  /// только заказчику. null при [OrderStatus.awaitingPlacement] — прошлая
+  /// оплата не прошла, «Оплатить» начнёт новую (payPlacement).
+  final Payment? pendingPayment;
+
   bool get isInspection => kind.isInspection;
 
   /// У подбора «Kia Sportage 2021+» (год — нижняя граница),
@@ -294,8 +305,7 @@ class Order {
     if (isInspection) return null;
     if (hasUnfinishedInspection) return 'Осмотр кандидата ещё не завершён';
     final done = cars.where((c) => c.inspectionStatus == 'completed').length;
-    final inspected =
-        'Осмотрено ${counted(done, 'машина', 'машины', 'машин')}';
+    final inspected = 'Осмотрено ${counted(done, 'машина', 'машины', 'машин')}';
     return switch (shownStatus) {
       OrderStatus.awaitingExecutor => 'Исполнитель ещё не выбран',
       OrderStatus.sourcing =>
@@ -345,6 +355,9 @@ class Order {
     bool clearDecision = false,
     // оплата подтверждена: реквизиты и сводку сервер больше не отдаёт
     bool clearPayment = false,
+    Payment? pendingPayment,
+    // оплата размещения завершилась — начатой больше нет
+    bool clearPendingPayment = false,
   }) => Order(
     id: id,
     kind: kind,
@@ -400,6 +413,10 @@ class Order {
     dispute: dispute ?? this.dispute,
     payout: clearPayment ? null : (payout ?? this.payout),
     reportSummary: clearPayment ? null : (reportSummary ?? this.reportSummary),
+    placementFee: placementFee,
+    pendingPayment: clearPendingPayment
+        ? null
+        : (pendingPayment ?? this.pendingPayment),
   );
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
@@ -474,6 +491,10 @@ class Order {
         : null,
     reportSummary: json['report_summary'] != null
         ? ReportSummary.fromJson(json['report_summary'] as Map<String, dynamic>)
+        : null,
+    placementFee: json['placement_fee'] as int?,
+    pendingPayment: json['pending_payment'] is Map<String, dynamic>
+        ? Payment.fromJson(json['pending_payment'] as Map<String, dynamic>)
         : null,
   );
 

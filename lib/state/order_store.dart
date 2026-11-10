@@ -401,6 +401,10 @@ class OrderStore extends ChangeNotifier {
       _mutate(_repository.completeSelection(orderId, carId: carId));
 
   /// Отменённый заказ уезжает в архив списка — статус из ответа сервера.
+  /// Новая оплата размещения (прошлая не прошла); заказ — с pendingPayment.
+  Future<Order> payPlacement(int orderId) =>
+      _mutate(_repository.payPlacement(orderId));
+
   Future<Order> cancelOrder(int orderId) =>
       _mutate(_repository.cancelOrder(orderId));
 

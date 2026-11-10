@@ -55,6 +55,7 @@ dependencies:
   flutter_image_compress: ^2.5.1
   image_cropper: ^12.2.1
   flutter_rustore_push: ^7.5.0
+  yookassa_payments_flutter: ^2.0.1
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,5 @@
 import '../models/available_page.dart';
+import '../models/client_config.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
@@ -8,6 +9,7 @@ import '../models/order_kind.dart';
 import '../models/order_response.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
+import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../models/review.dart';
@@ -31,6 +33,38 @@ class MockOrderRepository implements OrderRepository {
     : _orders = orders ?? _seed();
 
   final int availablePageSize;
+
+  /// Комиссия за размещение осмотра, как INSPECTION_PLACEMENT_FEE на
+  /// сервере: 0 — заказ публикуется сразу, иначе ждёт оплаты.
+  int placementFee = 0;
+
+  /// Платежи мока: оплата формы SDK (submitPaymentToken) проходит сразу —
+  /// размещение удерживается и публикует заказ, VIN — списывается.
+  final Map<int, Payment> _payments = {};
+  int _paymentSeq = 900;
+
+  Payment _startPayment(int amount, String purpose, {int? orderId}) {
+    final payment = Payment(
+      id: ++_paymentSeq,
+      status: PaymentStatus.pending,
+      amount: amount,
+      purpose: purpose,
+      orderId: orderId,
+      checkout: PaymentCheckout(
+        method: CheckoutMethod.sdk,
+        provider: 'yookassa',
+        clientKey: 'test_client_key',
+        shopId: '000000',
+        title: purpose == 'vin_report'
+            ? 'Готовые отчёты по VIN'
+            : 'Размещение осмотра',
+        amount: amount,
+        paymentMethods: const ['bank_card', 'sberbank', 'sbp'],
+      ),
+    );
+    _payments[payment.id] = payment;
+    return payment;
+  }
 
   /// Реквизиты, которые мок отдаёт заказчику в момент оплаты.
   static const mockPayout = Payout(
@@ -345,10 +379,18 @@ class MockOrderRepository implements OrderRepository {
     int? addressPrecision,
   }) async {
     final id = DateTime.now().millisecondsSinceEpoch;
+    final fee = placementFee;
     final order = Order(
       id: id,
       kind: OrderKind.inspection,
-      status: OrderStatus.awaitingExecutor,
+      status: fee > 0
+          ? OrderStatus.awaitingPlacement
+          : OrderStatus.awaitingExecutor,
+      placementFee: fee > 0 ? fee : null,
+      pendingPayment: fee > 0
+          ? _startPayment(fee, 'inspection_placement', orderId: id)
+          : null,
+      canCancel: true,
       brand: brand,
       model: model,
       yearFrom: year,
@@ -706,35 +748,68 @@ class MockOrderRepository implements OrderRepository {
     );
   }
 
+  /// false — покупка по VIN ждёт оплаты формой SDK, как с провайдером на
+  /// сервере; true — оплачена сразу, как с заглушкой.
+  bool vinReportPaidInstantly = true;
+
+  /// Покупки, ждущие оплаты: id платежа → покупка.
+  final Map<int, VinReportPurchase> _unpaidPurchases = {};
+
+  VinReportPurchase _vinPurchase(String vin, {required bool paid}) =>
+      VinReportPurchase(
+        id: 701,
+        vinMasked: '··· ${vin.substring(vin.length - 6)}',
+        paid: paid,
+        price: 299,
+        paidAt: paid ? DateTime(2026, 11, 3) : null,
+        items: [
+          for (final (i, item) in _reportItems.indexed)
+            VinReportItem(
+              date: item.date,
+              city: item.city,
+              mileageKm: item.mileageKm,
+              // как сервер: до оплаты без вердикта и id осмотра
+              inspectionId: paid ? 9001 + i : null,
+              brand: 'Volkswagen',
+              model: 'Tiguan',
+              year: 2019,
+              verdict: !paid
+                  ? null
+                  : i == 0
+                  ? InspectionVerdict.withReservations
+                  : InspectionVerdict.recommended,
+              verdictComment: paid && i == 0 ? 'Перекрашено крыло' : null,
+            ),
+        ],
+      );
+
+  void _payVinPurchase(int paymentId) {
+    final unpaid = _unpaidPurchases.remove(paymentId);
+    if (unpaid == null) return;
+    _purchases.add(_vinPurchase(reportVin, paid: true));
+  }
+
   @override
   Future<VinReportPurchase> purchaseVinReport(String vin) async {
     if (vin != reportVin) {
       throw ApiException(422, '{"message":"Готовых отчётов по этому VIN нет"}');
     }
     if (_purchases.firstOrNull case final p?) return p;
-    final purchase = VinReportPurchase(
-      id: 701,
-      vinMasked: '··· ${vin.substring(vin.length - 6)}',
-      paid: true,
-      price: 299,
-      paidAt: DateTime(2026, 11, 3),
-      items: [
-        for (final (i, item) in _reportItems.indexed)
-          VinReportItem(
-            date: item.date,
-            city: item.city,
-            mileageKm: item.mileageKm,
-            inspectionId: 9001 + i,
-            brand: 'Volkswagen',
-            model: 'Tiguan',
-            year: 2019,
-            verdict: i == 0
-                ? InspectionVerdict.withReservations
-                : InspectionVerdict.recommended,
-            verdictComment: i == 0 ? 'Перекрашено крыло' : null,
-          ),
-      ],
-    );
+    if (!vinReportPaidInstantly) {
+      final payment = _startPayment(299, 'vin_report');
+      final unpaid = _vinPurchase(vin, paid: false);
+      final withPayment = VinReportPurchase(
+        id: unpaid.id,
+        vinMasked: unpaid.vinMasked,
+        paid: false,
+        price: unpaid.price,
+        items: unpaid.items,
+        payment: payment,
+      );
+      _unpaidPurchases[payment.id] = withPayment;
+      return withPayment;
+    }
+    final purchase = _vinPurchase(vin, paid: true);
     _purchases.add(purchase);
     return purchase;
   }
@@ -745,7 +820,72 @@ class MockOrderRepository implements OrderRepository {
 
   @override
   Future<VinReportPurchase> fetchVinReportPurchase(int id) async =>
-      _purchases.firstWhere((p) => p.id == id);
+      _purchases.where((p) => p.id == id).firstOrNull ??
+      _unpaidPurchases.values.firstWhere((p) => p.id == id);
+
+  @override
+  Future<ClientConfig> fetchClientConfig() async =>
+      ClientConfig(inspectionPlacementFee: placementFee, vinReportPrice: 299);
+
+  @override
+  Future<Order> payPlacement(int orderId) async {
+    final order = await fetchOrder(orderId);
+    if (order.status != OrderStatus.awaitingPlacement) {
+      throw ApiException(422, '{"message":"Заказ не ждёт оплаты размещения"}');
+    }
+    if (order.pendingPayment != null) return order;
+    final updated = order.copyWith(
+      pendingPayment: _startPayment(
+        order.placementFee ?? placementFee,
+        'inspection_placement',
+        orderId: orderId,
+      ),
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Payment> fetchPayment(int id) async {
+    final payment = _payments[id];
+    if (payment == null) throw ApiException(404, '{"message":"Не найдено"}');
+    return payment;
+  }
+
+  @override
+  Future<Payment> submitPaymentToken(
+    int paymentId, {
+    required String token,
+    required String methodType,
+  }) async {
+    final payment = await fetchPayment(paymentId);
+    if (!payment.isPending) {
+      throw ApiException(422, '{"message":"Платёж уже не ждёт оплаты"}');
+    }
+    final placement = payment.purpose == 'inspection_placement';
+    final done = Payment(
+      id: payment.id,
+      // как сервер: размещение удерживается до отчёта, VIN списывается
+      status: placement ? PaymentStatus.authorized : PaymentStatus.paid,
+      amount: payment.amount,
+      purpose: payment.purpose,
+      orderId: payment.orderId,
+      methodType: methodType,
+    );
+    _payments[paymentId] = done;
+    if (placement && payment.orderId != null) {
+      // как Order::paymentSucceeded: заказ опубликован
+      final order = await fetchOrder(payment.orderId!);
+      _replace(
+        order.copyWith(
+          status: OrderStatus.awaitingExecutor,
+          clearPendingPayment: true,
+        ),
+      );
+    }
+    if (payment.purpose == 'vin_report') _payVinPurchase(paymentId);
+    return done;
+  }
 
   @override
   Future<int> startInspection(

@@ -71,7 +71,11 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    `VinKind`; `PushProvider` ↔ `App\Push\PushProvider`).
    Меняя энам здесь, скажи пользователю: парная правка сама себя не сделает.
    Так же зеркалится лимит фото на деталь: `InspectionPanel.maxPhotos` ↔
-   `Photo::MAX_PER_PANEL`.
+   `Photo::MAX_PER_PANEL`, срок осмотра `maxInspectionDaysAhead` ↔
+   `InspectionDay::MAX_DAYS_AHEAD`, `CheckoutMethod` и `PaymentStatus` ↔
+   `App\Payments\Checkout` и константы `App\Models\Payment`. Незнакомое
+   значение статуса — `unknown` («обновите приложение»), а не ближайший
+   знакомый статус.
 
 ## Ловушки
 
@@ -214,6 +218,13 @@ README перечисляет ограничения приложения; зд�
   `push` раздела или профиля руками вернёт копии экранов в стеке, а подмена
   корня — «назад», закрывающее приложение (QA 2026-11-05 №2). Экран раздела
   создаёт фабрика `SectionNav`, не `builder` маршрута.
+- **Оплата — только через `PaymentFlow`** (`lib/payments/payment_flow.dart`,
+  с экрана — `runPayment`). Не открывай `confirmation_url` сам и не зови SDK
+  ЮKassa из экранов: способ выбирает сервер (`payment.checkout.method`), итог —
+  только `GET /payments/{id}`, не колбэк SDK. Секретов в сборке нет: ключ SDK
+  и магазин приходят в `checkout`. Цены (комиссия, отчёт по VIN) — только с
+  сервера (`GET /config`, ответ покупки), не хардкодь. В виджет-тестах плагина
+  нет — подменяй `PaymentFlow.sdk` и верни `YooKassaSdk()` в `tearDown`.
 - **Можно ли откликнуться — `Order.canViewerRespond`**, подпись кнопки —
   `Order.respondLabel`, «Ваш отклик» — `hasViewerResponse` (отклик в игре).
   Только в ленте исполнителя: сервер отдаёт ему лишь его отклик. Второй отклик

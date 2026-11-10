@@ -14,8 +14,16 @@ import 'order_kind.dart';
 ///
 /// awaitingDecision — только у осмотра: исполнитель сорвал день осмотра или
 /// день прошёл без выбранного исполнителя. Заказчик размещает заказ заново
-/// (новая дата) или отменяет; в ленте исполнителей его нет.
+/// (новая дата) или отменяет; в ленте исполнителей его нет. Без решения
+/// несколько дней сервер отменяет заказ сам (order_auto_cancelled).
+///
+/// awaitingPlacement — только у осмотра и только при комиссии за
+/// размещение: заказ создан, но не опубликован, пока заказчик не оплатит.
+///
+/// [unknown] — статус, о котором эта сборка не знает (сервер новее):
+/// показываем «обновите приложение», а не притворяемся знакомым статусом.
 enum OrderStatus {
+  awaitingPlacement,
   awaitingExecutor,
   awaitingDecision,
   sourcing,
@@ -26,6 +34,7 @@ enum OrderStatus {
   disputed,
   completed,
   cancelled,
+  unknown,
 }
 
 extension OrderStatusX on OrderStatus {
@@ -36,6 +45,7 @@ extension OrderStatusX on OrderStatus {
   /// У подбора завершённый заказ — «выполнен», у осмотра — «отчёт
   /// получен»: «отчёт готов» теперь значит «готов, но ждёт оплаты».
   String labelFor(OrderKind kind) => switch (this) {
+    OrderStatus.awaitingPlacement => 'ждёт оплаты',
     OrderStatus.awaitingExecutor => 'ждёт исполнителя',
     OrderStatus.awaitingDecision => 'ждёт решения',
     OrderStatus.sourcing => 'идёт подбор',
@@ -46,6 +56,7 @@ extension OrderStatusX on OrderStatus {
     OrderStatus.disputed => 'спор',
     OrderStatus.completed => kind.isInspection ? 'отчёт получен' : 'выполнен',
     OrderStatus.cancelled => 'отменён',
+    OrderStatus.unknown => 'обновите приложение',
   };
 
   /// Завершён или отменён — во вкладку «Завершённые».
@@ -59,6 +70,7 @@ extension OrderStatusX on OrderStatus {
       this == OrderStatus.disputed;
 
   Color color(AppColors c) => switch (this) {
+    OrderStatus.awaitingPlacement => c.statusProgress,
     OrderStatus.awaitingExecutor => c.text2,
     OrderStatus.awaitingDecision => c.statusProgress,
     OrderStatus.sourcing => c.statusProgress,
@@ -69,6 +81,7 @@ extension OrderStatusX on OrderStatus {
     OrderStatus.disputed => c.statusDefect,
     OrderStatus.completed => c.statusDone,
     OrderStatus.cancelled => c.text3,
+    OrderStatus.unknown => c.text3,
   };
 
   /// Цвет для .pill. null → нейтральный вариант (.pill без модификатора,
@@ -76,12 +89,16 @@ extension OrderStatusX on OrderStatus {
   Color? pillColor(AppColors c) => switch (this) {
     // .pill.planned в макете — тот же нейтральный фон, что и у
     // «ждёт исполнителя», но текст ярче
-    OrderStatus.awaitingExecutor || OrderStatus.cancelled => null,
+    OrderStatus.awaitingExecutor ||
+    OrderStatus.cancelled ||
+    OrderStatus.unknown => null,
     _ => color(c),
   };
 }
 
 OrderStatus orderStatusFromApi(String value) => switch (value) {
+  'awaiting_placement' => OrderStatus.awaitingPlacement,
+  'awaiting_executor' => OrderStatus.awaitingExecutor,
   'awaiting_decision' => OrderStatus.awaitingDecision,
   'sourcing' => OrderStatus.sourcing,
   'scheduled' => OrderStatus.scheduled,
@@ -91,5 +108,5 @@ OrderStatus orderStatusFromApi(String value) => switch (value) {
   'disputed' => OrderStatus.disputed,
   'completed' => OrderStatus.completed,
   'cancelled' => OrderStatus.cancelled,
-  _ => OrderStatus.awaitingExecutor,
+  _ => OrderStatus.unknown,
 };

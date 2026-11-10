@@ -1,4 +1,5 @@
 import 'inspection_verdict.dart';
+import 'payment.dart';
 
 /// Осмотр в предложении или пакете готовых отчётов по VIN. До оплаты
 /// сервер не отдаёт [verdict] и [inspectionId] — они и есть товар.
@@ -79,7 +80,7 @@ class VinReportPurchase {
     required this.price,
     required this.items,
     this.paidAt,
-    this.confirmationUrl,
+    this.payment,
   });
 
   final int id;
@@ -89,9 +90,9 @@ class VinReportPurchase {
   final List<VinReportItem> items;
   final DateTime? paidAt;
 
-  /// Страница оплаты у провайдера. Пока эквайринга нет, оплата проходит
-  /// сразу, и ссылки не бывает.
-  final String? confirmationUrl;
+  /// Платёж до оплаты — с чего начать или продолжить её (PaymentFlow).
+  /// У оплаченной покупки и при оплате заглушкой сервера — null.
+  final Payment? payment;
 
   /// Машина пакета — у всех осмотров одна, берём из первого.
   String? get carTitle => items.firstOrNull?.carTitle;
@@ -103,7 +104,9 @@ class VinReportPurchase {
         paid: json['status'] == 'paid',
         price: json['price'] as int,
         paidAt: DateTime.tryParse(json['paid_at'] as String? ?? ''),
-        confirmationUrl: json['confirmation_url'] as String?,
+        payment: json['payment'] is Map<String, dynamic>
+            ? Payment.fromJson(json['payment'] as Map<String, dynamic>)
+            : null,
         items: [
           for (final i in json['inspections'] as List? ?? const [])
             VinReportItem.fromJson(i as Map<String, dynamic>),

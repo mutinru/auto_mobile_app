@@ -1,8 +1,10 @@
 import '../models/available_page.dart';
+import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
 import '../models/vin_kind.dart';
@@ -175,13 +177,32 @@ abstract class OrderRepository {
   /// Сервер считает разные VIN — не больше 15 в сутки, сверх — 429.
   Future<VinReportCheck> checkVinReports(String vin);
 
-  /// Купить пакет готовых отчётов по VIN. Пока эквайринга нет, оплата
-  /// проходит сразу; позже ответ может прийти неоплаченным со ссылкой
-  /// подтверждения ([VinReportPurchase.confirmationUrl]).
+  /// Купить пакет готовых отчётов по VIN. С заглушкой оплаты сервера —
+  /// сразу оплачено; с провайдером — неоплаченная покупка с
+  /// [VinReportPurchase.payment], его проводит PaymentFlow.
   Future<VinReportPurchase> purchaseVinReport(String vin);
 
   /// Оплаченные пакеты заказчика, свежие сверху.
   Future<List<VinReportPurchase>> fetchVinReportPurchases();
 
   Future<VinReportPurchase> fetchVinReportPurchase(int id);
+
+  /// Цены и лимиты с сервера (GET /config).
+  Future<ClientConfig> fetchClientConfig();
+
+  /// Оплатить размещение осмотра заново (заказ в awaitingPlacement, прошлая
+  /// оплата не прошла). Начатая живая оплата — та же; заказ — с
+  /// [Order.pendingPayment].
+  Future<Order> payPlacement(int orderId);
+
+  /// Платёж; ждущий оплаты сервер перед ответом сверяет с провайдером.
+  Future<Payment> fetchPayment(int id);
+
+  /// Токен из платёжной формы SDK: сервер создаёт платёж у провайдера и
+  /// отдаёт его — с confirmationUrl, если нужно подтверждение.
+  Future<Payment> submitPaymentToken(
+    int paymentId, {
+    required String token,
+    required String methodType,
+  });
 }
