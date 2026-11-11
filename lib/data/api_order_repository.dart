@@ -7,6 +7,7 @@ import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/order_page.dart';
 import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
@@ -24,9 +25,13 @@ class ApiOrderRepository implements OrderRepository {
 
   @override
   Future<List<Order>> fetchMyOrders() async {
-    final json = await _client.get('/orders/mine');
+    final json = await _client.get('/orders/mine?scope=active');
     return _parseList(json);
   }
+
+  @override
+  Future<OrderPage> fetchMyFinishedOrders({int page = 1}) async =>
+      _parsePage(await _client.get('/orders/mine?scope=finished&page=$page'));
 
   @override
   Future<AvailablePage> fetchAvailableOrders({
@@ -72,8 +77,24 @@ class ApiOrderRepository implements OrderRepository {
 
   @override
   Future<List<Order>> fetchAssignedOrders() async {
-    final json = await _client.get('/orders/assigned');
+    final json = await _client.get('/orders/assigned?scope=active');
     return _parseList(json);
+  }
+
+  @override
+  Future<OrderPage> fetchAssignedFinishedOrders({int page = 1}) async =>
+      _parsePage(
+        await _client.get('/orders/assigned?scope=finished&page=$page'),
+      );
+
+  OrderPage _parsePage(Map<String, dynamic> json) {
+    final meta = json['meta'] as Map<String, dynamic>? ?? const {};
+    return OrderPage(
+      items: _parseList(json),
+      hasMore:
+          ((meta['current_page'] as num?)?.toInt() ?? 1) <
+          ((meta['last_page'] as num?)?.toInt() ?? 1),
+    );
   }
 
   @override

@@ -73,7 +73,9 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    Так же зеркалится лимит фото на деталь: `InspectionPanel.maxPhotos` ↔
    `Photo::MAX_PER_PANEL`, срок осмотра `maxInspectionDaysAhead` ↔
    `InspectionDay::MAX_DAYS_AHEAD`, `CheckoutMethod` и `PaymentStatus` ↔
-   `App\Payments\Checkout` и константы `App\Models\Payment`. Незнакомое
+   `App\Payments\Checkout` и константы `App\Models\Payment`.
+   `OrderStatus.closed` ↔ `App\Enums\OrderStatus::Closed` (подбор закрыт без
+   покупки, время — `closed_at` → `Order.selectionClosedAt`). Незнакомое
    значение статуса — `unknown` («обновите приложение»), а не ближайший
    знакомый статус.
 
@@ -238,6 +240,13 @@ README перечисляет ограничения приложения; зд�
   и магазин приходят в `checkout`. Цены (комиссия, отчёт по VIN) — только с
   сервера (`GET /config`, ответ покупки), не хардкодь. В виджет-тестах плагина
   нет — подменяй `PaymentFlow.sdk` и верни `YooKassaSdk()` в `tearDown`.
+- **«Завершённые» в «Моих» и «Взятых заказах» — страницы с сервера**
+  (`OrderStore.myFinished`/`assignedFinished`, `PagedOrders`, `?scope=finished`):
+  грузятся при открытии вкладки, подвалом `LoadMore`. `myOrders` и
+  `assignedOrders` — только активные (по ним опрос). Правило «завершён»
+  считает сервер (`App\Queries\OrderLists`); экран лишь подмешивает
+  заказы, закрывшиеся на глазах, — не фильтруй завершённые из активного
+  списка как источник.
 - **Можно ли откликнуться — `Order.canViewerRespond`**, подпись кнопки —
   `Order.respondLabel`, «Ваш отклик» — `hasViewerResponse` (отклик в игре).
   Только в ленте исполнителя: сервер отдаёт ему лишь его отклик. Второй отклик

@@ -6,8 +6,10 @@ import '../models/order_kind.dart';
 import '../state/notification_scope.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
+import '../state/paged_orders.dart';
 import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/load_more.dart';
 import '../widgets/order_card.dart';
 import '../widgets/notification_bell.dart';
 import '../widgets/order_kind_sheet.dart';
@@ -151,10 +153,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   /// Спиннер и экран ошибки — только пока показать нечего ([loaded] пуст):
   /// загруженный список перечитывание не прячет и сбой сети не стирает.
   /// Любое состояние тянется вниз ([_pullable]).
-  Widget _list(List<Order> orders, {required List<Order> loaded}) {
-    final store = widget.store;
-    final error = widget.asExecutor ? store.assignedError : store.mineError;
-    if (error != null && loaded.isEmpty) {
+  Widget _list(
+    List<Order> orders, {
+    required bool loading,
+    required String? error,
+    required VoidCallback onRetry,
+    Widget? footer,
+  }) {
+    if (error != null && orders.isEmpty) {
       return _pullable(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -172,17 +178,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 style: TextStyle(fontSize: 11.5, color: context.colors.text3),
               ),
               const SizedBox(height: 10),
-              CtaGhost(label: 'Повторить', onPressed: _load),
+              CtaGhost(label: 'Повторить', onPressed: onRetry),
             ],
           ),
         ),
       );
     }
 
-    final loading = widget.asExecutor
-        ? store.isLoadingAssigned
-        : store.isLoadingMine;
-    if (loading && loaded.isEmpty) {
+    if (loading && orders.isEmpty) {
       return _pullable(const Center(child: CircularProgressIndicator()));
     }
 
@@ -216,7 +219,40 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
           for (final order in selections) _card(order),
         ] else
           for (final order in orders) _card(order),
+        ?footer,
       ],
+    );
+  }
+
+  /// «Завершённые» — страницами с сервера ([OrderStore.myFinished]).
+  PagedOrders get _finished => widget.asExecutor
+      ? widget.store.assignedFinished
+      : widget.store.myFinished;
+
+  void _selectTab(int tab) {
+    setState(() => _tab = tab);
+    // первая страница — при первом открытии вкладки, а не на каждый опрос
+    if (tab == 1 && !_finished.isLoaded && !_finished.isLoading) {
+      _finished.load();
+    }
+  }
+
+  /// Подвал «Завершённых»: следующая страница, когда докрутили, или
+  /// «Повторить» после сбоя — как в ленте «Заказы рядом».
+  Widget? _finishedFooter() {
+    final finished = _finished;
+    if (!finished.hasMore) return null;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: finished.moreError != null
+            ? CtaGhost(label: 'Повторить', onPressed: finished.loadMore)
+            : LoadMore(
+                // новый ключ на каждую страницу — иначе initState не позовётся
+                key: ValueKey(finished.version),
+                onShown: finished.loadMore,
+              ),
+      ),
     );
   }
 
@@ -253,17 +289,44 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
         final source = widget.asExecutor
             ? store.assignedOrders
             : store.myOrders;
-        final orders = source.where((o) {
-          // отчёт готов / оплата / спор — ещё активные: заказчик не получил
-          // отчёт; у исполнителя — и закрытый подбор с недоделанным осмотром
-          final finished =
-              o.status.isFinished &&
-              !(widget.asExecutor && o.hasUnfinishedInspection);
-          return _tab == 0 ? !finished : finished;
-        }).toList();
-        // активные — в порядке сервера (осмотры по дате выезда), завершённые
-        // — от последнего закрытого (QA 2026-11-05 №7)
-        if (_tab == 1) orders.sort(byClosedDesc);
+        // отчёт готов / оплата / спор — ещё активные: заказчик не получил
+        // отчёт; у исполнителя — и закрытый подбор с недоделанным осмотром
+        bool isDone(Order o) =>
+            o.status.isFinished &&
+            !(widget.asExecutor && o.hasUnfinishedInspection);
+        final finished = _finished;
+        final List<Order> orders;
+        if (_tab == 0) {
+          // в порядке сервера (осмотры по дате выезда)
+          orders = source.where((o) => !isDone(o)).toList();
+        } else {
+          // страницы с сервера и то, что закрылось на глазах (отменили,
+          // закрыли) и ещё в активном списке, — без дублей, от последнего
+          // закрытого (QA 2026-11-05 №7)
+          final seen = <int>{};
+          orders = [
+            ...source.where(isDone),
+            ...finished.items,
+          ].where((o) => seen.add(o.id)).toList()..sort(byClosedDesc);
+        }
+        final list = _tab == 0
+            ? _list(
+                orders,
+                loading: widget.asExecutor
+                    ? store.isLoadingAssigned
+                    : store.isLoadingMine,
+                error: widget.asExecutor
+                    ? store.assignedError
+                    : store.mineError,
+                onRetry: _load,
+              )
+            : _list(
+                orders,
+                loading: finished.isLoading || !finished.isLoaded,
+                error: finished.error,
+                onRetry: finished.load,
+                footer: _finishedFooter(),
+              );
 
         final eyebrow = widget.asExecutor
             ? 'вы исполнитель'
@@ -284,12 +347,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 AppToggle(
                   labels: const ['Активные', 'Завершённые'],
                   activeIndex: _tab,
-                  onChanged: (i) => setState(() => _tab = i),
+                  onChanged: _selectTab,
                 ),
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh: pullToRefresh,
-                    child: _list(orders, loaded: source),
+                    // «Завершённые» опрос не трогает — тянется их страница
+                    onRefresh: _tab == 1 ? finished.load : pullToRefresh,
+                    child: list,
                   ),
                 ),
                 if (!widget.asExecutor)

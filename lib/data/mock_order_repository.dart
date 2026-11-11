@@ -6,6 +6,7 @@ import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/order_page.dart';
 import '../models/order_kind.dart';
 import '../models/order_response.dart';
 import '../models/order_response_status.dart';
@@ -244,8 +245,34 @@ class MockOrderRepository implements OrderRepository {
     ),
   ];
 
+  /// Страница завершённых — как на сервере (App\Queries\OrderLists::PAGE).
+  static const finishedPageSize = 20;
+
+  /// Как сервер: активные — целиком, завершённые — отдельно страницами.
   @override
-  Future<List<Order>> fetchMyOrders() async => _orders;
+  Future<List<Order>> fetchMyOrders() async =>
+      _orders.where((o) => !o.status.isFinished).toList();
+
+  @override
+  Future<OrderPage> fetchMyFinishedOrders({int page = 1}) async =>
+      _finishedPage(_orders.where((o) => o.status.isFinished), page);
+
+  /// Страница завершённых от последнего закрытого, без метки — по номеру.
+  OrderPage _finishedPage(Iterable<Order> finished, int page) {
+    final sorted = finished.toList()
+      ..sort((a, b) {
+        final (ca, cb) = (a.closedAt, b.closedAt);
+        if (ca != null && cb != null && ca != cb) return cb.compareTo(ca);
+        if (ca != null && cb == null) return -1;
+        if (ca == null && cb != null) return 1;
+        return b.id.compareTo(a.id);
+      });
+    final start = (page - 1) * finishedPageSize;
+    return OrderPage(
+      items: sorted.skip(start).take(finishedPageSize).toList(),
+      hasMore: sorted.length > start + finishedPageSize,
+    );
+  }
 
   /// Как сервер: фильтр той же логикой ([applyNearbyFilter]), страницы и
   /// варианты шторки — по всем свободным.
@@ -311,8 +338,25 @@ class MockOrderRepository implements OrderRepository {
   );
 
   @override
-  Future<List<Order>> fetchAssignedOrders() async =>
-      _orders.where((o) => o.executor != null).toList();
+  Future<List<Order>> fetchAssignedOrders() async => _orders
+      .where(
+        (o) =>
+            o.executor != null &&
+            (!o.status.isFinished || o.hasUnfinishedInspection),
+      )
+      .toList();
+
+  @override
+  Future<OrderPage> fetchAssignedFinishedOrders({int page = 1}) async =>
+      _finishedPage(
+        _orders.where(
+          (o) =>
+              o.executor != null &&
+              o.status.isFinished &&
+              !o.hasUnfinishedInspection,
+        ),
+        page,
+      );
 
   @override
   Future<Order> fetchOrder(int id) async =>

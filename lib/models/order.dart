@@ -54,6 +54,7 @@ class Order {
     this._responsesCount,
     this.cars = const [],
     this.completedAt,
+    this.selectionClosedAt,
     this.cancelledAt,
     this.review,
     this.canReview = false,
@@ -196,12 +197,15 @@ class Order {
 
   final DateTime? completedAt;
 
+  /// Когда подбор закрыт без покупки (closed_at, статус closed).
+  final DateTime? selectionClosedAt;
+
   /// Когда заказ отменили; null — не отменён (или сервер старый).
   final DateTime? cancelledAt;
 
-  /// Когда заказ закрылся — завершён или отменён. По нему «Завершённые»
-  /// идут от последнего закрытого (QA 2026-11-05 №7).
-  DateTime? get closedAt => completedAt ?? cancelledAt;
+  /// Когда заказ закрылся — завершён, закрыт без покупки или отменён. По
+  /// нему «Завершённые» идут от последнего закрытого (QA 2026-11-05 №7).
+  DateTime? get closedAt => completedAt ?? selectionClosedAt ?? cancelledAt;
 
   /// Отзыв заказчика об исполнителе. Ключи review/can_review бекенд отдаёт
   /// только в карточке заказа, /orders/mine и ответах завершения — в
@@ -291,12 +295,12 @@ class Order {
         : OrderStatus.sourcing;
   }
 
-  /// Подбор закрыт покупкой, а осмотр другого кандидата ещё идёт —
+  /// Подбор закрыт (покупкой или без неё), а осмотр кандидата ещё идёт —
   /// исполнитель его дозавершает (сервер это пускает). Такой заказ у
   /// исполнителя остаётся в «Активных».
   bool get hasUnfinishedInspection =>
       !isInspection &&
-      status == OrderStatus.completed &&
+      (status == OrderStatus.completed || status == OrderStatus.closed) &&
       cars.any((c) => c.inspectionStatus == 'in_progress');
 
   /// Подпись статуса: у подбора между осмотрами — «идёт подбор · осмотрено 3».
@@ -417,6 +421,7 @@ class Order {
         responsesCount ?? (responses != null ? null : _responsesCount),
     cars: cars ?? this.cars,
     completedAt: completedAt ?? this.completedAt,
+    selectionClosedAt: selectionClosedAt,
     cancelledAt: cancelledAt ?? this.cancelledAt,
     review: review ?? this.review,
     canReview: canReview ?? this.canReview,
@@ -490,6 +495,9 @@ class Order {
         .toList(),
     completedAt: json['completed_at'] != null
         ? DateTime.parse(json['completed_at'] as String).toLocal()
+        : null,
+    selectionClosedAt: json['closed_at'] != null
+        ? DateTime.parse(json['closed_at'] as String).toLocal()
         : null,
     cancelledAt: json['cancelled_at'] != null
         ? DateTime.parse(json['cancelled_at'] as String).toLocal()

@@ -5,6 +5,7 @@ import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
+import '../models/order_page.dart';
 import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/review.dart';
@@ -16,7 +17,11 @@ import '../models/time_slot.dart';
 /// две реализации: [MockOrderRepository] для UI без бекенда,
 /// [ApiOrderRepository] поверх Laravel API (routes/api.php, группа orders).
 abstract class OrderRepository {
+  /// Активные «Мои заказы» — целиком (по ним идёт опрос).
   Future<List<Order>> fetchMyOrders();
+
+  /// Завершённые «Мои заказы» — страницами, от последнего закрытого.
+  Future<OrderPage> fetchMyFinishedOrders({int page = 1});
 
   /// Лента «Заказы рядом»: фильтр, сортировка и страницы — на сервере.
   Future<AvailablePage> fetchAvailableOrders({
@@ -31,8 +36,12 @@ abstract class OrderRepository {
     bool fewResponses = false,
   });
 
-  /// Заказы, где пользователь — назначенный исполнитель.
+  /// Активные заказы, где пользователь — назначенный исполнитель (и
+  /// закрытые подборы, где он ещё дозавершает осмотр).
   Future<List<Order>> fetchAssignedOrders();
+
+  /// Завершённые «Взятые заказы» — страницами.
+  Future<OrderPage> fetchAssignedFinishedOrders({int page = 1});
   Future<Order> fetchOrder(int id);
 
   Future<Order> createOrder({

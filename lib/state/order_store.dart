@@ -1,3 +1,4 @@
+import 'paged_orders.dart';
 import 'package:flutter/foundation.dart';
 
 import '../data/address_repository.dart';
@@ -46,6 +47,17 @@ class OrderStore extends ChangeNotifier {
   OrderRepository get repository => _repository;
 
   List<Order> _myOrders = const [];
+
+  /// «Мои заказы» → «Завершённые»: страницами, грузятся при открытии вкладки.
+  late final PagedOrders myFinished = PagedOrders(
+    (page) => _repository.fetchMyFinishedOrders(page: page),
+  )..addListener(notifyListeners);
+
+  /// «Взятые заказы» → «Завершённые».
+  late final PagedOrders assignedFinished = PagedOrders(
+    (page) => _repository.fetchAssignedFinishedOrders(page: page),
+  )..addListener(notifyListeners);
+
   List<Order> _availableOrders = const [];
   List<Order> _assignedOrders = const [];
   bool _loadingMine = false;
@@ -520,5 +532,7 @@ class OrderStore extends ChangeNotifier {
       _assignedOrders = [..._assignedOrders]..[assigned] = order;
     }
     if (mine != -1 || assigned != -1) notifyListeners();
+    myFinished.replace(order);
+    assignedFinished.replace(order);
   }
 }

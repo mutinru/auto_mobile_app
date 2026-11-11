@@ -20,6 +20,9 @@ import 'order_kind.dart';
 /// awaitingPlacement — только у осмотра и только при комиссии за
 /// размещение: заказ создан, но не опубликован, пока заказчик не оплатит.
 ///
+/// closed — только у подбора: закрыт без покупки (сервер закрывает
+/// брошенный подбор сам или при удалении аккаунта заказчика).
+///
 /// [unknown] — статус, о котором эта сборка не знает (сервер новее):
 /// показываем «обновите приложение», а не притворяемся знакомым статусом.
 enum OrderStatus {
@@ -33,6 +36,7 @@ enum OrderStatus {
   paymentSent,
   disputed,
   completed,
+  closed,
   cancelled,
   unknown,
 }
@@ -55,13 +59,16 @@ extension OrderStatusX on OrderStatus {
     OrderStatus.paymentSent => 'ждём подтверждения',
     OrderStatus.disputed => 'спор',
     OrderStatus.completed => kind.isInspection ? 'отчёт получен' : 'выполнен',
+    OrderStatus.closed => 'закрыт без покупки',
     OrderStatus.cancelled => 'отменён',
     OrderStatus.unknown => 'обновите приложение',
   };
 
-  /// Завершён или отменён — во вкладку «Завершённые».
+  /// Завершён, закрыт без покупки или отменён — во вкладку «Завершённые».
   bool get isFinished =>
-      this == OrderStatus.completed || this == OrderStatus.cancelled;
+      this == OrderStatus.completed ||
+      this == OrderStatus.closed ||
+      this == OrderStatus.cancelled;
 
   /// Отчёт готов, но заказчик его ещё не получил: идёт оплата или спор.
   bool get isAwaitingPayment =>
@@ -80,6 +87,7 @@ extension OrderStatusX on OrderStatus {
     OrderStatus.paymentSent => c.statusProgress,
     OrderStatus.disputed => c.statusDefect,
     OrderStatus.completed => c.statusDone,
+    OrderStatus.closed => c.text3,
     OrderStatus.cancelled => c.text3,
     OrderStatus.unknown => c.text3,
   };
@@ -90,6 +98,7 @@ extension OrderStatusX on OrderStatus {
     // .pill.planned в макете — тот же нейтральный фон, что и у
     // «ждёт исполнителя», но текст ярче
     OrderStatus.awaitingExecutor ||
+    OrderStatus.closed ||
     OrderStatus.cancelled ||
     OrderStatus.unknown => null,
     _ => color(c),
@@ -107,6 +116,7 @@ OrderStatus orderStatusFromApi(String value) => switch (value) {
   'payment_sent' => OrderStatus.paymentSent,
   'disputed' => OrderStatus.disputed,
   'completed' => OrderStatus.completed,
+  'closed' => OrderStatus.closed,
   'cancelled' => OrderStatus.cancelled,
   _ => OrderStatus.unknown,
 };

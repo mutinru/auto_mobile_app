@@ -6,6 +6,7 @@ import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
+import 'package:auto_podbor_mobile/models/order_page.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
@@ -18,8 +19,17 @@ class _Repo extends MockOrderRepository {
 
   final List<Order> orders;
 
+  /// Как сервер: активные отдельно, завершённые — своей страницей (здесь в
+  /// порядке фикстуры: сортирует экран).
   @override
-  Future<List<Order>> fetchMyOrders() async => orders;
+  Future<List<Order>> fetchMyOrders() async =>
+      orders.where((o) => !o.status.isFinished).toList();
+
+  @override
+  Future<OrderPage> fetchMyFinishedOrders({int page = 1}) async => OrderPage(
+    items: orders.where((o) => o.status.isFinished).toList(),
+    hasMore: false,
+  );
 }
 
 /// «Завершённые» — от последнего закрытого (QA 2026-11-05 №7).
