@@ -12,6 +12,10 @@ enum NotificationType {
   paymentDue,
   // заказ ждал решения и отменён сервером, комиссия за размещение вернулась
   orderAutoCancelled,
+  // подбор: исполнитель отметил покупку — «Вы купили машину?»
+  purchaseReported,
+  // подбор не закрыт через 7 и 14 дней после вердикта
+  purchaseReminder,
   // исполнителю
   executorAssigned,
   responseRejected,
@@ -23,6 +27,10 @@ enum NotificationType {
   orderCancelled,
   reviewReceived,
   paymentConfirmDue,
+  // заказчик ответил «нет» на сообщение о покупке
+  purchaseReportDeclined,
+  // заказчик выбрал другую купленную машину
+  purchaseChanged,
   // обеим сторонам
   disputeOpened,
   disputeResolved,
@@ -53,6 +61,10 @@ const _apiValues = {
   'order_auto_cancelled': NotificationType.orderAutoCancelled,
   'payment_confirm_due': NotificationType.paymentConfirmDue,
   'dispute_available': NotificationType.disputeAvailable,
+  'purchase_reported': NotificationType.purchaseReported,
+  'purchase_reminder': NotificationType.purchaseReminder,
+  'purchase_report_declined': NotificationType.purchaseReportDeclined,
+  'purchase_changed': NotificationType.purchaseChanged,
 };
 
 NotificationType notificationTypeFromApi(String? value) =>
@@ -72,7 +84,9 @@ extension NotificationTypeX on NotificationType {
     NotificationType.orderCompleted ||
     NotificationType.orderCancelled ||
     NotificationType.reviewReceived ||
-    NotificationType.paymentConfirmDue => false,
+    NotificationType.paymentConfirmDue ||
+    NotificationType.purchaseReportDeclined ||
+    NotificationType.purchaseChanged => false,
     _ => true,
   };
 

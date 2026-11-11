@@ -69,6 +69,9 @@ class Order {
     this.reportSummary,
     this.placementFee,
     this.pendingPayment,
+    this.purchaseReport,
+    this.canReportPurchase = false,
+    this.purchaseEditableUntil,
   });
 
   final int id;
@@ -252,6 +255,19 @@ class Order {
   /// оплата не прошла, «Оплатить» начнёт новую (payPlacement).
   final Payment? pendingPayment;
 
+  /// Подбор: исполнитель сообщил, что заказчик купил машину, и ждёт ответа
+  /// заказчика. Видят обе стороны; null — сообщения нет.
+  final PurchaseReport? purchaseReport;
+
+  /// Сервер разрешает исполнителю сообщить о покупке прямо сейчас
+  /// (Order::canReportPurchase: идущий подбор, есть кандидат с вердиктом,
+  /// ответа не ждём, после «нет» прошли сутки). Локально не вычисляем.
+  final bool canReportPurchase;
+
+  /// До какого момента заказчик может выбрать другую купленную машину;
+  /// null — уже нельзя (окно с сервера, сутки после закрытия).
+  final DateTime? purchaseEditableUntil;
+
   bool get isInspection => kind.isInspection;
 
   /// У подбора «Kia Sportage 2021+» (год — нижняя граница),
@@ -358,6 +374,11 @@ class Order {
     Payment? pendingPayment,
     // оплата размещения завершилась — начатой больше нет
     bool clearPendingPayment = false,
+    PurchaseReport? purchaseReport,
+    // заказчик ответил на сообщение о покупке или закрыл подбор
+    bool clearPurchaseReport = false,
+    bool? canReportPurchase,
+    DateTime? purchaseEditableUntil,
   }) => Order(
     id: id,
     kind: kind,
@@ -417,6 +438,11 @@ class Order {
     pendingPayment: clearPendingPayment
         ? null
         : (pendingPayment ?? this.pendingPayment),
+    purchaseReport: clearPurchaseReport
+        ? null
+        : (purchaseReport ?? this.purchaseReport),
+    canReportPurchase: canReportPurchase ?? this.canReportPurchase,
+    purchaseEditableUntil: purchaseEditableUntil ?? this.purchaseEditableUntil,
   );
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
@@ -496,8 +522,32 @@ class Order {
     pendingPayment: json['pending_payment'] is Map<String, dynamic>
         ? Payment.fromJson(json['pending_payment'] as Map<String, dynamic>)
         : null,
+    purchaseReport: json['purchase_report'] is Map<String, dynamic>
+        ? PurchaseReport.fromJson(
+            json['purchase_report'] as Map<String, dynamic>,
+          )
+        : null,
+    canReportPurchase: json['can_report_purchase'] as bool? ?? false,
+    purchaseEditableUntil: _date(json['purchase_editable_until']),
   );
 
   static DateTime? _date(Object? value) =>
       value is String ? DateTime.parse(value).toLocal() : null;
+}
+
+/// Сообщение исполнителя подбора «заказчик купил эту машину», ждущее ответа
+/// заказчика: «Да» — обычное завершение подбора с этой машиной, «Нет» —
+/// `POST /orders/{id}/purchase-report/decline`.
+class PurchaseReport {
+  const PurchaseReport({required this.carId, this.reportedAt});
+
+  final int carId;
+  final DateTime? reportedAt;
+
+  factory PurchaseReport.fromJson(Map<String, dynamic> json) => PurchaseReport(
+    carId: json['car_id'] as int,
+    reportedAt: json['reported_at'] is String
+        ? DateTime.parse(json['reported_at'] as String).toLocal()
+        : null,
+  );
 }

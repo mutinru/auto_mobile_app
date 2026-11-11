@@ -534,30 +534,63 @@ class MockOrderRepository implements OrderRepository {
   @override
   Future<Order> completeSelection(int orderId, {required int carId}) async {
     final order = await fetchOrder(orderId);
+    final now = DateTime.now();
     final updated = order.copyWith(
       status: OrderStatus.completed,
-      completedAt: DateTime.now(),
+      completedAt: now,
       canReview: order.executor != null,
-      // как Order::complete(): исход только у кандидатов с осмотром
-      cars: [
-        for (final c in order.cars)
-          c.inspectionId == null
-              ? c
-              : OrderCar(
-                  id: c.id,
-                  brand: c.brand,
-                  model: c.model,
-                  year: c.year,
-                  vinMasked: c.vinMasked,
-                  mileageKm: c.mileageKm,
-                  inspectionId: c.inspectionId,
-                  inspectionStatus: c.inspectionStatus,
-                  inspectionOutcome: c.id == carId
-                      ? InspectionOutcome.purchased
-                      : InspectionOutcome.rejected,
-                ),
-      ],
+      cars: _withPurchase(order.cars, carId),
+      clearPurchaseReport: true,
+      canReportPurchase: false,
+      purchaseEditableUntil: now.add(const Duration(hours: 24)),
     );
+    _replace(updated);
+    return updated;
+  }
+
+  /// Как Order::applyPurchase(): исход только у кандидатов с осмотром.
+  List<OrderCar> _withPurchase(List<OrderCar> cars, int carId) => [
+    for (final c in cars)
+      c.inspectionId == null
+          ? c
+          : c.withOutcome(
+              c.id == carId
+                  ? InspectionOutcome.purchased
+                  : InspectionOutcome.rejected,
+            ),
+  ];
+
+  /// Последний вызов [reportPurchase] — для тестов.
+  int? lastReportedCarId;
+
+  @override
+  Future<Order> reportPurchase(int orderId, {required int carId}) async {
+    lastReportedCarId = carId;
+    final order = await fetchOrder(orderId);
+    final updated = order.copyWith(
+      purchaseReport: PurchaseReport(carId: carId, reportedAt: DateTime.now()),
+      canReportPurchase: false,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Order> declinePurchaseReport(int orderId) async {
+    final order = await fetchOrder(orderId);
+    // после «нет» сервер сутки не даёт сообщить снова
+    final updated = order.copyWith(
+      clearPurchaseReport: true,
+      canReportPurchase: false,
+    );
+    _replace(updated);
+    return updated;
+  }
+
+  @override
+  Future<Order> changePurchase(int orderId, {required int carId}) async {
+    final order = await fetchOrder(orderId);
+    final updated = order.copyWith(cars: _withPurchase(order.cars, carId));
     _replace(updated);
     return updated;
   }

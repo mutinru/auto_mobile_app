@@ -114,6 +114,18 @@ abstract class OrderRepository {
   /// кандидаты становятся отклонёнными, заказ — завершённым.
   Future<Order> completeSelection(int orderId, {required int carId});
 
+  /// Исполнитель подбора сообщает, что заказчик купил кандидата [carId].
+  /// Заказ не закрывается — ждёт ответа заказчика (Order.purchaseReport).
+  Future<Order> reportPurchase(int orderId, {required int carId});
+
+  /// Заказчик отвечает «нет» на сообщение о покупке. «Да» — это
+  /// [completeSelection] с машиной из сообщения.
+  Future<Order> declinePurchaseReport(int orderId);
+
+  /// Заказчик выбирает другую купленную машину — пока сервер пускает
+  /// (Order.purchaseEditableUntil, сутки после закрытия).
+  Future<Order> changePurchase(int orderId, {required int carId});
+
   /// Заказчик отменяет заказ, пока сервер разрешает (Order.canCancel).
   Future<Order> cancelOrder(int orderId);
 

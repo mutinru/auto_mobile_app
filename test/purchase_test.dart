@@ -103,6 +103,13 @@ void main() {
 
     expect(find.text('Какую машину купили?'), findsNothing);
     expect(find.text('Зафиксировать покупку'), findsNothing);
+    // сутки после закрытия выбор можно поменять — кнопка над отзывом
+    expect(find.text('Изменить покупку'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Оставить отзыв'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Оставить отзыв'), findsOneWidget);
     // купленная — по-русски, а не сырое purchased; у некупленной исход
     // «не подошла» не выводится — остаётся статус осмотра

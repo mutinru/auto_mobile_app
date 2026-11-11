@@ -401,6 +401,17 @@ class OrderStore extends ChangeNotifier {
   Future<Order> completeSelection(int orderId, {required int carId}) =>
       _mutate(_repository.completeSelection(orderId, carId: carId));
 
+  /// Сообщение исполнителя о покупке — заказ с purchaseReport из ответа.
+  Future<Order> reportPurchase(int orderId, {required int carId}) =>
+      _mutate(_repository.reportPurchase(orderId, carId: carId));
+
+  Future<Order> declinePurchaseReport(int orderId) =>
+      _mutate(_repository.declinePurchaseReport(orderId));
+
+  /// Исходы кандидатов — из ответа сервера, счётчики не меняются.
+  Future<Order> changePurchase(int orderId, {required int carId}) =>
+      _mutate(_repository.changePurchase(orderId, carId: carId));
+
   /// Отменённый заказ уезжает в архив списка — статус из ответа сервера.
   /// Новая оплата размещения (прошлая не прошла); заказ — с pendingPayment.
   Future<Order> payPlacement(int orderId) =>

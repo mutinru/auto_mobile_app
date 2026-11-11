@@ -142,7 +142,17 @@ class OrderCar {
   }
 
   /// Та же машина с другим телефоном продавца — ответ правки номера.
-  OrderCar withSellerPhone(String? phone) => OrderCar(
+  OrderCar withSellerPhone(String? phone) =>
+      _copy(sellerPhone: phone, inspectionOutcome: inspectionOutcome);
+
+  /// Та же машина с другим исходом покупки (мок завершения подбора).
+  OrderCar withOutcome(InspectionOutcome? outcome) =>
+      _copy(sellerPhone: sellerPhone, inspectionOutcome: outcome);
+
+  OrderCar _copy({
+    required String? sellerPhone,
+    required InspectionOutcome? inspectionOutcome,
+  }) => OrderCar(
     id: id,
     brand: brand,
     model: model,
@@ -162,7 +172,7 @@ class OrderCar {
     inspectionOutcome: inspectionOutcome,
     verdict: verdict,
     verdictComment: verdictComment,
-    sellerPhone: phone,
+    sellerPhone: sellerPhone,
     fromLibrary: fromLibrary,
     inspectionCompletedAt: inspectionCompletedAt,
   );

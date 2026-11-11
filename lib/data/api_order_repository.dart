@@ -232,6 +232,22 @@ class ApiOrderRepository implements OrderRepository {
       _orderAction('/orders/$orderId/complete', {'car_id': carId});
 
   @override
+  Future<Order> reportPurchase(int orderId, {required int carId}) =>
+      _orderAction('/orders/$orderId/purchase-report', {'car_id': carId});
+
+  @override
+  Future<Order> declinePurchaseReport(int orderId) =>
+      _orderAction('/orders/$orderId/purchase-report/decline');
+
+  @override
+  Future<Order> changePurchase(int orderId, {required int carId}) async {
+    final json = await _client.patch('/orders/$orderId/purchase', {
+      'car_id': carId,
+    });
+    return Order.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
   Future<Order> cancelOrder(int orderId) =>
       _orderAction('/orders/$orderId/cancel');
 

@@ -25,6 +25,7 @@ import '../widgets/executor_box.dart';
 import '../widgets/library_sheet.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/order_status_card.dart';
+import '../widgets/payment_parts.dart';
 import '../widgets/phone_contact.dart';
 import '../widgets/phone_input.dart';
 import '../widgets/seller_phone_sheet.dart';
@@ -76,6 +77,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool _cancelling = false;
   bool _attaching = false;
 
+  /// Сообщение о покупке, ответ «нет» или смена купленной машины.
+  bool _purchaseBusy = false;
+
   /// Свои готовые осмотры подборщика для этого подбора; null — не положено
   /// или не загрузилось (кнопки тогда нет: это не главное на экране).
   InspectionLibraryPage? _library;
@@ -106,7 +110,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   @override
   bool get refreshPaused =>
-      _loading || _accepting || _completing || _cancelling || _attaching;
+      _loading ||
+      _accepting ||
+      _completing ||
+      _cancelling ||
+      _attaching ||
+      _purchaseBusy;
 
   /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
@@ -317,9 +326,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   /// Покупка закрывает подбор; заказ — из ответа сервера, и в нём сразу
-  /// can_review, так что блок отзыва появится без перезагрузки.
-  Future<void> _completePurchase(Order order) async {
-    final carId = await showPurchaseSheet(context, order: order);
+  /// can_review, так что блок отзыва появится без перезагрузки. С [reported]
+  /// — «Да» на сообщение исполнителя: машина уже выбрана, листа нет.
+  Future<void> _completePurchase(Order order, {int? reported}) async {
+    final carId = reported ?? await showPurchaseSheet(context, order: order);
     if (carId == null || !mounted) return;
     setState(() => _completing = true);
     try {
@@ -334,6 +344,112 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       if (mounted) setState(() => _completing = false);
     }
   }
+
+  /// Исполнитель: «заказчик купил эту машину». Заказ не закрывается —
+  /// ждём ответа заказчика (purchaseReport в ответе сервера).
+  Future<void> _reportPurchase(Order order) async {
+    final carId = await showReportPurchaseSheet(context, order: order);
+    if (carId == null || !mounted) return;
+    await _purchaseAction(
+      () => widget.store.reportPurchase(order.id, carId: carId),
+      done: 'Заказчик получит уведомление',
+    );
+  }
+
+  /// Заказчик: «нет, не покупал» на сообщение исполнителя.
+  Future<void> _declinePurchaseReport(Order order, OrderCar? car) async {
+    final ok = await showConfirmSheet(
+      context,
+      title: 'Не покупали ${car?.title ?? 'эту машину'}?',
+      text:
+          'Подборщик узнает, что покупка не подтверждена. Если купите '
+          'машину позже — отметьте её кнопкой «Зафиксировать покупку».',
+      confirmLabel: 'Нет, не покупал',
+    );
+    if (!ok || !mounted) return;
+    await _purchaseAction(() => widget.store.declinePurchaseReport(order.id));
+  }
+
+  /// Заказчик ошибся с купленной машиной — пока сервер пускает.
+  Future<void> _changePurchase(Order order) async {
+    final carId = await showChangePurchaseSheet(context, order: order);
+    if (carId == null || !mounted) return;
+    await _purchaseAction(
+      () => widget.store.changePurchase(order.id, carId: carId),
+      done: 'Покупка изменена',
+    );
+  }
+
+  Future<void> _purchaseAction(
+    Future<Order> Function() action, {
+    String? done,
+  }) async {
+    setState(() => _purchaseBusy = true);
+    try {
+      final updated = await action();
+      if (!mounted) return;
+      setState(() => _order = updated);
+      if (done != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(done)));
+      }
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _purchaseBusy = false);
+    }
+  }
+
+  /// Сообщение исполнителя о покупке, пока подбор идёт: заказчику — вопрос
+  /// с «Да»/«Нет», исполнителю — «ждём подтверждения».
+  List<Widget> _purchaseReport(Order order) {
+    final report = order.purchaseReport;
+    if (report == null ||
+        order.isInspection ||
+        (order.status != OrderStatus.sourcing &&
+            order.status != OrderStatus.inspecting)) {
+      return const [];
+    }
+    final car = order.cars.where((c) => c.id == report.carId).firstOrNull;
+    final title = car?.title ?? 'машины';
+    if (!widget.viewerIsCustomer) {
+      return [
+        const SizedBox(height: 22),
+        StatusNote(text: 'Ждём подтверждения заказчика: $title.'),
+      ];
+    }
+    final executor = order.executor?.name ?? 'Подборщик';
+    return [
+      const SizedBox(height: 22),
+      StatusNote(
+        icon: Icons.key_outlined,
+        text:
+            '$executor отметил покупку $title. Подтвердите — и сможете '
+            'оценить подборщика.',
+      ),
+      const SizedBox(height: 10),
+      CtaPrimary(
+        label: 'Да, купил',
+        icon: Icons.check,
+        loading: _completing,
+        onPressed: _purchaseBusy
+            ? null
+            : () => _completePurchase(order, reported: report.carId),
+      ),
+      CtaGhost(
+        label: 'Нет, не покупал',
+        onPressed: _purchaseBusy || _completing
+            ? null
+            : () => _declinePurchaseReport(order, car),
+      ),
+    ];
+  }
+
+  /// Есть из чего выбрать другую купленную: кандидатов с осмотром больше
+  /// одного (без осмотра покупку не отметить — сервер ответит 422).
+  bool _hasPurchaseChoice(Order order) =>
+      order.cars.where((c) => c.inspectionId != null).length > 1;
 
   /// Те же условия, что у OrderController::complete на бекенде: заказчик,
   /// подбор в работе и хотя бы один кандидат, чтобы было что выбрать.
@@ -540,6 +656,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             const SectionHead('Заказчик'),
             _CustomerBox(order: order, phone: order.counterpartPhone!),
           ],
+          // сообщение о покупке — главное действие, пока ждёт ответа
+          ..._purchaseReport(order),
           // кандидаты — то, ради чего заказчик открывает подбор: сразу под
           // исполнителем, до отзыва и откликов
           if (order.cars.isNotEmpty) ...[
@@ -559,13 +677,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     : () => _editSellerPhone(order, car),
               ),
           ],
-          if (_canCompletePurchase(order)) ...[
+          // при ждущем сообщении исполнителя главная кнопка — «Да, купил»
+          // выше; другую машину заказчик всё равно может отметить сам
+          if (_canCompletePurchase(order))
+            if (order.purchaseReport == null) ...[
+              const SizedBox(height: 14),
+              CtaPrimary(
+                label: 'Зафиксировать покупку',
+                icon: Icons.check,
+                loading: _completing,
+                onPressed: () => _completePurchase(order),
+              ),
+            ] else if (_hasPurchaseChoice(order))
+              CtaGhost(
+                label: 'Купил другую машину',
+                onPressed: _completing || _purchaseBusy
+                    ? null
+                    : () => _completePurchase(order),
+              ),
+          // перевыбор покупки — сутки после закрытия, окно с сервера
+          if (widget.viewerIsCustomer &&
+              order.status == OrderStatus.completed &&
+              order.purchaseEditableUntil != null &&
+              _hasPurchaseChoice(order)) ...[
             const SizedBox(height: 14),
-            CtaPrimary(
-              label: 'Зафиксировать покупку',
-              icon: Icons.check,
-              loading: _completing,
-              onPressed: () => _completePurchase(order),
+            CtaGhost(
+              label: 'Изменить покупку',
+              onPressed: _purchaseBusy ? null : () => _changePurchase(order),
             ),
           ],
           // Заводить кандидата и стартовать осмотр может только назначенный
@@ -585,6 +723,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 onPressed: _attaching ? null : () => _attachFromLibrary(order),
               ),
           ],
+          // заказчик купил, но не отметил — сообщает подборщик (правило с сервера)
+          if (!widget.viewerIsCustomer && order.canReportPurchase)
+            CtaGhost(
+              label: 'Заказчик купил машину',
+              onPressed: _purchaseBusy ? null : () => _reportPurchase(order),
+            ),
           OrderReviewSection(
             order: order,
             viewerIsCustomer: widget.viewerIsCustomer,
