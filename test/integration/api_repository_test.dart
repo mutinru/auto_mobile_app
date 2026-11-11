@@ -131,10 +131,17 @@ void main() {
       final defect = catalog.firstWhere(
         (d) => !panel.defects.contains(d.label),
       );
-      final withDefect = await repo.toggleDefect(panel.id, defect.id);
+      final withDefect = await repo.setDefect(panel.id, defect.id, on: true);
       expect(withDefect.defects, contains(defect.label));
+      // повтор (ответ потерялся) — дефект остаётся, а не снимается
+      final again = await repo.setDefect(panel.id, defect.id, on: true);
+      expect(again.defects.where((d) => d == defect.label), hasLength(1));
 
-      final withoutDefect = await repo.toggleDefect(panel.id, defect.id);
+      final withoutDefect = await repo.setDefect(
+        panel.id,
+        defect.id,
+        on: false,
+      );
       expect(withoutDefect.defects, isNot(contains(defect.label)));
     } finally {
       await repo.updateCondition(panel.id, original);

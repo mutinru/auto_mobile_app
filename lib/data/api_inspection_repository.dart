@@ -64,10 +64,14 @@ class ApiInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> toggleDefect(String panelId, int defectId) async {
-    final json = await _client.post(
-      '/inspections/$inspectionId/panels/$panelId/defects/$defectId',
-    );
+  Future<InspectionPanel> setDefect(
+    String panelId,
+    int defectId, {
+    required bool on,
+  }) async {
+    // PUT ставит, DELETE снимает — повтор того же запроса ничего не меняет
+    final path = '/inspections/$inspectionId/panels/$panelId/defects/$defectId';
+    final json = on ? await _client.put(path) : await _client.delete(path);
     return InspectionPanel.fromJson(json['data'] as Map<String, dynamic>);
   }
 

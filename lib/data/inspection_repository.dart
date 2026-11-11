@@ -9,7 +9,7 @@ typedef InspectionSnapshot = ({Car car, List<InspectionPanel> panels});
 /// [MockInspectionRepository] — для UI-разработки без бекенда,
 /// [ApiInspectionRepository] — Laravel API поверх http.
 ///
-/// Мутации (updateCondition/toggleDefect) возвращают обновлённую
+/// Мутации (updateCondition/setDefect) возвращают обновлённую
 /// [InspectionPanel] целиком — InspectionStore просто подменяет её в
 /// списке, не дублируя на клиенте логику вычисления статуса.
 abstract class InspectionRepository {
@@ -19,7 +19,15 @@ abstract class InspectionRepository {
     String panelId,
     PanelCondition condition,
   );
-  Future<InspectionPanel> toggleDefect(String panelId, int defectId);
+
+  /// Поставить ([on]) или снять дефект — явным состоянием, а не
+  /// переключателем: повтор после обрыва связи не снимет только что
+  /// поставленный дефект.
+  Future<InspectionPanel> setDefect(
+    String panelId,
+    int defectId, {
+    required bool on,
+  });
 
   /// Загрузить снимок детали (multipart). Возвращает обновлённую деталь.
   Future<InspectionPanel> uploadPhoto(String panelId, String filePath);

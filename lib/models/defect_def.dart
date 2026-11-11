@@ -1,5 +1,5 @@
 /// Запись каталога дефектов (GET /api/defects на бекенде).
-/// id нужен только для вызова toggleDefect на реальном API — в UI
+/// id нужен только для вызова setDefect на реальном API — в UI
 /// (chips на экране детали) используется label, он уникален в каталоге.
 class DefectDef {
   const DefectDef({

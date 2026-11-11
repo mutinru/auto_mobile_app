@@ -59,7 +59,7 @@ const _mockDefects = [
 /// (точки боковых кнопок: двигатель и окна готовы, пороги в работе).
 ///
 /// Хранит панели в памяти (не пересоздаёт на каждый fetch), чтобы
-/// поведение мутаций (updateCondition/toggleDefect) было таким же,
+/// поведение мутаций (updateCondition/setDefect) было таким же,
 /// как у ApiInspectionRepository — стору без разницы, с каким источником
 /// он работает.
 class MockInspectionRepository implements InspectionRepository {
@@ -133,10 +133,14 @@ class MockInspectionRepository implements InspectionRepository {
   }
 
   @override
-  Future<InspectionPanel> toggleDefect(String panelId, int defectId) async {
+  Future<InspectionPanel> setDefect(
+    String panelId,
+    int defectId, {
+    required bool on,
+  }) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     final label = _mockDefects.firstWhere((d) => d.id == defectId).label;
-    panel.toggleDefect(label);
+    panel.setDefect(label, on: on);
     return _withMissing(panel);
   }
 

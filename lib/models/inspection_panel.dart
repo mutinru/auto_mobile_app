@@ -103,8 +103,12 @@ class InspectionPanel {
     status = condition.impliedStatus;
   }
 
-  void toggleDefect(String defect) {
-    if (!defects.remove(defect)) {
+  /// Поставить или снять дефект (мок-репозиторий, как PUT/DELETE сервера):
+  /// повтор ничего не меняет.
+  void setDefect(String defect, {required bool on}) {
+    if (!on) {
+      defects.remove(defect);
+    } else if (!defects.contains(defect)) {
       defects.add(defect);
     }
   }

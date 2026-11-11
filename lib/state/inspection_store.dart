@@ -155,9 +155,13 @@ class InspectionStore extends ChangeNotifier {
     _replacePanel(updated);
   }
 
+  /// Нажатие по дефекту на экране. Желаемое состояние — от того, что видел
+  /// пользователь, на сервер уходит явное «поставить/снять» (setDefect):
+  /// повтор запроса не перевернёт дефект обратно.
   Future<void> toggleDefect(String panelId, String defectLabel) async {
     final defect = _defectCatalog.firstWhere((d) => d.label == defectLabel);
-    final updated = await _repository.toggleDefect(panelId, defect.id);
+    final on = !panelById(panelId).defects.contains(defectLabel);
+    final updated = await _repository.setDefect(panelId, defect.id, on: on);
     _replacePanel(updated);
   }
 

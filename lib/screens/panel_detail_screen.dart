@@ -157,11 +157,19 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
   /// Мутации детали: ждём ответ сервера и показываем отказ (403 после
   /// «Я оплатил» заказчика, 422) — раньше Future терялся, плитка молча не
   /// подсвечивалась.
+  /// Идёт запрос оценки, дефекта или заметки: второе нажатие не уходит,
+  /// пока не пришёл ответ на первое (двойной тап по дефекту, ревью №38).
+  bool _busy = false;
+
   Future<void> _mutate(Future<void> Function() action) async {
+    if (_busy) return;
+    _busy = true;
     try {
       await action();
     } catch (e) {
       if (mounted) showApiError(context, e);
+    } finally {
+      _busy = false;
     }
   }
 
