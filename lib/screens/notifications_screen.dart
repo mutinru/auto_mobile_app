@@ -350,6 +350,8 @@ class _NotificationCard extends StatelessWidget {
     NotificationType.purchaseReminder => Icons.key_outlined,
     NotificationType.purchaseReportDeclined => Icons.key_off_outlined,
     NotificationType.purchaseChanged => Icons.swap_horiz,
+    NotificationType.selectionCloseSoon => Icons.hourglass_bottom,
+    NotificationType.selectionClosed => Icons.archive_outlined,
     NotificationType.unknown => Icons.notifications_none,
   };
 
@@ -368,14 +370,17 @@ class _NotificationCard extends StatelessWidget {
     NotificationType.paymentConfirmDue ||
     NotificationType.purchaseReported ||
     NotificationType.purchaseReminder ||
-    NotificationType.purchaseChanged => c.statusProgress,
+    NotificationType.purchaseChanged ||
+    NotificationType.selectionCloseSoon => c.statusProgress,
     NotificationType.orderCancelled ||
     NotificationType.orderAutoCancelled ||
     NotificationType.deadlineMissed ||
     NotificationType.disputeOpened ||
     NotificationType.disputeAvailable ||
     NotificationType.purchaseReportDeclined => c.statusDefect,
-    NotificationType.responseRejected || NotificationType.unknown => c.text3,
+    NotificationType.responseRejected ||
+    NotificationType.selectionClosed ||
+    NotificationType.unknown => c.text3,
     _ => c.statusInfo,
   };
 }

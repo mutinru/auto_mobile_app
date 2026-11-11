@@ -392,10 +392,12 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
               loading: _busy,
               onPressed: () => _start(order),
             ),
-            CtaGhost(
-              label: 'Отказаться от заказа',
-              onPressed: _busy ? null : () => _decline(order),
-            ),
+            // отказ — по правилу с сервера (can_release)
+            if (order.canRelease)
+              CtaGhost(
+                label: 'Отказаться от заказа',
+                onPressed: _busy ? null : () => _decline(order),
+              ),
           ],
         ),
       ],
@@ -408,10 +410,11 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
                   ? () => _openInspection(inspectionId)
                   : null,
             ),
-            CtaGhost(
-              label: 'Отказаться от заказа',
-              onPressed: _busy ? null : () => _decline(order),
-            ),
+            if (order.canRelease)
+              CtaGhost(
+                label: 'Отказаться от заказа',
+                onPressed: _busy ? null : () => _decline(order),
+              ),
           ],
         ),
       ],

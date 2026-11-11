@@ -11,6 +11,7 @@ import '../models/notification_category.dart';
 import '../models/order_alerts.dart';
 import '../models/payout.dart';
 import 'api_exception.dart';
+import 'device_name.dart';
 import 'http_transport.dart';
 
 /// Хранит Sanctum-токен в защищённом хранилище платформы
@@ -159,7 +160,12 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Ошибка — [ApiException] с сырым телом, как у [requestPhoneCode].
+  /// Имя телефона для «Активных устройств»; в тестах подменяется.
+  @visibleForTesting
+  static Future<String?> Function() deviceNameSource = deviceName;
+
   Future<void> verifyPhoneCode(String phone, String code) async {
+    final device = await deviceNameSource();
     final response = await HttpTransport.request(
       'POST',
       Uri.parse('${ApiConfig.baseUrl}/auth/phone/verify'),
@@ -167,7 +173,11 @@ class AuthService extends ChangeNotifier {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: jsonEncode({'phone': phone, 'code': code}),
+      body: jsonEncode({
+        'phone': phone,
+        'code': code,
+        'device_name': ?device,
+      }),
     );
     if (response.statusCode != 200) {
       throw ApiException(response.statusCode, response.body);

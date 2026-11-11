@@ -364,12 +364,20 @@ class MockOrderRepository implements OrderRepository {
 
   /// Имитация сервера (Order::canBeCancelledBy): свой заказ до выбора
   /// исполнителя, в том числе после срыва. Экраны правило не повторяют —
-  /// только читают флаг.
+  /// только читают флаг. can_release — как Order::canBeReleasedBy (кто
+  /// смотрит, мок не знает: кнопку показывает только экран исполнителя).
   static Order _withCanCancel(Order o) => o.copyWith(
     canCancel:
         o.customer.id == _me.id &&
         (o.status == OrderStatus.awaitingExecutor ||
             o.status == OrderStatus.awaitingDecision),
+    canRelease:
+        o.executor != null &&
+        (o.isInspection
+            ? o.status == OrderStatus.scheduled ||
+                  o.status == OrderStatus.inspecting
+            : o.status == OrderStatus.sourcing ||
+                  o.status == OrderStatus.inspecting),
   );
 
   @override
@@ -1121,6 +1129,13 @@ class MockOrderRepository implements OrderRepository {
     final updated = order.copyWith(
       status: OrderStatus.awaitingExecutor,
       clearExecutor: true,
+      canRelease: false,
+      // подбор, как сервер: готовые отчёты остаются, начатые осмотры — нет
+      cars: order.isInspection
+          ? null
+          : order.cars
+                .where((c) => c.inspectionStatus != 'in_progress')
+                .toList(),
       responses: [
         for (final r in order.responses)
           r.status == OrderResponseStatus.accepted

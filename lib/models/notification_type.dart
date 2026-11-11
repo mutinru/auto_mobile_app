@@ -36,6 +36,10 @@ enum NotificationType {
   disputeResolved,
   // ожидающей стороне — через сутки молчания другой
   disputeAvailable,
+  // подбор без новостей скоро закроется сам
+  selectionCloseSoon,
+  // подбор закрыт без покупки (без новостей или заказчик удалил аккаунт)
+  selectionClosed,
   unknown,
 }
 
@@ -65,6 +69,8 @@ const _apiValues = {
   'purchase_reminder': NotificationType.purchaseReminder,
   'purchase_report_declined': NotificationType.purchaseReportDeclined,
   'purchase_changed': NotificationType.purchaseChanged,
+  'selection_close_soon': NotificationType.selectionCloseSoon,
+  'selection_closed': NotificationType.selectionClosed,
 };
 
 NotificationType notificationTypeFromApi(String? value) =>

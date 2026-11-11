@@ -80,6 +80,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   /// Сообщение о покупке, ответ «нет» или смена купленной машины.
   bool _purchaseBusy = false;
 
+  /// Идёт отказ исполнителя от подбора.
+  bool _releasing = false;
+
   /// Свои готовые осмотры подборщика для этого подбора; null — не положено
   /// или не загрузилось (кнопки тогда нет: это не главное на экране).
   InspectionLibraryPage? _library;
@@ -354,6 +357,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       () => widget.store.reportPurchase(order.id, carId: carId),
       done: 'Заказчик получит уведомление',
     );
+  }
+
+  /// Исполнитель отказывается от подбора (правило — Order.canRelease с
+  /// сервера). Срывом не считается; заказ уходит в ленту — экран закрываем.
+  Future<void> _release(Order order) async {
+    final ok = await showConfirmSheet(
+      context,
+      title: 'Отказаться от подбора?',
+      text:
+          'Заказ вернётся в ленту к другим исполнителям, повторно '
+          'откликнуться не получится. Готовые отчёты останутся у заказчика, '
+          'начатые осмотры удалятся. Срывом это не считается.',
+      confirmLabel: 'Отказаться',
+    );
+    if (!ok || !mounted) return;
+    final navigator = Navigator.of(context);
+    setState(() => _releasing = true);
+    try {
+      await widget.store.declineOrder(order.id);
+      if (mounted) navigator.pop();
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+    } finally {
+      if (mounted) setState(() => _releasing = false);
+    }
   }
 
   /// Заказчик: «нет, не покупал» на сообщение исполнителя.
@@ -728,6 +756,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             CtaGhost(
               label: 'Заказчик купил машину',
               onPressed: _purchaseBusy ? null : () => _reportPurchase(order),
+            ),
+          // выход из подбора — только по правилу с сервера (can_release)
+          if (!widget.viewerIsCustomer && order.canRelease)
+            CtaGhost(
+              label: 'Отказаться от подбора',
+              onPressed: _releasing ? null : () => _release(order),
             ),
           OrderReviewSection(
             order: order,

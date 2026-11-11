@@ -8,8 +8,10 @@ import 'payment.dart';
 import 'payout.dart';
 import 'report_summary.dart';
 import 'review.dart';
+import 'selection_close_reason.dart';
 import 'time_slot.dart';
 import 'user_summary.dart';
+import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
 
 /// Почему разовый осмотр ждёт решения заказчика: исполнитель сорвал день
@@ -73,6 +75,9 @@ class Order {
     this.purchaseReport,
     this.canReportPurchase = false,
     this.purchaseEditableUntil,
+    this.canRelease = false,
+    this.closeReason,
+    this.closesAt,
   });
 
   final int id;
@@ -272,6 +277,17 @@ class Order {
   /// null — уже нельзя (окно с сервера, сутки после закрытия).
   final DateTime? purchaseEditableUntil;
 
+  /// Исполнитель может отказаться от заказа сейчас (Order::canBeReleasedBy:
+  /// разовый — до отчёта, подбор — пока идёт). Локально не вычисляем.
+  final bool canRelease;
+
+  /// Почему подбор закрыт без покупки (статус closed); null — не закрыт.
+  final SelectionCloseReason? closeReason;
+
+  /// Когда подбор без движения закроется сам — сервер отдаёт только после
+  /// предупреждения; null — не закроется или ещё не скоро.
+  final DateTime? closesAt;
+
   bool get isInspection => kind.isInspection;
 
   /// У подбора «Kia Sportage 2021+» (год — нижняя граница),
@@ -324,6 +340,12 @@ class Order {
   String? get statusDetail {
     if (isInspection) return null;
     if (hasUnfinishedInspection) return 'Осмотр кандидата ещё не завершён';
+    if (status == OrderStatus.closed) return closeReason?.label;
+    // предупреждение об автоархиве — дата с сервера, правило не повторяем
+    final closing = closesAt;
+    if (closing != null) {
+      return 'Закроется ${dayMonth(closing)}, если не будет новостей';
+    }
     final done = cars.where((c) => c.inspectionStatus == 'completed').length;
     final inspected = 'Осмотрено ${counted(done, 'машина', 'машины', 'машин')}';
     return switch (shownStatus) {
@@ -383,6 +405,7 @@ class Order {
     bool clearPurchaseReport = false,
     bool? canReportPurchase,
     DateTime? purchaseEditableUntil,
+    bool? canRelease,
   }) => Order(
     id: id,
     kind: kind,
@@ -448,6 +471,9 @@ class Order {
         : (purchaseReport ?? this.purchaseReport),
     canReportPurchase: canReportPurchase ?? this.canReportPurchase,
     purchaseEditableUntil: purchaseEditableUntil ?? this.purchaseEditableUntil,
+    canRelease: canRelease ?? this.canRelease,
+    closeReason: closeReason,
+    closesAt: closesAt,
   );
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
@@ -537,6 +563,9 @@ class Order {
         : null,
     canReportPurchase: json['can_report_purchase'] as bool? ?? false,
     purchaseEditableUntil: _date(json['purchase_editable_until']),
+    canRelease: json['can_release'] as bool? ?? false,
+    closeReason: selectionCloseReasonFromApi(json['close_reason'] as String?),
+    closesAt: _date(json['closes_at']),
   );
 
   static DateTime? _date(Object? value) =>

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/api_client.dart';
+import '../data/session_repository.dart';
 import '../data/auth_service.dart';
 import '../models/current_user.dart';
 import '../models/order_status.dart';
@@ -25,6 +27,7 @@ import 'settings_screen.dart';
 import 'verification_screen.dart';
 import 'vin_report_screen.dart';
 import 'my_orders_screen.dart';
+import 'sessions_screen.dart';
 
 /// Экран 03 из car-marketplace-experiment.html — «профиль · две роли».
 /// Точка входа после логина: аккаунт один, роли не выбираются, доступ к
@@ -523,6 +526,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                       // .row[data-action=logout] из tab-bar-navigation.html
                       const SizedBox(height: 22),
+                      // где вошли и выход на чужом устройстве (GET /me/sessions)
+                      _SettingsRow(
+                        icon: Icons.devices_outlined,
+                        label: 'Активные устройства',
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: context.colors.text3,
+                        ),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => SessionsScreen(
+                              repository: ApiSessionRepository(
+                                ApiClient(widget.auth),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       _SettingsRow(
                         icon: Icons.logout,
                         label: 'Выйти',

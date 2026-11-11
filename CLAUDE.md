@@ -75,7 +75,8 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    `InspectionDay::MAX_DAYS_AHEAD`, `CheckoutMethod` и `PaymentStatus` ↔
    `App\Payments\Checkout` и константы `App\Models\Payment`.
    `OrderStatus.closed` ↔ `App\Enums\OrderStatus::Closed` (подбор закрыт без
-   покупки, время — `closed_at` → `Order.selectionClosedAt`). Незнакомое
+   покупки, время — `closed_at` → `Order.selectionClosedAt`), причина —
+   `SelectionCloseReason` ↔ `App\Enums\SelectionCloseReason`. Незнакомое
    значение статуса — `unknown` («обновите приложение»), а не ближайший
    знакомый статус.
 
@@ -247,6 +248,14 @@ README перечисляет ограничения приложения; зд�
   считает сервер (`App\Queries\OrderLists`); экран лишь подмешивает
   заказы, закрывшиеся на глазах, — не фильтруй завершённые из активного
   списка как источник.
+- **«Отказаться» у исполнителя — только по `Order.canRelease`** (и у
+  разового осмотра, и у подбора): правило отказа считает сервер. «Закроется
+  …» — только по `Order.closesAt` с сервера, срок автоархива на клиенте не
+  считай.
+- **Сессии — `SessionRepository`** (`GET/DELETE /me/sessions`), не через
+  `AuthService`. Имя устройства при входе — `deviceName()`
+  (`device_info_plus`, в тестах плагина нет — null); в тестах подменяй
+  `AuthService.deviceNameSource`.
 - **Можно ли откликнуться — `Order.canViewerRespond`**, подпись кнопки —
   `Order.respondLabel`, «Ваш отклик» — `hasViewerResponse` (отклик в игре).
   Только в ленте исполнителя: сервер отдаёт ему лишь его отклик. Второй отклик
