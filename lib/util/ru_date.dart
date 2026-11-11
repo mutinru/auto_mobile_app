@@ -1,4 +1,5 @@
 import '../models/time_slot.dart';
+import 'ru_plural.dart';
 
 /// Русские даты без пакета intl (его нет в pubspec) — в том же духе,
 /// что money() и initialsOf() в widgets/app_ui.dart.
@@ -94,6 +95,14 @@ String momentLabel(DateTime date) {
 /// «09:05»
 String hhmm(DateTime date) =>
     '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+/// Давность осмотра из библиотеки: «осмотрена сегодня», «осмотрена вчера»,
+/// «осмотрена 3 дня назад» — по календарным дням, а не по 24 часам.
+String inspectedAgo(DateTime date) => switch (-_daysFromToday(date)) {
+  <= 0 => 'осмотрена сегодня',
+  1 => 'осмотрена вчера',
+  final n => 'осмотрена ${counted(n, 'день', 'дня', 'дней')} назад',
+};
 
 int _daysFromToday(DateTime date) {
   final now = DateTime.now();

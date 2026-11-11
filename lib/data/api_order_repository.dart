@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/available_page.dart';
 import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
+import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
@@ -313,6 +314,20 @@ class ApiOrderRepository implements OrderRepository {
       'year': '$year',
       'license_plate': ?licensePlate,
       'seller_phone': ?sellerPhone,
+    });
+    return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<InspectionLibraryPage> fetchInspectionLibrary(int orderId) async =>
+      InspectionLibraryPage.fromJson(
+        await _client.get('/orders/$orderId/library'),
+      );
+
+  @override
+  Future<OrderCar> attachFromLibrary(int orderId, int inspectionId) async {
+    final json = await _client.post('/orders/$orderId/library/$inspectionId', {
+      'still_for_sale': true,
     });
     return OrderCar.fromJson(json['data'] as Map<String, dynamic>);
   }

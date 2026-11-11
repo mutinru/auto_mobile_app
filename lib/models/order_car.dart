@@ -28,6 +28,8 @@ class OrderCar {
     this.verdict,
     this.verdictComment,
     this.sellerPhone,
+    this.fromLibrary = false,
+    this.inspectionCompletedAt,
   });
 
   final int id;
@@ -72,9 +74,16 @@ class OrderCar {
   final String? verdictComment;
 
   /// Телефон продавца — заметка подборщика для себя. Сервер отдаёт его
-  /// только назначенному исполнителю подбора (`Car::sellerPhoneVisibleTo`),
+  /// только назначенному исполнителю подбора (`Order::showsCarSellerPhonesTo`),
   /// заказчику — никогда.
   final String? sellerPhone;
+
+  /// Кандидат прикреплён из библиотеки осмотров исполнителя: осмотр сделан
+  /// раньше, под другой подбор. Когда — [inspectionCompletedAt].
+  final bool fromLibrary;
+
+  /// Когда осмотр завершён (вердикт вынесен); null — ещё идёт.
+  final DateTime? inspectionCompletedAt;
 
   String get title => '$brand $model $year';
 
@@ -125,6 +134,10 @@ class OrderCar {
       verdict: inspectionVerdictFromApi(inspection?['verdict'] as String?),
       verdictComment: inspection?['verdict_comment'] as String?,
       sellerPhone: json['seller_phone'] as String?,
+      fromLibrary: json['from_library'] as bool? ?? false,
+      inspectionCompletedAt: DateTime.tryParse(
+        inspection?['completed_at'] as String? ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -150,5 +163,7 @@ class OrderCar {
     verdict: verdict,
     verdictComment: verdictComment,
     sellerPhone: phone,
+    fromLibrary: fromLibrary,
+    inspectionCompletedAt: inspectionCompletedAt,
   );
 }

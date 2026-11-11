@@ -75,6 +75,22 @@ void main() {
       );
     }
 
+    // библиотека осмотров — только чтение: разбор ответа и правило «машины
+    // из этого подбора не предлагаются» (содержимое сида не зашиваем)
+    final selection = assigned.firstWhere(
+      (o) => !o.isInspection && o.status == OrderStatus.inspecting,
+    );
+    final library = await ApiOrderRepository(
+      client,
+    ).fetchInspectionLibrary(selection.id);
+    expect(library.days, greaterThan(0));
+    final inOrder = selection.cars.map((c) => c.id).toSet();
+    for (final item in library.items) {
+      expect(inOrder.contains(item.car.id), isFalse);
+      expect(item.completedAt, isNotNull);
+      expect(item.verdict, isNotNull);
+    }
+
     final repo = ApiInspectionRepository(
       client,
       inspectionId: candidate.inspectionId!,

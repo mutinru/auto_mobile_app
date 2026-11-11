@@ -2,6 +2,7 @@ import '../models/available_page.dart';
 import '../models/client_config.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
+import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
@@ -685,6 +686,55 @@ class MockOrderRepository implements OrderRepository {
       inspectionStatus: 'in_progress',
       sellerPhone: sellerPhone,
     );
+  }
+
+  /// Библиотека осмотров исполнителя. В `_seed()` её нет намеренно (общая
+  /// фикстура всех suites) — тесты кладут записи сами.
+  List<LibraryInspection> library = [];
+
+  /// Срок библиотеки — как у сервера (`InspectionLibrary::DAYS`).
+  int libraryDays = 30;
+
+  /// Последний прикреплённый осмотр — для тестов.
+  int? lastAttachedInspectionId;
+
+  @override
+  Future<InspectionLibraryPage> fetchInspectionLibrary(int orderId) async =>
+      InspectionLibraryPage(items: [...library], days: libraryDays);
+
+  @override
+  Future<OrderCar> attachFromLibrary(int orderId, int inspectionId) async {
+    final item = library.firstWhere((i) => i.inspectionId == inspectionId);
+    lastAttachedInspectionId = inspectionId;
+    library = [...library]..remove(item);
+    // как сервер: кандидат с готовым осмотром, вердиктом и датой
+    final source = item.car;
+    final car = OrderCar(
+      id: source.id,
+      brand: source.brand,
+      model: source.model,
+      year: source.year,
+      vinMasked: source.vinMasked,
+      vinKind: source.vinKind,
+      mileageKm: source.mileageKm,
+      inspectionId: item.inspectionId,
+      inspectionStatus: 'completed',
+      verdict: item.verdict,
+      verdictComment: item.verdictComment,
+      sellerPhone: source.sellerPhone,
+      fromLibrary: true,
+      inspectionCompletedAt: item.completedAt,
+    );
+    final order = _orders.firstWhere((o) => o.id == orderId);
+    _replace(
+      order.copyWith(
+        cars: [...order.cars, car],
+        status: order.status == OrderStatus.sourcing
+            ? OrderStatus.inspecting
+            : order.status,
+      ),
+    );
+    return car;
   }
 
   /// Телефон продавца последнего кандидата — для тестов экрана кандидата.

@@ -1,6 +1,7 @@
 import '../models/available_page.dart';
 import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
+import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
@@ -153,6 +154,15 @@ abstract class OrderRepository {
     String? licensePlate,
     String? sellerPhone,
   });
+
+  /// Свои готовые осмотры исполнителя, которые можно прикрепить к этому
+  /// подбору вместо нового выезда. Что годится — решает сервер.
+  Future<InspectionLibraryPage> fetchInspectionLibrary(int orderId);
+
+  /// Прикрепить готовый осмотр к подбору: машина становится кандидатом с
+  /// уже вынесенным вердиктом ([OrderCar.fromLibrary]). Подтверждение
+  /// «машина ещё продаётся» спрашивает экран — сюда оно приходит уже данным.
+  Future<OrderCar> attachFromLibrary(int orderId, int inspectionId);
 
   /// Телефон продавца кандидата — поменять или стереть (null). Только
   /// назначенный подборщик; возвращает машину с новым номером.

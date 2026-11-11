@@ -7,6 +7,7 @@ import '../data/auth_service.dart';
 import '../data/inspection_repository.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
+import '../models/library_inspection.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/order_response_status.dart';
@@ -15,11 +16,13 @@ import '../models/user_summary.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/ru_date.dart';
 import '../state/inspection_store.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';
 import '../widgets/executor_box.dart';
+import '../widgets/library_sheet.dart';
 import '../widgets/order_review_section.dart';
 import '../widgets/order_status_card.dart';
 import '../widgets/phone_contact.dart';
@@ -71,6 +74,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool _accepting = false;
   bool _completing = false;
   bool _cancelling = false;
+  bool _attaching = false;
+
+  /// Свои готовые осмотры подборщика для этого подбора; null — не положено
+  /// или не загрузилось (кнопки тогда нет: это не главное на экране).
+  InspectionLibraryPage? _library;
 
   @override
   void initState() {
@@ -88,6 +96,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     try {
       final order = await widget.store.fetchOrder(widget.orderId);
       if (mounted) setState(() => _order = order);
+      _loadLibrary(order);
     } catch (e) {
       if (mounted) setState(() => _error = apiErrorText(e));
     } finally {
@@ -97,7 +106,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
 
   @override
   bool get refreshPaused =>
-      _loading || _accepting || _completing || _cancelling;
+      _loading || _accepting || _completing || _cancelling || _attaching;
 
   /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
@@ -111,6 +120,56 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       _error = null;
     });
     widget.store.replaceOrder(order);
+    _loadLibrary(order);
+  }
+
+  /// Заводить кандидатов может только назначенный исполнитель идущего
+  /// подбора: заказчику сервер ответит 403, в закрытый подбор — 422.
+  bool _canAddCandidates(Order order) =>
+      widget.auth?.user != null &&
+      order.executor?.id == widget.auth!.user!.id &&
+      (order.status == OrderStatus.sourcing ||
+          order.status == OrderStatus.inspecting);
+
+  /// Библиотека осмотров — тихо, без спиннера: сбой лишь прячет кнопку.
+  /// Что в неё попадает, решает сервер — список не фильтруем.
+  Future<void> _loadLibrary(Order order) async {
+    if (!_canAddCandidates(order)) {
+      if (_library != null && mounted) setState(() => _library = null);
+      return;
+    }
+    try {
+      final page = await widget.store.fetchInspectionLibrary(order.id);
+      if (mounted) setState(() => _library = page);
+    } catch (_) {
+      if (mounted) setState(() => _library = null);
+    }
+  }
+
+  /// Свой готовый осмотр — кандидатом: выбор, подтверждение «ещё
+  /// продаётся», запрос. Отчёт не открываем — он заморожен и исполнителю
+  /// знаком; заказ перечитываем, кандидат приходит с сервера.
+  Future<void> _attachFromLibrary(Order order) async {
+    final library = _library;
+    if (library == null || _attaching) return;
+    final picked = await pickFromLibrary(context, library);
+    if (picked == null || !mounted) return;
+    setState(() => _attaching = true);
+    try {
+      await widget.store.attachFromLibrary(order.id, picked.inspectionId);
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Кандидат добавлен')),
+        );
+      }
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+      // правило — у сервера: список мог устареть, перечитываем
+      await _loadLibrary(order);
+    } finally {
+      if (mounted) setState(() => _attaching = false);
+    }
   }
 
   /// Открыть осмотр кандидата можно, если есть откуда его грузить.
@@ -512,16 +571,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
           // Заводить кандидата и стартовать осмотр может только назначенный
           // исполнитель — у заказчика этот вызов вернёт 403; в закрытый подбор
           // нового кандидата не завести (422), начатые — дозавершаются.
-          if (widget.auth?.user != null &&
-              order.executor?.id == widget.auth!.user!.id &&
-              (order.status == OrderStatus.sourcing ||
-                  order.status == OrderStatus.inspecting)) ...[
+          if (_canAddCandidates(order)) ...[
             const SizedBox(height: 14),
             CtaPrimary(
               label: 'Осмотреть новый вариант',
               icon: Icons.add,
               onPressed: () => _startInspection(order),
             ),
+            // свои готовые осмотры — только если есть что добавить
+            if (_library?.items.isNotEmpty ?? false)
+              CtaGhost(
+                label: 'Из моих осмотров · ${_library!.items.length}',
+                onPressed: _attaching ? null : () => _attachFromLibrary(order),
+              ),
           ],
           OrderReviewSection(
             order: order,
@@ -689,6 +751,16 @@ class _CandidateCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 7),
                           Pill(car.inspectionLabel, color: _pillColor(c)),
+                          // осмотр из библиотеки сделан раньше — когда
+                          if (car.fromLibrary &&
+                              car.inspectionCompletedAt != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 7),
+                              child: Text(
+                                inspectedAgo(car.inspectionCompletedAt!),
+                                style: TextStyle(fontSize: 12, color: c.text2),
+                              ),
+                            ),
                           if (comment != null && comment.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 7),

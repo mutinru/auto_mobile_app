@@ -6,6 +6,7 @@ import '../data/city_repository.dart';
 import '../data/order_repository.dart';
 import '../models/available_page.dart';
 import '../models/inspection_verdict.dart';
+import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
@@ -491,6 +492,14 @@ class OrderStore extends ChangeNotifier {
     int carId,
     String? sellerPhone,
   ) => _repository.updateCarSellerPhone(orderId, carId, sellerPhone);
+
+  /// Библиотека осмотров исполнителя для этого подбора — с сервера.
+  Future<InspectionLibraryPage> fetchInspectionLibrary(int orderId) =>
+      _repository.fetchInspectionLibrary(orderId);
+
+  /// Прикрепить готовый осмотр; заказ экран перечитывает сам.
+  Future<OrderCar> attachFromLibrary(int orderId, int inspectionId) =>
+      _repository.attachFromLibrary(orderId, inspectionId);
 
   void replaceOrder(Order order) {
     final mine = _myOrders.indexWhere((o) => o.id == order.id);
