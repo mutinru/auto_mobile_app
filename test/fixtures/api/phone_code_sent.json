@@ -1,0 +1,15 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/api/auth/phone/request",
+        "as": "guest"
+    },
+    "status": 200,
+    "body": {
+        "sent": true,
+        "expires_in": 300,
+        "resend_in": 120,
+        "channel": "log",
+        "dev_code": null
+    }
+}

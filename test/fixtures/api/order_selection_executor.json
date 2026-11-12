@@ -1,0 +1,126 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/orders/1",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "id": 1,
+            "kind": "selection",
+            "status": "inspecting",
+            "brand": "Toyota",
+            "model": "Camry",
+            "year_from": 2018,
+            "mileage_to": null,
+            "budget_min": null,
+            "budget_max": 2400000,
+            "cities": [
+                "Москва"
+            ],
+            "requirements": [
+                "Без ДТП"
+            ],
+            "comment": null,
+            "price": 15000,
+            "address": null,
+            "address_precision": null,
+            "lat": null,
+            "lon": null,
+            "inspect_on": null,
+            "time_slot": null,
+            "inspect_time": null,
+            "inspect_ends_at": null,
+            "listing_url": null,
+            "listing_host": null,
+            "listing_site": null,
+            "has_listing": false,
+            "asking_price": null,
+            "seller_phone": null,
+            "counterpart_phone": "+79000000002",
+            "customer": {
+                "id": 1,
+                "name": "Андрей С.",
+                "avatar_url": null,
+                "rating": null,
+                "reviews_count": 0,
+                "completed_orders_count": 0
+            },
+            "executor": {
+                "id": 2,
+                "name": "Максим К.",
+                "avatar_url": null,
+                "rating": null,
+                "reviews_count": 0,
+                "completed_orders_count": 0
+            },
+            "responses": [],
+            "responses_count": 0,
+            "cars": [
+                {
+                    "id": 1,
+                    "brand": "Kia",
+                    "model": "Rio",
+                    "year": 2019,
+                    "vin_masked": "··· 100111",
+                    "license_plate": "А123ВС77",
+                    "seller_phone": "+79161234567",
+                    "vin_kind": null,
+                    "vin_photo_url": null,
+                    "vin_photo_thumb_url": null,
+                    "vin_mismatch": false,
+                    "mileage_km": 64000,
+                    "customer_mileage_km": null,
+                    "mileage_mismatch": false,
+                    "odometer_photo_url": null,
+                    "odometer_photo_thumb_url": null,
+                    "from_library": false,
+                    "inspection": {
+                        "id": 1,
+                        "status": "completed",
+                        "outcome": null,
+                        "completed_at": "2026-11-11T09:00:00.000000Z",
+                        "verdict": "recommended",
+                        "verdict_comment": "Кузов в родной краске"
+                    }
+                }
+            ],
+            "executor_deadline_at": null,
+            "payment_sent_at": null,
+            "payment_confirmed_at": null,
+            "dispute_available_at": null,
+            "review": null,
+            "viewer_role": "executor",
+            "actions": {
+                "accept_response": false,
+                "cancel": false,
+                "repost": false,
+                "pay_placement": false,
+                "complete": false,
+                "decline_purchase_report": false,
+                "change_purchase": false,
+                "mark_paid": false,
+                "dispute": false,
+                "add_candidate": true,
+                "edit_seller_phone": true,
+                "report_purchase": false,
+                "release": true,
+                "start_inspection": false,
+                "finish_inspection": false,
+                "confirm_payment": false,
+                "review": false
+            },
+            "purchase_report": {
+                "car_id": 1,
+                "reported_at": "2026-11-11T09:00:00.000000Z"
+            },
+            "completed_at": null,
+            "cancelled_at": null,
+            "closed_at": null,
+            "close_reason": null,
+            "closes_at": null,
+            "created_at": "2026-11-11T09:00:00.000000Z"
+        }
+    }
+}

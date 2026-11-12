@@ -1,0 +1,16 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/config",
+        "as": "guest"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "inspection_placement_fee": 0,
+            "inspection_max_days_ahead": 10,
+            "vin_report_price": 299,
+            "min_build": 0
+        }
+    }
+}

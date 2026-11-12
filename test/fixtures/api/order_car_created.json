@@ -1,0 +1,37 @@
+{
+    "request": {
+        "method": "POST",
+        "path": "/api/orders/1/cars",
+        "as": "executor"
+    },
+    "status": 201,
+    "body": {
+        "data": {
+            "id": 1,
+            "brand": "Kia",
+            "model": "Rio",
+            "year": 2019,
+            "vin_masked": "··· 000001",
+            "license_plate": "В456ОР77",
+            "seller_phone": "+79161234567",
+            "vin_kind": "vin",
+            "vin_photo_url": "/api/media/vin-photos/1?expires=EXPIRES&signature=SIGNATURE",
+            "vin_photo_thumb_url": "/api/media/vin-photos/1/thumb?expires=EXPIRES&signature=SIGNATURE",
+            "vin_mismatch": false,
+            "mileage_km": 127450,
+            "customer_mileage_km": null,
+            "mileage_mismatch": false,
+            "odometer_photo_url": "/api/media/odometer-photos/1?expires=EXPIRES&signature=SIGNATURE",
+            "odometer_photo_thumb_url": "/api/media/odometer-photos/1/thumb?expires=EXPIRES&signature=SIGNATURE",
+            "from_library": false,
+            "inspection": {
+                "id": 1,
+                "status": "in_progress",
+                "outcome": null,
+                "completed_at": null,
+                "verdict": null,
+                "verdict_comment": null
+            }
+        }
+    }
+}

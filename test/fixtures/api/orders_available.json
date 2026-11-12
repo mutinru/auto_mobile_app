@@ -1,0 +1,184 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/orders/available?page=1",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "id": 4,
+                "kind": "inspection",
+                "status": "awaiting_executor",
+                "brand": "Kia",
+                "model": "Rio",
+                "year_from": 2019,
+                "mileage_to": 64000,
+                "budget_min": null,
+                "budget_max": null,
+                "cities": [
+                    "Химки"
+                ],
+                "requirements": null,
+                "comment": null,
+                "price": null,
+                "lat": 55.89,
+                "lon": 37.44,
+                "inspect_on": "2026-11-12",
+                "time_slot": "exact",
+                "inspect_time": "16:00",
+                "inspect_ends_at": "2026-11-12T21:00:00.000000Z",
+                "listing_site": null,
+                "has_listing": false,
+                "asking_price": 4000,
+                "customer": {
+                    "id": 1,
+                    "name": "Андрей С.",
+                    "avatar_url": null,
+                    "rating": null,
+                    "reviews_count": 0,
+                    "completed_orders_count": 0
+                },
+                "executor": null,
+                "responses": [],
+                "responses_count": 0,
+                "executor_deadline_at": null,
+                "payment_sent_at": null,
+                "payment_confirmed_at": null,
+                "viewer_role": null,
+                "actions": [],
+                "completed_at": null,
+                "cancelled_at": null,
+                "closed_at": null,
+                "close_reason": null,
+                "closes_at": null,
+                "created_at": "2026-11-11T09:00:03.000000Z"
+            },
+            {
+                "id": 3,
+                "kind": "selection",
+                "status": "awaiting_executor",
+                "brand": "Toyota",
+                "model": "RAV4",
+                "year_from": 2019,
+                "mileage_to": null,
+                "budget_min": null,
+                "budget_max": 2400000,
+                "cities": [
+                    "Москва"
+                ],
+                "requirements": [
+                    "Без ДТП"
+                ],
+                "comment": null,
+                "price": null,
+                "lat": null,
+                "lon": null,
+                "inspect_on": null,
+                "time_slot": null,
+                "inspect_time": null,
+                "inspect_ends_at": null,
+                "listing_site": null,
+                "has_listing": false,
+                "asking_price": null,
+                "customer": {
+                    "id": 1,
+                    "name": "Андрей С.",
+                    "avatar_url": null,
+                    "rating": null,
+                    "reviews_count": 0,
+                    "completed_orders_count": 0
+                },
+                "executor": null,
+                "responses": [
+                    {
+                        "id": 4,
+                        "status": "pending",
+                        "proposed_price": 18000,
+                        "message": "Посмотрю в выходные",
+                        "executor": {
+                            "id": 3,
+                            "name": "Игорь В.",
+                            "avatar_url": null,
+                            "rating": null,
+                            "reviews_count": 0,
+                            "completed_orders_count": 0
+                        },
+                        "created_at": "2026-11-11T09:00:03.000000Z"
+                    }
+                ],
+                "responses_count": 2,
+                "executor_deadline_at": null,
+                "payment_sent_at": null,
+                "payment_confirmed_at": null,
+                "viewer_role": null,
+                "actions": [],
+                "completed_at": null,
+                "cancelled_at": null,
+                "closed_at": null,
+                "close_reason": null,
+                "closes_at": null,
+                "created_at": "2026-11-11T09:00:01.000000Z"
+            }
+        ],
+        "links": {
+            "first": "http://api.test/api/orders/available?page=1",
+            "last": "http://api.test/api/orders/available?page=1",
+            "prev": null,
+            "next": null
+        },
+        "meta": {
+            "current_page": 1,
+            "from": 1,
+            "last_page": 1,
+            "links": [
+                {
+                    "url": null,
+                    "label": "&laquo; Previous",
+                    "page": null,
+                    "active": false
+                },
+                {
+                    "url": "http://api.test/api/orders/available?page=1",
+                    "label": "1",
+                    "page": 1,
+                    "active": true
+                },
+                {
+                    "url": null,
+                    "label": "Next &raquo;",
+                    "page": null,
+                    "active": false
+                }
+            ],
+            "path": "http://api.test/api/orders/available",
+            "per_page": 20,
+            "to": 2,
+            "total": 2,
+            "all": 2,
+            "facets": {
+                "cities": [
+                    {
+                        "name": "Москва",
+                        "count": 1
+                    },
+                    {
+                        "name": "Химки",
+                        "count": 1
+                    }
+                ],
+                "brands": [
+                    {
+                        "name": "Kia",
+                        "count": 1
+                    },
+                    {
+                        "name": "Toyota",
+                        "count": 1
+                    }
+                ]
+            }
+        }
+    }
+}

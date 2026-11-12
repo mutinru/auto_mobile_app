@@ -1,0 +1,248 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/defects",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "id": 1,
+                "label": "Царапины",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper"
+                ]
+            },
+            {
+                "id": 2,
+                "label": "Скол ЛКП",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper"
+                ]
+            },
+            {
+                "id": 3,
+                "label": "Вмятина",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper",
+                    "sills"
+                ]
+            },
+            {
+                "id": 4,
+                "label": "Коррозия",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper",
+                    "sills"
+                ]
+            },
+            {
+                "id": 5,
+                "label": "Перекрашено",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper",
+                    "sills"
+                ]
+            },
+            {
+                "id": 6,
+                "label": "Зазоры",
+                "panels": [
+                    "front_bumper",
+                    "front_left_fender",
+                    "front_right_fender",
+                    "hood",
+                    "front_left_door",
+                    "front_right_door",
+                    "rear_left_door",
+                    "rear_right_door",
+                    "roof",
+                    "rear_left_fender",
+                    "rear_right_fender",
+                    "trunk",
+                    "rear_bumper"
+                ]
+            },
+            {
+                "id": 7,
+                "label": "Сквозная гниль",
+                "panels": [
+                    "sills"
+                ]
+            },
+            {
+                "id": 8,
+                "label": "Следы сварки",
+                "panels": [
+                    "sills"
+                ]
+            },
+            {
+                "id": 9,
+                "label": "Течь масла",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 10,
+                "label": "Течь ОЖ",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 11,
+                "label": "Посторонний стук",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 12,
+                "label": "Нестабильные обороты",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 13,
+                "label": "Дым из выхлопа",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 14,
+                "label": "Ошибки ЭБУ",
+                "panels": [
+                    "engine"
+                ]
+            },
+            {
+                "id": 15,
+                "label": "Скол",
+                "panels": [
+                    "windows"
+                ]
+            },
+            {
+                "id": 16,
+                "label": "Трещина",
+                "panels": [
+                    "windows"
+                ]
+            },
+            {
+                "id": 17,
+                "label": "Не заводское стекло",
+                "panels": [
+                    "windows"
+                ]
+            },
+            {
+                "id": 18,
+                "label": "Неисправен стеклоподъёмник",
+                "panels": [
+                    "windows"
+                ]
+            },
+            {
+                "id": 19,
+                "label": "VIN не совпадает",
+                "panels": [
+                    "documents"
+                ]
+            },
+            {
+                "id": 20,
+                "label": "Дубликат ПТС",
+                "panels": [
+                    "documents"
+                ]
+            },
+            {
+                "id": 21,
+                "label": "Залог или ограничения",
+                "panels": [
+                    "documents"
+                ]
+            },
+            {
+                "id": 22,
+                "label": "Много владельцев",
+                "panels": [
+                    "documents"
+                ]
+            },
+            {
+                "id": 23,
+                "label": "Пробег не сходится",
+                "panels": [
+                    "documents"
+                ]
+            }
+        ]
+    }
+}

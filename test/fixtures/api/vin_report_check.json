@@ -1,0 +1,24 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/vin-reports/check?vin=XW8ZZZ61ZKG100111",
+        "as": "customer"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "vin": "XW8ZZZ61ZKG100111",
+            "available": true,
+            "count": 1,
+            "items": [
+                {
+                    "date": "2026-11-11",
+                    "city": "Химки",
+                    "mileage_km": 127450
+                }
+            ],
+            "price": 299,
+            "purchase_id": null
+        }
+    }
+}

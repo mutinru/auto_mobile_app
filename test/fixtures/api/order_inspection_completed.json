@@ -1,0 +1,155 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/orders/2",
+        "as": "customer"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "id": 2,
+            "kind": "inspection",
+            "status": "completed",
+            "brand": "Kia",
+            "model": "Rio",
+            "year_from": 2019,
+            "mileage_to": 64000,
+            "budget_min": null,
+            "budget_max": null,
+            "cities": [
+                "Химки"
+            ],
+            "requirements": null,
+            "comment": null,
+            "price": 3500,
+            "address": "ул. Ленина, 5",
+            "address_precision": null,
+            "lat": 55.8897,
+            "lon": 37.4449,
+            "inspect_on": "2026-11-12",
+            "time_slot": "exact",
+            "inspect_time": "16:00",
+            "inspect_ends_at": "2026-11-12T21:00:00.000000Z",
+            "decision_reason": null,
+            "listing_url": null,
+            "listing_host": null,
+            "listing_site": null,
+            "has_listing": false,
+            "asking_price": 4000,
+            "seller_phone": "+79161234567",
+            "counterpart_phone": null,
+            "customer": {
+                "id": 1,
+                "name": "Андрей С.",
+                "avatar_url": null,
+                "rating": null,
+                "reviews_count": 0,
+                "completed_orders_count": 0
+            },
+            "executor": {
+                "id": 2,
+                "name": "Максим К.",
+                "avatar_url": null,
+                "rating": null,
+                "reviews_count": 0,
+                "completed_orders_count": 1
+            },
+            "responses": [
+                {
+                    "id": 3,
+                    "status": "accepted",
+                    "proposed_price": 3500,
+                    "message": null,
+                    "executor": {
+                        "id": 2,
+                        "name": "Максим К.",
+                        "avatar_url": null,
+                        "rating": null,
+                        "reviews_count": 0,
+                        "completed_orders_count": 1,
+                        "missed_orders_count": 0
+                    },
+                    "created_at": "2026-11-11T09:00:01.000000Z"
+                },
+                {
+                    "id": 4,
+                    "status": "rejected",
+                    "proposed_price": 4000,
+                    "message": null,
+                    "executor": {
+                        "id": 3,
+                        "name": "Игорь В.",
+                        "avatar_url": null,
+                        "rating": null,
+                        "reviews_count": 0,
+                        "completed_orders_count": 0,
+                        "missed_orders_count": 0
+                    },
+                    "created_at": "2026-11-11T09:00:02.000000Z"
+                }
+            ],
+            "responses_count": 1,
+            "cars": [
+                {
+                    "id": 2,
+                    "brand": "Kia",
+                    "model": "Rio",
+                    "year": 2019,
+                    "vin_masked": "··· 000001",
+                    "license_plate": null,
+                    "vin_kind": "vin",
+                    "vin_photo_url": "/api/media/vin-photos/2?expires=EXPIRES&signature=SIGNATURE",
+                    "vin_photo_thumb_url": "/api/media/vin-photos/2/thumb?expires=EXPIRES&signature=SIGNATURE",
+                    "vin_mismatch": false,
+                    "mileage_km": 127450,
+                    "customer_mileage_km": null,
+                    "mileage_mismatch": false,
+                    "odometer_photo_url": "/api/media/odometer-photos/2?expires=EXPIRES&signature=SIGNATURE",
+                    "odometer_photo_thumb_url": "/api/media/odometer-photos/2/thumb?expires=EXPIRES&signature=SIGNATURE",
+                    "from_library": false,
+                    "inspection": {
+                        "id": 2,
+                        "status": "completed",
+                        "outcome": null,
+                        "completed_at": "2026-11-11T09:00:02.000000Z",
+                        "verdict": "not_recommended",
+                        "verdict_comment": "Капот после ДТП"
+                    }
+                }
+            ],
+            "executor_deadline_at": null,
+            "payment_sent_at": "2026-11-11T09:00:02.000000Z",
+            "payment_confirmed_at": "2026-11-11T09:00:02.000000Z",
+            "dispute_available_at": null,
+            "review": null,
+            "placement_fee": null,
+            "pending_payment": null,
+            "viewer_role": "customer",
+            "actions": {
+                "accept_response": false,
+                "cancel": false,
+                "repost": false,
+                "pay_placement": false,
+                "complete": false,
+                "decline_purchase_report": false,
+                "change_purchase": false,
+                "mark_paid": false,
+                "dispute": false,
+                "add_candidate": false,
+                "edit_seller_phone": false,
+                "report_purchase": false,
+                "release": false,
+                "start_inspection": false,
+                "finish_inspection": false,
+                "confirm_payment": false,
+                "review": true
+            },
+            "completed_at": "2026-11-11T09:00:02.000000Z",
+            "cancelled_at": null,
+            "closed_at": null,
+            "close_reason": null,
+            "closes_at": null,
+            "created_at": "2026-11-11T09:00:01.000000Z"
+        }
+    }
+}

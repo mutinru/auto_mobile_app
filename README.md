@@ -98,6 +98,10 @@ flutter test                                    # suites на мок-репоз�
 flutter test test/vin_test.dart --plain-name 'обрезает до 17 знаков'
 ```
 
+`test/api_contract_test.dart` (ревью №43) разбирает **настоящие ответы
+сервера** — снимки из `test/fixtures/api/`, которые пишет `ApiContractTest`
+бекенда и копирует `make contract-sync`. Снимки руками не правятся.
+
 Тесты в `test/integration/` в обычный прогон **не входят**: они помечены тегом
 `integration`, и `dart_test.yaml` их пропускает. Им нужен поднятый засиданный
 бекенд:

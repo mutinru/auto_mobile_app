@@ -1,0 +1,35 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/me",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "id": 2,
+            "name": "Максим К.",
+            "email": "inspector@contract.test",
+            "phone": "+79000000001",
+            "avatar_url": null,
+            "registered_at": "2026-11-11T09:00:00.000000Z",
+            "rating": null,
+            "reviews_count": 0,
+            "completed_orders_count": 0,
+            "missed_orders_count": 0,
+            "payout": {
+                "card": "2200000000000009",
+                "phone": null,
+                "bank": null
+            },
+            "push_muted": [],
+            "order_alerts": {
+                "cities": [],
+                "kinds": [
+                    "selection",
+                    "inspection"
+                ]
+            }
+        }
+    }
+}

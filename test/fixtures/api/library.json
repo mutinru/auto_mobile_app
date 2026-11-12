@@ -1,0 +1,40 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/orders/1/library",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "inspection": {
+                    "id": 2,
+                    "verdict": "recommended",
+                    "verdict_comment": "Кузов в родной краске",
+                    "completed_at": "2026-11-11T09:00:00.000000Z"
+                },
+                "car": {
+                    "id": 2,
+                    "brand": "Toyota",
+                    "model": "Camry",
+                    "year": 2019,
+                    "vin_masked": "··· 100113",
+                    "license_plate": null,
+                    "vin_kind": null,
+                    "vin_photo_url": null,
+                    "vin_photo_thumb_url": null,
+                    "vin_mismatch": false,
+                    "mileage_km": 64000,
+                    "customer_mileage_km": null,
+                    "mileage_mismatch": false,
+                    "odometer_photo_url": null,
+                    "odometer_photo_thumb_url": null,
+                    "from_library": false
+                },
+                "city": "Москва"
+            }
+        ],
+        "days": 30
+    }
+}

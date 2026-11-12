@@ -1,0 +1,303 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/inspections/1",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "id": 1,
+            "status": "in_progress",
+            "car": {
+                "id": 1,
+                "brand": "Kia",
+                "model": "Rio",
+                "year": 2019,
+                "vin_masked": "··· 000001",
+                "license_plate": null,
+                "vin_kind": "vin",
+                "vin_photo_url": "/api/media/vin-photos/1?expires=EXPIRES&signature=SIGNATURE",
+                "vin_photo_thumb_url": "/api/media/vin-photos/1/thumb?expires=EXPIRES&signature=SIGNATURE",
+                "vin_mismatch": false,
+                "mileage_km": 127450,
+                "customer_mileage_km": null,
+                "mileage_mismatch": false,
+                "odometer_photo_url": "/api/media/odometer-photos/1?expires=EXPIRES&signature=SIGNATURE",
+                "odometer_photo_thumb_url": "/api/media/odometer-photos/1/thumb?expires=EXPIRES&signature=SIGNATURE",
+                "from_library": false
+            },
+            "panels": [
+                {
+                    "id": "front_bumper",
+                    "name": "Передний бампер",
+                    "zone": "Перед",
+                    "kind": "body",
+                    "status": "defect",
+                    "condition": "needs_repair",
+                    "defects": [
+                        {
+                            "id": 1,
+                            "label": "Царапины"
+                        }
+                    ],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "photo"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "front_left_fender",
+                    "name": "Переднее левое крыло",
+                    "zone": "Перед",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "front_right_fender",
+                    "name": "Переднее правое крыло",
+                    "zone": "Перед",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "hood",
+                    "name": "Капот",
+                    "zone": "Перед",
+                    "kind": "body",
+                    "status": "done",
+                    "condition": "good",
+                    "defects": [],
+                    "photos": [
+                        {
+                            "id": 1,
+                            "client_id": "00000000-0000-0000-0000-000000000000",
+                            "url": "/api/media/photos/1?expires=EXPIRES&signature=SIGNATURE",
+                            "thumb_url": "/api/media/photos/1/thumb?expires=EXPIRES&signature=SIGNATURE",
+                            "label": null,
+                            "source": "camera",
+                            "taken_at": null,
+                            "taken_before_start": null
+                        }
+                    ],
+                    "photo_count": 1,
+                    "missing": [],
+                    "audio_note": null
+                },
+                {
+                    "id": "front_left_door",
+                    "name": "Передняя левая дверь",
+                    "zone": "Двери",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "front_right_door",
+                    "name": "Передняя правая дверь",
+                    "zone": "Двери",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "rear_left_door",
+                    "name": "Задняя левая дверь",
+                    "zone": "Двери",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "rear_right_door",
+                    "name": "Задняя правая дверь",
+                    "zone": "Двери",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "roof",
+                    "name": "Крыша",
+                    "zone": "Верх",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "rear_left_fender",
+                    "name": "Заднее левое крыло",
+                    "zone": "Зад",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "rear_right_fender",
+                    "name": "Заднее правое крыло",
+                    "zone": "Зад",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "trunk",
+                    "name": "Крышка багажника",
+                    "zone": "Зад",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "rear_bumper",
+                    "name": "Задний бампер",
+                    "zone": "Зад",
+                    "kind": "body",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "engine",
+                    "name": "Двигатель",
+                    "zone": "Дополнительно",
+                    "kind": "extra",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "sills",
+                    "name": "Пороги",
+                    "zone": "Дополнительно",
+                    "kind": "extra",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "windows",
+                    "name": "Окна",
+                    "zone": "Дополнительно",
+                    "kind": "extra",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                },
+                {
+                    "id": "documents",
+                    "name": "Документы",
+                    "zone": "Дополнительно",
+                    "kind": "extra",
+                    "status": "none",
+                    "condition": null,
+                    "defects": [],
+                    "photos": [],
+                    "photo_count": 0,
+                    "missing": [
+                        "condition"
+                    ],
+                    "audio_note": null
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,60 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/verification",
+        "as": "executor"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "passed": 0,
+            "total": 4,
+            "complete": false,
+            "required": false,
+            "can_take_orders": true,
+            "steps": [
+                {
+                    "key": "identity",
+                    "name": "Личность",
+                    "description": "Паспорт и селфи, сверка с данными телефона",
+                    "status": "pending",
+                    "passed_at": null
+                },
+                {
+                    "key": "experience",
+                    "name": "Опыт и специализация",
+                    "description": "Марки, регион работы, ссылки на прошлые отчёты",
+                    "status": "pending",
+                    "passed_at": null
+                },
+                {
+                    "key": "test",
+                    "name": "Тест на дефекты",
+                    "description": "15 фотографий кузова и агрегатов — найдите и назовите повреждения. Порог — 12 верных из 15.",
+                    "status": "pending",
+                    "passed_at": null,
+                    "retry_after": null,
+                    "attempts": null
+                },
+                {
+                    "key": "trial",
+                    "name": "Пробный осмотр",
+                    "description": "Один реальный заказ под наблюдением куратора. Оплата обычная, отчёт проверяется вручную.",
+                    "status": "pending"
+                }
+            ],
+            "levels": [
+                {
+                    "name": "Профи",
+                    "caption": "от 20 заказов",
+                    "reached": false
+                },
+                {
+                    "name": "Эксперт",
+                    "caption": "от 100 заказов",
+                    "reached": false
+                }
+            ]
+        }
+    }
+}

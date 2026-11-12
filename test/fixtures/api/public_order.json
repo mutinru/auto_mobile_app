@@ -1,0 +1,51 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/public/orders/1",
+        "as": "guest"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "id": 1,
+            "status": "inspecting",
+            "car": "Toyota Camry 2018+",
+            "city": "Москва",
+            "budget_min": null,
+            "budget_max": 2400000,
+            "updated_at": "2026-11-11T09:00:00.000000Z",
+            "progress": {
+                "assessed": 0,
+                "total": 17,
+                "car_index": 1
+            },
+            "executor": {
+                "name": "Максим К.",
+                "avatar_url": null,
+                "completed_orders": 1
+            },
+            "requirements": [
+                "Без ДТП"
+            ],
+            "cars_inspected": 1,
+            "cars_rejected": 0,
+            "timeline": [
+                {
+                    "title": "Заказ размещён",
+                    "at": "2026-11-11T09:00:00.000000Z",
+                    "done": true
+                },
+                {
+                    "title": "Исполнитель назначен",
+                    "at": null,
+                    "done": true
+                },
+                {
+                    "title": "Осмотры на месте",
+                    "at": null,
+                    "done": false
+                }
+            ]
+        }
+    }
+}
