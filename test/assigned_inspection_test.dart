@@ -21,7 +21,9 @@ class _InspectingRepository extends MockOrderRepository {
   Future<Order> fetchOrder(int id) async {
     final order = await super.fetchOrder(id);
     return order.status == OrderStatus.scheduled
-        ? order.copyWith(status: OrderStatus.inspecting)
+        ? MockOrderRepository.withActions(
+            order.copyWith(status: OrderStatus.inspecting),
+          )
         : order;
   }
 }

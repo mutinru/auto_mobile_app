@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/available_page.dart';
 import '../models/client_config.dart';
 import '../models/inspection_outcome.dart';
@@ -5,6 +6,7 @@ import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
+import '../models/order_action.dart';
 import '../models/order_car.dart';
 import '../models/order_page.dart';
 import '../models/order_kind.dart';
@@ -172,7 +174,7 @@ class MockOrderRepository implements OrderRepository {
       kind: OrderKind.inspection,
       status: OrderStatus.completed,
       completedAt: DateTime.now().subtract(const Duration(days: 2)),
-      canReview: true,
+      actions: const {OrderAction.review},
       brand: 'Hyundai',
       model: 'Creta',
       yearFrom: 2020,
@@ -360,25 +362,78 @@ class MockOrderRepository implements OrderRepository {
 
   @override
   Future<Order> fetchOrder(int id) async =>
-      _withCanCancel(_orders.firstWhere((o) => o.id == id));
+      withActions(_orders.firstWhere((o) => o.id == id));
 
-  /// Имитация сервера (Order::canBeCancelledBy): свой заказ до выбора
-  /// исполнителя, в том числе после срыва. Экраны правило не повторяют —
-  /// только читают флаг. can_release — как Order::canBeReleasedBy (кто
-  /// смотрит, мок не знает: кнопку показывает только экран исполнителя).
-  static Order _withCanCancel(Order o) => o.copyWith(
-    canCancel:
-        o.customer.id == _me.id &&
-        (o.status == OrderStatus.awaitingExecutor ||
-            o.status == OrderStatus.awaitingDecision),
-    canRelease:
-        o.executor != null &&
-        (o.isInspection
-            ? o.status == OrderStatus.scheduled ||
-                  o.status == OrderStatus.inspecting
-            : o.status == OrderStatus.sourcing ||
-                  o.status == OrderStatus.inspecting),
-  );
+  /// Действия, которые мок помнит сам (отзыв оставлен, окно спора,
+  /// «сообщить о покупке» после «нет»): остальные выводятся из статуса.
+  static const _stateful = {
+    OrderAction.review,
+    OrderAction.dispute,
+    OrderAction.reportPurchase,
+  };
+
+  /// Имитация сервера (`App\Orders\OrderActions`): карта действий по тем
+  /// же правилам. Экраны правила не повторяют — только читают карту. Кто
+  /// смотрит, мок не знает: действия исполнителя есть, если он назначен, —
+  /// показывает их только экран исполнителя.
+  @visibleForTesting
+  static Order withActions(Order o) {
+    final mine = o.customer.id == _me.id;
+    final hasExecutor = o.executor != null;
+    final selection = !o.isInspection;
+    final open =
+        selection &&
+        (o.status == OrderStatus.sourcing ||
+            o.status == OrderStatus.inspecting);
+    final inspected = o.cars.where((c) => c.inspectionId != null).toList();
+    final derived = {
+      if (mine &&
+          o.status == OrderStatus.awaitingExecutor &&
+          o.responses.any((r) => r.status == OrderResponseStatus.pending))
+        OrderAction.acceptResponse,
+      if (mine &&
+          (o.status == OrderStatus.awaitingPlacement ||
+              o.status == OrderStatus.awaitingExecutor ||
+              o.status == OrderStatus.awaitingDecision))
+        OrderAction.cancel,
+      if (mine && o.status == OrderStatus.awaitingDecision) OrderAction.repost,
+      if (mine && o.status == OrderStatus.awaitingPlacement)
+        OrderAction.payPlacement,
+      if (mine && open && inspected.isNotEmpty) OrderAction.complete,
+      if (mine && o.purchaseReport != null) OrderAction.declinePurchaseReport,
+      if (mine && o.purchaseEditableUntil != null && inspected.length > 1)
+        OrderAction.changePurchase,
+      if (mine && o.status == OrderStatus.reportReady) OrderAction.markPaid,
+      if (hasExecutor && open) OrderAction.addCandidate,
+      if (hasExecutor && selection && o.status != OrderStatus.cancelled)
+        OrderAction.editSellerPhone,
+      if (hasExecutor &&
+          (o.isInspection
+              ? o.status == OrderStatus.scheduled ||
+                    o.status == OrderStatus.inspecting
+              : open))
+        OrderAction.release,
+      if (hasExecutor &&
+          o.isInspection &&
+          o.status == OrderStatus.scheduled &&
+          o.cars.isNotEmpty)
+        OrderAction.startInspection,
+      if (hasExecutor && o.isInspection && o.status == OrderStatus.inspecting)
+        OrderAction.finishInspection,
+      if (hasExecutor && o.status == OrderStatus.paymentSent)
+        OrderAction.confirmPayment,
+    };
+    return o.copyWith(
+      actions: {...o.actions.intersection(_stateful), ...derived},
+    );
+  }
+
+  /// [actions] с [action] включённым или выключенным.
+  static Set<OrderAction> _set(
+    Set<OrderAction> actions,
+    OrderAction action,
+    bool on,
+  ) => on ? {...actions, action} : actions.difference({action});
 
   @override
   Future<Order> createOrder({
@@ -443,7 +498,6 @@ class MockOrderRepository implements OrderRepository {
       pendingPayment: fee > 0
           ? _startPayment(fee, 'inspection_placement', orderId: id)
           : null,
-      canCancel: true,
       brand: brand,
       model: model,
       yearFrom: year,
@@ -519,8 +573,7 @@ class MockOrderRepository implements OrderRepository {
         ),
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -579,8 +632,7 @@ class MockOrderRepository implements OrderRepository {
                 ),
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -590,14 +642,16 @@ class MockOrderRepository implements OrderRepository {
     final updated = order.copyWith(
       status: OrderStatus.completed,
       completedAt: now,
-      canReview: order.executor != null,
+      actions: _set(
+        _set(order.actions, OrderAction.review, order.executor != null),
+        OrderAction.reportPurchase,
+        false,
+      ),
       cars: _withPurchase(order.cars, carId),
       clearPurchaseReport: true,
-      canReportPurchase: false,
       purchaseEditableUntil: now.add(const Duration(hours: 24)),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   /// Как Order::applyPurchase(): исход только у кандидатов с осмотром.
@@ -621,10 +675,9 @@ class MockOrderRepository implements OrderRepository {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(
       purchaseReport: PurchaseReport(carId: carId, reportedAt: DateTime.now()),
-      canReportPurchase: false,
+      actions: _set(order.actions, OrderAction.reportPurchase, false),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -633,18 +686,16 @@ class MockOrderRepository implements OrderRepository {
     // после «нет» сервер сутки не даёт сообщить снова
     final updated = order.copyWith(
       clearPurchaseReport: true,
-      canReportPurchase: false,
+      actions: _set(order.actions, OrderAction.reportPurchase, false),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
   Future<Order> changePurchase(int orderId, {required int carId}) async {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(cars: _withPurchase(order.cars, carId));
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -679,8 +730,7 @@ class MockOrderRepository implements OrderRepository {
               : r,
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -688,7 +738,6 @@ class MockOrderRepository implements OrderRepository {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(
       status: OrderStatus.cancelled,
-      canCancel: false,
       // как Order::cancel(): ожидающие отклики отклоняются
       responses: [
         for (final r in order.responses)
@@ -703,8 +752,7 @@ class MockOrderRepository implements OrderRepository {
               : r,
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -738,8 +786,7 @@ class MockOrderRepository implements OrderRepository {
           ),
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -976,8 +1023,7 @@ class MockOrderRepository implements OrderRepository {
         orderId: orderId,
       ),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1046,11 +1092,10 @@ class MockOrderRepository implements OrderRepository {
     final sum = (e.rating ?? 0) * e.reviewsCount + rating;
     final updated = order.copyWith(
       review: _review(rating, text),
-      canReview: false,
+      actions: _set(order.actions, OrderAction.review, false),
       executor: _withRating(e, sum, e.reviewsCount + 1),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1073,8 +1118,7 @@ class MockOrderRepository implements OrderRepository {
       ),
       executor: _withRating(e, sum, e.reviewsCount),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1129,7 +1173,6 @@ class MockOrderRepository implements OrderRepository {
     final updated = order.copyWith(
       status: OrderStatus.awaitingExecutor,
       clearExecutor: true,
-      canRelease: false,
       // подбор, как сервер: готовые отчёты остаются, начатые осмотры — нет
       cars: order.isInspection
           ? null
@@ -1149,8 +1192,7 @@ class MockOrderRepository implements OrderRepository {
               : r,
       ],
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1160,11 +1202,10 @@ class MockOrderRepository implements OrderRepository {
       status: OrderStatus.paymentSent,
       paymentSentAt: DateTime.now(),
       // как сервер: новое ожидание — спор заказчику только через сутки
-      canDispute: false,
+      actions: _set(order.actions, OrderAction.dispute, false),
       disputeAvailableAt: DateTime.now().add(const Duration(hours: 24)),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1175,11 +1216,10 @@ class MockOrderRepository implements OrderRepository {
       status: OrderStatus.completed,
       paymentConfirmedAt: now,
       completedAt: now,
-      canReview: true,
+      actions: _set(order.actions, OrderAction.review, true),
       clearPayment: true,
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
   @override
@@ -1194,12 +1234,14 @@ class MockOrderRepository implements OrderRepository {
         openedAt: DateTime.now(),
       ),
     );
-    _replace(updated);
-    return updated;
+    return _replace(updated);
   }
 
-  void _replace(Order updated) {
-    final i = _orders.indexWhere((o) => o.id == updated.id);
-    if (i != -1) _orders[i] = updated;
+  /// Сохранить заказ и отдать его с картой действий, как сервер.
+  Order _replace(Order updated) {
+    final stored = withActions(updated);
+    final i = _orders.indexWhere((o) => o.id == stored.id);
+    if (i != -1) _orders[i] = stored;
+    return stored;
   }
 }

@@ -7,6 +7,7 @@ import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
 import '../models/inspection_verdict.dart';
 import '../models/order.dart';
+import '../models/order_action.dart';
 import '../models/order_status.dart';
 import '../state/inspection_store.dart';
 import '../state/inspection_outbox.dart';
@@ -218,7 +219,9 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
     );
     await _load();
     final order = _order;
-    if (sendReport && mounted && order?.status == OrderStatus.inspecting) {
+    if (sendReport &&
+        mounted &&
+        (order?.can(OrderAction.finishInspection) ?? false)) {
       await _complete(order!);
     }
   }
@@ -391,41 +394,48 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
     final canOpen = widget.auth != null && !_busy;
 
     return switch (order.status) {
-      OrderStatus.scheduled when order.cars.isNotEmpty => [
-        BottomCta(
-          children: [
-            CtaPrimary(
-              label: 'Начать осмотр',
-              icon: Icons.play_arrow_rounded,
-              loading: _busy,
-              onPressed: () => _start(order),
-            ),
-            // отказ — по правилу с сервера (can_release)
-            if (order.canRelease)
-              CtaGhost(
-                label: 'Отказаться от заказа',
-                onPressed: _busy ? null : () => _decline(order),
-              ),
-          ],
-        ),
-      ],
-      OrderStatus.inspecting => [
-        BottomCta(
-          children: [
-            CtaPrimary(
-              label: 'Продолжить осмотр',
-              onPressed: canOpen && inspectionId != null
-                  ? () => _openInspection(inspectionId)
-                  : null,
-            ),
-            if (order.canRelease)
-              CtaGhost(
-                label: 'Отказаться от заказа',
-                onPressed: _busy ? null : () => _decline(order),
-              ),
-          ],
-        ),
-      ],
+      // кнопки — только по карте действий сервера (ревью №32)
+      OrderStatus.scheduled
+          when order.can(OrderAction.startInspection) || order.canRelease =>
+        [
+          BottomCta(
+            children: [
+              if (order.can(OrderAction.startInspection))
+                CtaPrimary(
+                  label: 'Начать осмотр',
+                  icon: Icons.play_arrow_rounded,
+                  loading: _busy,
+                  onPressed: () => _start(order),
+                ),
+              // отказ — по правилу с сервера (can_release)
+              if (order.canRelease)
+                CtaGhost(
+                  label: 'Отказаться от заказа',
+                  onPressed: _busy ? null : () => _decline(order),
+                ),
+            ],
+          ),
+        ],
+      OrderStatus.inspecting
+          when order.can(OrderAction.finishInspection) || order.canRelease =>
+        [
+          BottomCta(
+            children: [
+              if (order.can(OrderAction.finishInspection))
+                CtaPrimary(
+                  label: 'Продолжить осмотр',
+                  onPressed: canOpen && inspectionId != null
+                      ? () => _openInspection(inspectionId)
+                      : null,
+                ),
+              if (order.canRelease)
+                CtaGhost(
+                  label: 'Отказаться от заказа',
+                  onPressed: _busy ? null : () => _decline(order),
+                ),
+            ],
+          ),
+        ],
       // спор — только когда сервер открыл окно (сутки без оплаты);
       // до того срок виден в подсказке над кнопками
       OrderStatus.reportReady when order.canDispute => [
@@ -438,7 +448,7 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
           ],
         ),
       ],
-      OrderStatus.paymentSent => [
+      OrderStatus.paymentSent when order.can(OrderAction.confirmPayment) => [
         BottomCta(
           children: [
             CtaPrimary(

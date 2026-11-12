@@ -13,6 +13,7 @@ import 'time_slot.dart';
 import 'user_summary.dart';
 import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
+import 'order_action.dart';
 
 /// Почему разовый осмотр ждёт решения заказчика: исполнитель сорвал день
 /// осмотра или день прошёл, а исполнитель так и не выбран.
@@ -59,9 +60,8 @@ class Order {
     this.selectionClosedAt,
     this.cancelledAt,
     this.review,
-    this.canReview = false,
-    this.canCancel = false,
-    this.canDispute = false,
+    this.actions = const {},
+    this.viewerRole,
     this.disputeAvailableAt,
     this.executorDeadlineAt,
     this.decisionReason,
@@ -73,9 +73,7 @@ class Order {
     this.placementFee,
     this.pendingPayment,
     this.purchaseReport,
-    this.canReportPurchase = false,
     this.purchaseEditableUntil,
-    this.canRelease = false,
     this.closeReason,
     this.closesAt,
   });
@@ -217,19 +215,24 @@ class Order {
   /// остальных списках их нет, и это читается как «нет отзыва, нельзя».
   final Review? review;
 
-  /// Сервер разрешает оставить отзыв прямо сейчас (заказчик, completed,
-  /// отзыва нет, 30 дней не прошли). Локально не вычисляем.
-  final bool canReview;
+  /// Что зритель может сделать прямо сейчас (`actions`, ревью №32): кнопки
+  /// действий рисуются только по ним, правило — у сервера
+  /// (`App\Orders\OrderActions`), локально не вычисляем.
+  final Set<OrderAction> actions;
 
-  /// Сервер разрешает заказчику отменить заказ (сейчас — до выбора
-  /// исполнителя, с оплатой заказа — до оплаты). Локально не вычисляем:
-  /// правило меняется на бекенде без новой сборки.
-  final bool canCancel;
+  bool can(OrderAction action) => actions.contains(action);
 
-  /// Сервер разрешает открыть спор прямо сейчас. Правило окна — только на
-  /// бекенде (Order::disputeAvailableAt): исполнителю — через сутки без
-  /// оплаты, заказчику — через сутки без подтверждения. Локально не считаем.
-  final bool canDispute;
+  /// Кто смотрит (`viewer_role`, ревью №31); null — не сторона или мок.
+  final ViewerRole? viewerRole;
+
+  /// Оставить отзыв (заказчик, completed, отзыва нет, окно не прошло).
+  bool get canReview => can(OrderAction.review);
+
+  /// Отменить заказ (заказчик, до выбора исполнителя или до оплаты).
+  bool get canCancel => can(OrderAction.cancel);
+
+  /// Открыть спор: окно — только на бекенде (Order::disputeAvailableAt).
+  bool get canDispute => can(OrderAction.dispute);
 
   /// С какого момента зрителю откроется спор; null — в этом статусе не
   /// откроется вовсе. По нему подсказка «сможете открыть спор …».
@@ -268,18 +271,15 @@ class Order {
   /// заказчика. Видят обе стороны; null — сообщения нет.
   final PurchaseReport? purchaseReport;
 
-  /// Сервер разрешает исполнителю сообщить о покупке прямо сейчас
-  /// (Order::canReportPurchase: идущий подбор, есть кандидат с вердиктом,
-  /// ответа не ждём, после «нет» прошли сутки). Локально не вычисляем.
-  final bool canReportPurchase;
+  /// Исполнитель может сообщить о покупке (Order::canReportPurchase).
+  bool get canReportPurchase => can(OrderAction.reportPurchase);
 
   /// До какого момента заказчик может выбрать другую купленную машину;
   /// null — уже нельзя (окно с сервера, сутки после закрытия).
   final DateTime? purchaseEditableUntil;
 
-  /// Исполнитель может отказаться от заказа сейчас (Order::canBeReleasedBy:
-  /// разовый — до отчёта, подбор — пока идёт). Локально не вычисляем.
-  final bool canRelease;
+  /// Исполнитель может отказаться (Order::canBeReleasedBy).
+  bool get canRelease => can(OrderAction.release);
 
   /// Почему подбор закрыт без покупки (статус closed); null — не закрыт.
   final SelectionCloseReason? closeReason;
@@ -373,9 +373,7 @@ class Order {
     int? responsesCount,
     List<OrderCar>? cars,
     Review? review,
-    bool? canReview,
-    bool? canCancel,
-    bool? canDispute,
+    Set<OrderAction>? actions,
     DateTime? disputeAvailableAt,
     bool clearDisputeWindow = false,
     DateTime? executorDeadlineAt,
@@ -403,9 +401,7 @@ class Order {
     PurchaseReport? purchaseReport,
     // заказчик ответил на сообщение о покупке или закрыл подбор
     bool clearPurchaseReport = false,
-    bool? canReportPurchase,
     DateTime? purchaseEditableUntil,
-    bool? canRelease,
   }) => Order(
     id: id,
     kind: kind,
@@ -447,9 +443,10 @@ class Order {
     selectionClosedAt: selectionClosedAt,
     cancelledAt: cancelledAt ?? this.cancelledAt,
     review: review ?? this.review,
-    canReview: canReview ?? this.canReview,
-    canCancel: canCancel ?? this.canCancel,
-    canDispute: clearDisputeWindow ? false : (canDispute ?? this.canDispute),
+    actions: clearDisputeWindow
+        ? {...(actions ?? this.actions)}.difference({OrderAction.dispute})
+        : (actions ?? this.actions),
+    viewerRole: viewerRole,
     disputeAvailableAt: clearDisputeWindow
         ? null
         : (disputeAvailableAt ?? this.disputeAvailableAt),
@@ -469,9 +466,7 @@ class Order {
     purchaseReport: clearPurchaseReport
         ? null
         : (purchaseReport ?? this.purchaseReport),
-    canReportPurchase: canReportPurchase ?? this.canReportPurchase,
     purchaseEditableUntil: purchaseEditableUntil ?? this.purchaseEditableUntil,
-    canRelease: canRelease ?? this.canRelease,
     closeReason: closeReason,
     closesAt: closesAt,
   );
@@ -531,9 +526,8 @@ class Order {
     review: json['review'] != null
         ? Review.fromJson(json['review'] as Map<String, dynamic>)
         : null,
-    canReview: json['can_review'] as bool? ?? false,
-    canCancel: json['can_cancel'] as bool? ?? false,
-    canDispute: json['can_dispute'] as bool? ?? false,
+    actions: orderActionsFromApi(json['actions']),
+    viewerRole: viewerRoleFromApi(json['viewer_role']),
     disputeAvailableAt: _date(json['dispute_available_at']),
     executorDeadlineAt: _date(json['executor_deadline_at']),
     decisionReason: switch (json['decision_reason']) {
@@ -561,9 +555,7 @@ class Order {
             json['purchase_report'] as Map<String, dynamic>,
           )
         : null,
-    canReportPurchase: json['can_report_purchase'] as bool? ?? false,
     purchaseEditableUntil: _date(json['purchase_editable_until']),
-    canRelease: json['can_release'] as bool? ?? false,
     closeReason: selectionCloseReasonFromApi(json['close_reason'] as String?),
     closesAt: _date(json['closes_at']),
   );

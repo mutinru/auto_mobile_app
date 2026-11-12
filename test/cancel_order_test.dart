@@ -5,6 +5,7 @@ import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_action.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order_response.dart';
 import 'package:auto_podbor_mobile/models/order_response_status.dart';
@@ -84,17 +85,34 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  test('can_cancel: без ключа — нельзя', () {
-    Map<String, dynamic> json(Object? flag) => {
+  test('actions и viewer_role: без ключа — нельзя, незнакомое — мимо', () {
+    Map<String, dynamic> json(Object? actions, [Object? role]) => {
       'id': 1,
       'status': 'awaiting_executor',
       'brand': 'Kia',
       'model': 'Rio',
       'customer': {'id': 1, 'name': 'А'},
-      'can_cancel': ?flag,
+      'actions': ?actions,
+      'viewer_role': ?role,
     };
     expect(Order.fromJson(json(null)).canCancel, isFalse);
-    expect(Order.fromJson(json(true)).canCancel, isTrue);
+    expect(Order.fromJson(json(null)).actions, isEmpty);
+    expect(Order.fromJson(json(null)).viewerRole, isNull);
+
+    final order = Order.fromJson(
+      json({
+        'cancel': true,
+        'repost': false,
+        'from_the_future': true,
+      }, 'customer'),
+    );
+    expect(order.canCancel, isTrue);
+    expect(order.actions, {OrderAction.cancel});
+    expect(order.viewerRole, ViewerRole.customer);
+    expect(
+      Order.fromJson(json([], 'executor')).viewerRole,
+      ViewerRole.executor,
+    );
   });
 
   testWidgets('подбор до выбора исполнителя отменяется', (tester) async {

@@ -11,6 +11,7 @@ import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
 import '../models/order.dart';
+import '../models/order_action.dart';
 import '../models/order_car.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
@@ -138,13 +139,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     _loadLibrary(order);
   }
 
-  /// Заводить кандидатов может только назначенный исполнитель идущего
-  /// подбора: заказчику сервер ответит 403, в закрытый подбор — 422.
+  /// Заказчик ли смотрит (ревью №31): роль — из загруженного заказа
+  /// (`viewer_role`), параметр экрана — только подсказка до загрузки и для
+  /// мока, где роли нет.
+  bool get _viewerIsCustomer => switch (_order?.viewerRole) {
+    ViewerRole.customer => true,
+    ViewerRole.executor => false,
+    null => widget.viewerIsCustomer,
+  };
+
+  /// Заводить кандидатов (и брать из библиотеки) — по правилу сервера
+  /// (`actions.add_candidate`): назначенный исполнитель идущего подбора.
   bool _canAddCandidates(Order order) =>
-      widget.auth?.user != null &&
-      order.executor?.id == widget.auth!.user!.id &&
-      (order.status == OrderStatus.sourcing ||
-          order.status == OrderStatus.inspecting);
+      !_viewerIsCustomer && order.can(OrderAction.addCandidate);
 
   /// Библиотека осмотров — тихо, без спиннера: сбой лишь прячет кнопку.
   /// Что в неё попадает, решает сервер — список не фильтруем.
@@ -283,10 +290,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   /// Смотрит назначенный подборщик — ему телефон продавца и его правка.
-  bool _isAssignedExecutor(Order order) =>
+  bool _isAssignedExecutor(Order order) => switch (order.viewerRole) {
+    ViewerRole.executor => true,
+    ViewerRole.customer => false,
+    null =>
       !widget.viewerIsCustomer &&
-      widget.auth?.user != null &&
-      order.executor?.id == widget.auth!.user!.id;
+          widget.auth?.user != null &&
+          order.executor?.id == widget.auth!.user!.id,
+  };
 
   /// Телефон продавца кандидата: машина — из ответа сервера.
   Future<void> _editSellerPhone(Order order, OrderCar car) async {
@@ -455,7 +466,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     }
     final car = order.cars.where((c) => c.id == report.carId).firstOrNull;
     final title = car?.title ?? 'машины';
-    if (!widget.viewerIsCustomer) {
+    if (!_viewerIsCustomer) {
       return [
         const SizedBox(height: 22),
         StatusNote(text: 'Ждём подтверждения заказчика: $title.'),
@@ -471,20 +482,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             'оценить подборщика.',
       ),
       const SizedBox(height: 10),
-      CtaPrimary(
-        label: 'Да, купил',
-        icon: Icons.check,
-        loading: _completing,
-        onPressed: _purchaseBusy
-            ? null
-            : () => _completePurchase(order, reported: report.carId),
-      ),
-      CtaGhost(
-        label: 'Нет, не покупал',
-        onPressed: _purchaseBusy || _completing
-            ? null
-            : () => _declinePurchaseReport(order, car),
-      ),
+      if (order.can(OrderAction.complete))
+        CtaPrimary(
+          label: 'Да, купил',
+          icon: Icons.check,
+          loading: _completing,
+          onPressed: _purchaseBusy
+              ? null
+              : () => _completePurchase(order, reported: report.carId),
+        ),
+      if (order.can(OrderAction.declinePurchaseReport))
+        CtaGhost(
+          label: 'Нет, не покупал',
+          onPressed: _purchaseBusy || _completing
+              ? null
+              : () => _declinePurchaseReport(order, car),
+        ),
     ];
   }
 
@@ -493,14 +506,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   bool _hasPurchaseChoice(Order order) =>
       order.cars.where((c) => c.inspectionId != null).length > 1;
 
-  /// Те же условия, что у OrderController::complete на бекенде: заказчик,
-  /// подбор в работе и хотя бы один кандидат, чтобы было что выбрать.
+  /// Отметить покупку — по правилу сервера (`actions.complete`): заказчик,
+  /// подбор идёт, есть кандидат с осмотром.
   bool _canCompletePurchase(Order order) =>
-      widget.viewerIsCustomer &&
-      !order.isInspection &&
-      (order.status == OrderStatus.sourcing ||
-          order.status == OrderStatus.inspecting) &&
-      order.cars.isNotEmpty;
+      _viewerIsCustomer && order.can(OrderAction.complete);
 
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
   Future<void> _cancel(Order order) async {
@@ -690,10 +699,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               order: order,
               onShowReviews: () => _showReviews(order, order.executor!),
               // исполнителю сервер отдаёт номер заказчика — он ниже, в «Заказчике»
-              phone: widget.viewerIsCustomer ? order.counterpartPhone : null,
+              phone: _viewerIsCustomer ? order.counterpartPhone : null,
             ),
           ],
-          if (!widget.viewerIsCustomer && order.counterpartPhone != null) ...[
+          if (!_viewerIsCustomer && order.counterpartPhone != null) ...[
             const SizedBox(height: 22),
             const SectionHead('Заказчик'),
             _CustomerBox(order: order, phone: order.counterpartPhone!),
@@ -714,9 +723,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                 // телефон продавца — заметка подборщика; заказчику сервер
                 // его не отдаёт, но и показывать незачем
                 showSellerPhone: _isAssignedExecutor(order),
-                onEditSellerPhone: order.status == OrderStatus.cancelled
-                    ? null
-                    : () => _editSellerPhone(order, car),
+                onEditSellerPhone: order.can(OrderAction.editSellerPhone)
+                    ? () => _editSellerPhone(order, car)
+                    : null,
               ),
           ],
           // при ждущем сообщении исполнителя главная кнопка — «Да, купил»
@@ -738,10 +747,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                     : () => _completePurchase(order),
               ),
           // перевыбор покупки — сутки после закрытия, окно с сервера
-          if (widget.viewerIsCustomer &&
-              order.status == OrderStatus.completed &&
-              order.purchaseEditableUntil != null &&
-              _hasPurchaseChoice(order)) ...[
+          if (_viewerIsCustomer && order.can(OrderAction.changePurchase)) ...[
             const SizedBox(height: 14),
             CtaGhost(
               label: 'Изменить покупку',
@@ -766,23 +772,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
           ],
           // заказчик купил, но не отметил — сообщает подборщик (правило с сервера)
-          if (!widget.viewerIsCustomer && order.canReportPurchase)
+          if (!_viewerIsCustomer && order.canReportPurchase)
             CtaGhost(
               label: 'Заказчик купил машину',
               onPressed: _purchaseBusy ? null : () => _reportPurchase(order),
             ),
           // выход из подбора — только по правилу с сервера (can_release)
-          if (!widget.viewerIsCustomer && order.canRelease)
+          if (!_viewerIsCustomer && order.canRelease)
             CtaGhost(
               label: 'Отказаться от подбора',
               onPressed: _releasing ? null : () => _release(order),
             ),
           OrderReviewSection(
             order: order,
-            viewerIsCustomer: widget.viewerIsCustomer,
+            viewerIsCustomer: _viewerIsCustomer,
             onWrite: () => _writeReview(order),
           ),
-          if (widget.viewerIsCustomer && order.responses.isNotEmpty) ...[
+          if (_viewerIsCustomer && order.responses.isNotEmpty) ...[
             const SizedBox(height: 22),
             SectionHead('Отклики', extra: '${order.responses.length}'),
             if (order.status == OrderStatus.awaitingExecutor &&
@@ -806,13 +812,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ResponseCard(
                 response: r,
                 askingPrice: order.askingPrice,
-                onAccept: r.status == OrderResponseStatus.pending
+                onAccept:
+                    r.status == OrderResponseStatus.pending &&
+                        order.can(OrderAction.acceptResponse)
                     ? () => _accept(r.id)
                     : null,
                 onShowReviews: () => _showReviews(order, r.executor),
               ),
           ],
-          if (widget.viewerIsCustomer && order.canCancel) ...[
+          if (_viewerIsCustomer && order.canCancel) ...[
             const SizedBox(height: 14),
             CtaGhost(
               label: 'Отменить заказ',

@@ -72,7 +72,8 @@ class _LostAnswerRepository extends MockOrderRepository {
   Order order;
 
   @override
-  Future<Order> fetchOrder(int id) async => order;
+  Future<Order> fetchOrder(int id) async =>
+      MockOrderRepository.withActions(order);
 }
 
 /// «Начать осмотр» в подборе: обязательность видна, ошибки — все сразу.

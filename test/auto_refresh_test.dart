@@ -34,13 +34,15 @@ class _ServerRepo extends MockOrderRepository {
   @override
   Future<Order> fetchOrder(int id) async {
     fetches++;
-    return server;
+    return MockOrderRepository.withActions(server);
   }
 
   @override
   Future<Order> markPaymentSent(int orderId) async {
     await holdPayment?.future;
-    return server = server.copyWith(status: OrderStatus.paymentSent);
+    return server = MockOrderRepository.withActions(
+      server.copyWith(status: OrderStatus.paymentSent),
+    );
   }
 }
 

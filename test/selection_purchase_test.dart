@@ -8,6 +8,7 @@ import 'package:auto_podbor_mobile/models/inspection_outcome.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_action.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
@@ -71,7 +72,7 @@ void main() {
     price: 15000,
     cars: cars,
     purchaseReport: report,
-    canReportPurchase: canReport,
+    actions: {if (canReport) OrderAction.reportPurchase},
     purchaseEditableUntil: editableUntil,
   );
 
@@ -329,7 +330,10 @@ void main() {
   ) async {
     await pump(
       tester,
-      selection(report: PurchaseReport(carId: rio.id), cars: const [rio]),
+      selection(
+        report: PurchaseReport(carId: rio.id),
+        cars: const [rio],
+      ),
     );
     expect(find.text('Да, купил'), findsOneWidget);
     expect(find.text('Купил другую машину'), findsNothing);

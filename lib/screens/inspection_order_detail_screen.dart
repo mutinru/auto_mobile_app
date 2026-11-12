@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
 import '../models/order.dart';
+import '../models/order_action.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
 import '../payments/payment_flow.dart';
@@ -62,6 +63,14 @@ class _InspectionOrderDetailScreenState
     extends State<InspectionOrderDetailScreen>
     with AutoRefresh<InspectionOrderDetailScreen> {
   Order? _order;
+
+  /// Заказчик ли смотрит (ревью №31): роль — из загруженного заказа,
+  /// параметр экрана — подсказка до загрузки и для мока.
+  bool get _viewerIsCustomer => switch (_order?.viewerRole) {
+    ViewerRole.customer => true,
+    ViewerRole.executor => false,
+    null => widget.viewerIsCustomer,
+  };
   bool _loading = true;
   String? _error;
   bool _accepting = false;
@@ -277,22 +286,23 @@ class _InspectionOrderDetailScreenState
 
   /// Нижняя кнопка заказчика по статусу оплаты.
   List<Widget> _bottom(Order order) {
-    if (!widget.viewerIsCustomer) return const [];
+    if (!_viewerIsCustomer) return const [];
     return switch (order.status) {
-      OrderStatus.awaitingPlacement => [
-        BottomCta(
-          children: [
-            CtaPrimary(
-              label: order.placementFee == null
-                  ? 'Оплатить размещение'
-                  : 'Оплатить размещение · ${money(order.placementFee!)} ₽',
-              loading: _payingPlacement,
-              onPressed: () => _payPlacement(order),
-            ),
-          ],
-        ),
-      ],
-      OrderStatus.reportReady => [
+      OrderStatus.awaitingPlacement when order.can(OrderAction.payPlacement) =>
+        [
+          BottomCta(
+            children: [
+              CtaPrimary(
+                label: order.placementFee == null
+                    ? 'Оплатить размещение'
+                    : 'Оплатить размещение · ${money(order.placementFee!)} ₽',
+                loading: _payingPlacement,
+                onPressed: () => _payPlacement(order),
+              ),
+            ],
+          ),
+        ],
+      OrderStatus.reportReady when order.can(OrderAction.markPaid) => [
         BottomCta(
           children: [
             CtaPrimary(
@@ -351,8 +361,8 @@ class _InspectionOrderDetailScreenState
         .where((r) => r.status == OrderResponseStatus.pending)
         .toList();
     final canPick =
-        widget.viewerIsCustomer &&
-        order.status == OrderStatus.awaitingExecutor &&
+        _viewerIsCustomer &&
+        order.can(OrderAction.acceptResponse) &&
         !_accepting;
 
     return RefreshIndicator(
@@ -366,18 +376,17 @@ class _InspectionOrderDetailScreenState
             priceLabel: 'Ваша цена',
             price: order.askingPrice,
           ),
-          if (widget.viewerIsCustomer &&
+          if (_viewerIsCustomer &&
               (order.cars.firstOrNull?.vinMismatch ?? false))
             const VinMismatchNote(),
-          if (widget.viewerIsCustomer)
+          if (_viewerIsCustomer)
             ?mileageMismatchNoteFor(order.cars.firstOrNull),
-          if (widget.viewerIsCustomer &&
+          if (_viewerIsCustomer &&
               order.status == OrderStatus.awaitingPlacement)
             ..._placement(order),
-          if (widget.viewerIsCustomer &&
-              order.status == OrderStatus.awaitingDecision)
+          if (_viewerIsCustomer && order.status == OrderStatus.awaitingDecision)
             ..._decision(order),
-          if (widget.viewerIsCustomer && order.status.isAwaitingPayment)
+          if (_viewerIsCustomer && order.status.isAwaitingPayment)
             ..._payment(order),
           // вердикт — только когда отчёт получен; до оплаты сервер его не
           // отдаёт, проверка статуса — страховка
@@ -417,7 +426,7 @@ class _InspectionOrderDetailScreenState
           ],
           OrderReviewSection(
             order: order,
-            viewerIsCustomer: widget.viewerIsCustomer,
+            viewerIsCustomer: _viewerIsCustomer,
             onWrite: () => _writeReview(order),
           ),
           // в ожидании решения старые отклики выбрать нельзя: при повторном
@@ -426,7 +435,7 @@ class _InspectionOrderDetailScreenState
               order.status != OrderStatus.awaitingDecision) ...[
             const SizedBox(height: 22),
             // исполнителю сервер отдаёт только его собственный отклик
-            widget.viewerIsCustomer
+            _viewerIsCustomer
                 ? SectionHead('Отклики', extra: '${pending.length}')
                 : const SectionHead('Ваш отклик'),
             for (final response in pending)
@@ -450,7 +459,7 @@ class _InspectionOrderDetailScreenState
           ],
           // в конце списка, а не в нижней панели: пока заказ ждёт
           // исполнителя, главное действие — выбрать отклик
-          if (widget.viewerIsCustomer && order.canCancel) ...[
+          if (_viewerIsCustomer && order.canCancel) ...[
             const SizedBox(height: 14),
             CtaGhost(
               label: 'Отменить заказ',
@@ -491,7 +500,8 @@ class _InspectionOrderDetailScreenState
                 'Разместите заказ на другую дату или отмените его.',
     ),
     const SizedBox(height: 8),
-    CtaPrimary(label: 'Разместить заново', onPressed: () => _repost(order)),
+    if (order.can(OrderAction.repost))
+      CtaPrimary(label: 'Разместить заново', onPressed: () => _repost(order)),
   ];
 
   /// Отчёт готов, идёт оплата или спор.

@@ -684,7 +684,15 @@ class CtaPrimary extends StatelessWidget {
                     Icon(icon, size: 16),
                     const SizedBox(width: 8),
                   ],
-                  Text(label, style: context.text.ctaPrimary),
+                  // на узком телефоне (360 dp) длинная подпись с иконкой не
+                  // влезала в строку — переносится, а не вылезает за кнопку
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: context.text.ctaPrimary,
+                    ),
+                  ),
                   if (trailingIcon != null) ...[
                     const SizedBox(width: 8),
                     Icon(trailingIcon, size: 16),

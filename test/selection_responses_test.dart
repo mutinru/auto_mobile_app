@@ -97,17 +97,29 @@ void main() {
     expect(border.top.color, AppColors.light.buyEdge);
   });
 
-  testWidgets('ждущий отклик можно выбрать', (tester) async {
+  testWidgets('ждущий отклик можно выбрать, пока исполнитель не выбран', (
+    tester,
+  ) async {
+    // выбрать можно только в awaiting_executor (actions.accept_response):
+    // в идущем подборе сервер ответил бы 422 «Исполнитель уже выбран»
     await pump(
       tester,
-      selection(const [
-        OrderResponse(
-          id: 3,
-          status: OrderResponseStatus.pending,
-          proposedPrice: 15000,
-          executor: other,
-        ),
-      ]),
+      Order(
+        id: 3101,
+        status: OrderStatus.awaitingExecutor,
+        brand: 'Skoda',
+        model: 'Octavia',
+        yearFrom: 2019,
+        customer: customer,
+        responses: const [
+          OrderResponse(
+            id: 3,
+            status: OrderResponseStatus.pending,
+            proposedPrice: 15000,
+            executor: other,
+          ),
+        ],
+      ),
     );
     await tester.scrollUntilVisible(find.text('Выбрать'), 200);
     expect(find.text('Выбрать'), findsOneWidget);

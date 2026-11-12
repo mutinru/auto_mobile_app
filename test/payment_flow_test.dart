@@ -6,6 +6,7 @@ import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_action.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order_response_status.dart';
@@ -43,7 +44,7 @@ void main() {
     askingPrice: 3500,
     address: 'Москва, Профсоюзная ул., 56',
     executorDeadlineAt: deadline,
-    canDispute: canDispute,
+    actions: {if (canDispute) OrderAction.dispute},
     disputeAvailableAt: disputeAvailableAt,
     paymentSentAt: paymentSentAt,
     payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,

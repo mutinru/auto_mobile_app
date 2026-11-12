@@ -6,6 +6,7 @@ import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
+import 'package:auto_podbor_mobile/models/order_action.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
 import 'package:auto_podbor_mobile/models/order_response.dart';
 import 'package:auto_podbor_mobile/models/order_response_status.dart';
@@ -42,7 +43,7 @@ void main() {
     inspectOn: DateTime(2026, 11, 3),
     timeSlot: TimeSlot.day,
     askingPrice: 3500,
-    canCancel: true,
+    actions: const {OrderAction.cancel, OrderAction.repost},
     decisionReason: reason,
     responses: const [
       OrderResponse(

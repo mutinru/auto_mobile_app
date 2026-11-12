@@ -17,7 +17,7 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_status_card.dart';
 
 /// Выход из подбора (бекенд, ревью №2/№3): отказ исполнителя по
-/// can_release, автоархив (closes_at), причина закрытия, новые уведомления.
+/// actions.release, автоархив (closes_at), причина закрытия, новые уведомления.
 void main() {
   const customer = UserSummary(id: 1, name: 'Андрей С.');
   const executor = UserSummary(id: 10, name: 'Игорь В.');
@@ -57,32 +57,38 @@ void main() {
     closesAt: closesAt,
   );
 
-  test('разбор: can_release, close_reason, closes_at, новые уведомления', () {
-    final order = Order.fromJson({
-      'id': 1,
-      'kind': 'selection',
-      'status': 'closed',
-      'brand': 'Kia',
-      'model': 'Rio',
-      'customer': {'id': 1, 'name': 'Андрей'},
-      'can_release': true,
-      'close_reason': 'account_deleted',
-      'closes_at': '2026-12-20T09:00:00.000000Z',
-    });
-    expect(order.canRelease, isTrue);
-    expect(order.closeReason, SelectionCloseReason.accountDeleted);
-    expect(order.closesAt, DateTime.utc(2026, 12, 20, 9).toLocal());
-    expect(selectionCloseReasonFromApi('новая'), SelectionCloseReason.unknown);
-    expect(selectionCloseReasonFromApi(null), isNull);
+  test(
+    'разбор: actions.release, close_reason, closes_at, новые уведомления',
+    () {
+      final order = Order.fromJson({
+        'id': 1,
+        'kind': 'selection',
+        'status': 'closed',
+        'brand': 'Kia',
+        'model': 'Rio',
+        'customer': {'id': 1, 'name': 'Андрей'},
+        'actions': {'release': true},
+        'close_reason': 'account_deleted',
+        'closes_at': '2026-12-20T09:00:00.000000Z',
+      });
+      expect(order.canRelease, isTrue);
+      expect(order.closeReason, SelectionCloseReason.accountDeleted);
+      expect(order.closesAt, DateTime.utc(2026, 12, 20, 9).toLocal());
+      expect(
+        selectionCloseReasonFromApi('новая'),
+        SelectionCloseReason.unknown,
+      );
+      expect(selectionCloseReasonFromApi(null), isNull);
 
-    expect(
-      notificationTypeFromApi('selection_close_soon'),
-      NotificationType.selectionCloseSoon,
-    );
-    final closed = notificationTypeFromApi('selection_closed');
-    expect(closed, NotificationType.selectionClosed);
-    expect(closed.opensOrder, isTrue);
-  });
+      expect(
+        notificationTypeFromApi('selection_close_soon'),
+        NotificationType.selectionCloseSoon,
+      );
+      final closed = notificationTypeFromApi('selection_closed');
+      expect(closed, NotificationType.selectionClosed);
+      expect(closed.opensOrder, isTrue);
+    },
+  );
 
   testWidgets('подпись: причина закрытия и «закроется …»', (tester) async {
     Future<void> card(Order order) => tester.pumpWidget(
