@@ -104,6 +104,11 @@ README перечисляет ограничения приложения; зд�
   это ловит `test/http_transport_test.dart`. Запросы к API — через `ApiClient`
   (`get/post/patch/delete`, файлы — `multipart`); транспорт напрямую — только у
   `AuthService` (от него зависит сам клиент) и гостевой витрины.
+- **Бэкап Android выключен намеренно** (`allowBackup`, `fullBackupContent`,
+  `res/xml/data_extraction_rules.xml` — на 12+ без правил перенос
+  телефон-к-телефону идёт и при `allowBackup="false"`). Файл
+  `flutter_secure_storage` перенёсся бы без ключа из Keystore, и токен уехал
+  бы на чужое устройство. Не включай и не ослабляй правила.
 - **Номер сборки — только из Makefile** (`--build-number` = число коммитов),
   не правь `+1` в `pubspec.yaml`. Сервер сравнивает его с `min_build`;
   заголовок `X-App-Build` ставит только `HttpTransport.send`, а ответ 426

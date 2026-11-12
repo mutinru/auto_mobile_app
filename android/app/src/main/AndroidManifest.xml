@@ -12,7 +12,16 @@
     <!-- Пуши о заказах и ответах поддержки (Android 13+ спрашивает разрешение). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Бэкап и перенос данных выключены (ревью №37). Всё локальное — в
+         flutter_secure_storage: файл перенёсся бы, а ключ шифрования из
+         Keystore — нет, и чтение на новом телефоне падает. Токен сессии к
+         тому же привязан к устройству («Активные устройства»). allowBackup
+         и fullBackupContent — Android до 11; на 12+ перенос
+         телефон-к-телефону запрещают только dataExtractionRules. -->
     <application
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="БитНеБит"
         android:name=".BitNeBitApplication"
         android:icon="@mipmap/ic_launcher"
