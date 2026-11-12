@@ -11,6 +11,9 @@ const networkErrorText = 'Нет связи с сервером. Проверь�
 const unexpectedErrorText =
     'Не удалось обработать ответ сервера. Обновите приложение или повторите позже';
 
+/// Сервер отказал, но причину не написал (пустое тело, HTML-страница nginx).
+const requestFailedText = 'Не удалось выполнить запрос. Повторите позже';
+
 /// Запрос не дошёл до сервера или ответ не пришёл: обрыв, нет сети, TLS,
 /// таймаут ([HttpTransport] — 30 с, загрузки — 3 мин). Распознаём по типу:
 /// IOClient заворачивает SocketException в ClientException.
@@ -26,7 +29,7 @@ String apiErrorText(Object error) {
   if (error is ApiException) {
     return switch (error.statusCode) {
       // у 422 и 403 сервер пишет понятную причину — показываем её
-      422 || 403 => error.userMessage,
+      422 || 403 when _isReadable(error.userMessage) => error.userMessage,
       401 => 'Сессия истекла — войдите заново',
       // бекенд пишет причину по-русски («Новый код можно запросить через
       // 87 с.»); английский дефолт Laravel и пустой ответ — общей фразой
@@ -40,7 +43,9 @@ String apiErrorText(Object error) {
             ? error.userMessage
             : 'Сервис временно недоступен, попробуйте позже',
       >= 500 => 'Ошибка на сервере, попробуйте позже',
-      _ => error.userMessage,
+      // пустой ответ или HTML (nginx 413 до Laravel) — не на экран
+      _ =>
+        _isReadable(error.userMessage) ? error.userMessage : requestFailedText,
     };
   }
   if (isNetworkError(error)) return networkErrorText;
@@ -51,9 +56,11 @@ String apiErrorText(Object error) {
   return unexpectedErrorText;
 }
 
-/// Сообщение сервера, а не сырое тело ответа.
-bool _isReadable(String message) =>
-    message.isNotEmpty && !message.startsWith('{');
+/// Сообщение сервера, а не сырое тело ответа: не пустое, не JSON и не HTML.
+bool _isReadable(String message) {
+  final text = message.trimLeft();
+  return text.isNotEmpty && !text.startsWith('{') && !text.startsWith('<');
+}
 
 /// SnackBar с [apiErrorText] — стандартная реакция экрана на упавший запрос.
 void showApiError(BuildContext context, Object error) {

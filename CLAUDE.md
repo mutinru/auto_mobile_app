@@ -121,7 +121,12 @@ README перечисляет ограничения приложения; зд�
   бесконечно. Не зови `http.get/post/…`, `http.Client()` и `.send()` в обход —
   это ловит `test/http_transport_test.dart`. Запросы к API — через `ApiClient`
   (`get/post/patch/delete`, файлы — `multipart`); транспорт напрямую — только у
-  `AuthService` (от него зависит сам клиент) и гостевой витрины.
+  `AuthService` (от него зависит сам клиент) и гостевой витрины. В
+  `AuthService` — только сессия: вход по коду, `/me`, `/logout`. Правки
+  профиля (имя, аватар, номер, реквизиты, пуши, подписка, удаление аккаунта)
+  — `ProfileRepository` через `ApiClient` (ревью №40), экраны берут его
+  `ProfileRepository.of(auth)`, тесты подменяют `ProfileRepository.factory`.
+  Новый запрос профиля — туда, не в `AuthService`.
 - **Бэкап Android выключен намеренно** (`allowBackup`, `fullBackupContent`,
   `res/xml/data_extraction_rules.xml` — на 12+ без правил перенос
   телефон-к-телефону идёт и при `allowBackup="false"`). Файл
@@ -135,7 +140,7 @@ README перечисляет ограничения приложения; зд�
   Проверку prod-release (ключ, номер ≠ 1) держит `android/app/build.gradle.kts`.
 - **401 — только через `AuthService.expireSession()`.** `ApiClient` делает это
   сам (`ApiClient.failure`, в том числе у загрузок). Запрос мимо `ApiClient`
-  (только `AuthService`) обязан на 401 звать `expireSession()` — иначе
+  (только сессионные запросы `AuthService`) обязан на 401 звать `expireSession()` — иначе
   протухшая сессия снова станет тупиком. Уводит на вход корень (`_RootGateState._onAuthChanged`), не
   экран. И наоборот: **стирать сессию — только на 401**. Нет сети, таймаут или
   5xx — не повод (502 во время выкатки разлогинил бы всех).

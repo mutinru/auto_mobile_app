@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/session_repository.dart';
 import '../data/auth_service.dart';
+import '../data/profile_repository.dart';
 import '../models/current_user.dart';
 import '../models/order_status.dart';
 import '../state/order_store.dart';
@@ -45,6 +46,7 @@ class ProfileScreen extends StatefulWidget {
   });
 
   final AuthService auth;
+
   final OrderStore store;
 
   /// Статус верификации на всю сессию — общий с «Заказами рядом».
@@ -67,6 +69,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late final _profile = ProfileRepository.of(widget.auth);
+
   /// Идёт удаление аккаунта — строка не нажимается второй раз.
   bool _deleting = false;
   @override
@@ -255,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : () => showEditNameSheet(
                                 context,
                                 initial: user.name,
-                                onSave: widget.auth.updateName,
+                                onSave: _profile.updateName,
                               ),
                         child: Row(
                           children: [
@@ -267,8 +271,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               AvatarEditor(
                                 name: user.name,
                                 url: user.avatarUrl,
-                                onUpload: widget.auth.uploadAvatar,
-                                onDelete: widget.auth.deleteAvatar,
+                                onUpload: _profile.uploadAvatar,
+                                onDelete: _profile.deleteAvatar,
                               ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -437,8 +441,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : () => showChangePhoneSheet(
                                 context,
                                 currentPhone: user.phone,
-                                onRequest: widget.auth.requestPhoneChange,
-                                onConfirm: widget.auth.confirmPhoneChange,
+                                onRequest: _profile.requestPhoneChange,
+                                onConfirm: _profile.confirmPhoneChange,
                               ),
                       ),
 
@@ -468,7 +472,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: () => showPayoutSheet(
                           context,
                           initial: user?.payout,
-                          onSave: widget.auth.updatePayout,
+                          onSave: _profile.updatePayout,
                         ),
                       ),
                       // готовые отчёты по VIN, купленные при заказе осмотра

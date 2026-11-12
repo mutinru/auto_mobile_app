@@ -8,7 +8,7 @@ import 'app_ui.dart';
 import 'payout_fields.dart';
 
 /// Реквизиты для выплат из профиля. Сохранение передаётся снаружи (в
-/// приложении — AuthService.updatePayout), как у showEditNameSheet.
+/// приложении — ProfileRepository.updatePayout), как у showEditNameSheet.
 Future<void> showPayoutSheet(
   BuildContext context, {
   Payout? initial,

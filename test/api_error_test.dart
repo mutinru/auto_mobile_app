@@ -77,6 +77,21 @@ void main() {
       );
     });
 
+    test('тело без причины (HTML nginx, пустое) — общей фразой', () {
+      // 413 отвечает nginx до Laravel — разметку на экран не выводим
+      expect(
+        apiErrorText(ApiException(413, '<html><body>413</body></html>')),
+        requestFailedText,
+      );
+      expect(apiErrorText(ApiException(404, '')), requestFailedText);
+      expect(apiErrorText(ApiException(422, '{}')), requestFailedText);
+      // а понятная причина — как есть
+      expect(
+        apiErrorText(ApiException(409, '{"message":"Уже оплачено"}')),
+        'Уже оплачено',
+      );
+    });
+
     test('обрыв связи — «Нет связи», по типу исключения', () {
       for (final error in <Object>[
         http.ClientException('Connection refused'),

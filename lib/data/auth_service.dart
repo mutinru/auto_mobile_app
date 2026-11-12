@@ -3,18 +3,19 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../models/code_channel.dart';
 import '../models/current_user.dart';
-import '../models/notification_category.dart';
-import '../models/order_alerts.dart';
-import '../models/payout.dart';
 import 'api_exception.dart';
 import 'device_name.dart';
 import 'http_transport.dart';
 
+/// Сессия: вход по коду, текущий пользователь (GET /me), выход с долгом
+/// `/logout`, протухшая сессия. Профиль правит [ProfileRepository] (ревью
+/// №40) — через [ApiClient], который сам зависит отсюда; поэтому мимо
+/// клиента здесь ходят только `/me`, вход и `/logout`.
+///
 /// Хранит Sanctum-токен в защищённом хранилище платформы
 /// (Keystore на Android, Keychain на iOS), поэтому вход переживает
 /// перезапуск приложения. На вебе flutter_secure_storage кладёт значение
@@ -221,200 +222,24 @@ class AuthService extends ChangeNotifier {
     return response.statusCode;
   }
 
-  /// Сменить имя (PATCH /me). Сервер отдаёт профиль в той же форме, что
-  /// GET /me, — подменяем юзера целиком, шапка профиля обновится сама.
-  Future<void> updateName(String name) async {
-    final response = await HttpTransport.request(
-      'PATCH',
-      Uri.parse('${ApiConfig.baseUrl}/me'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode({'name': name}),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(
-        response.statusCode,
-        _extractMessage(response.body, fallback: 'Не удалось сохранить имя'),
-      );
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+  /// Профиль из ответа правки ([ProfileRepository]): сервер отдаёт его в
+  /// форме GET /me — подменяем целиком. Без сессии — ничего: ответ, пришедший
+  /// после выхода, вернул бы на экран профиль вышедшего.
+  void applyUser(CurrentUser user) {
+    if (_token == null) return;
+    _user = user;
     notifyListeners();
   }
 
-  /// Загрузить или заменить аватар (POST /me/avatar). [path] — уже
-  /// обрезанный квадрат; сервер всё равно режет центр и пережимает в
-  /// JPEG 512×512. Ответ — профиль в форме GET /me.
-  Future<void> uploadAvatar(String path) async {
-    final request =
-        http.MultipartRequest(
-            'POST',
-            Uri.parse('${ApiConfig.baseUrl}/me/avatar'),
-          )
-          ..headers['Accept'] = 'application/json'
-          ..headers['Authorization'] = 'Bearer $_token'
-          ..files.add(await http.MultipartFile.fromPath('avatar', path));
-    _applyProfile(
-      await HttpTransport.send(request),
-      fallback: 'Не удалось загрузить фото',
-    );
-  }
-
-  /// Удалить аватар (DELETE /me/avatar) — снова инициалы.
-  Future<void> deleteAvatar() async {
-    _applyProfile(
-      await HttpTransport.request(
-        'DELETE',
-        Uri.parse('${ApiConfig.baseUrl}/me/avatar'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $_token',
-        },
-      ),
-      fallback: 'Не удалось удалить фото',
-    );
-  }
-
-  /// Ответ правки профиля: профиль целиком или ошибка с текстом сервера.
-  void _applyProfile(http.Response response, {required String fallback}) {
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(
-        response.statusCode,
-        _extractMessage(response.body, fallback: fallback),
-      );
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
+  /// Сессии больше нет на сервере, и он это подтвердил — удаление аккаунта
+  /// ([ProfileRepository.deleteAccount]): токен уже отозван, поэтому без
+  /// долга `/logout`, в отличие от [logout].
+  Future<void> endSession() async {
+    _token = null;
+    _user = null;
     notifyListeners();
-  }
-
-  /// Запросить код на новый номер (POST /me/phone/request). Ответ — как у
-  /// [requestPhoneCode]; ошибка — [ApiException] с сырым телом: листу нужны
-  /// `retry_after` и текст 422.
-  Future<PhoneCodeSent> requestPhoneChange(String phone) async {
-    final response = await HttpTransport.request(
-      'POST',
-      Uri.parse('${ApiConfig.baseUrl}/me/phone/request'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode({'phone': phone}),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(response.statusCode, response.body);
-    }
-    return PhoneCodeSent.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
-  }
-
-  /// Подтвердить новый номер кодом (POST /me/phone/verify). Сервер отдаёт
-  /// профиль в форме GET /me и отзывает остальные токены — текущий живёт.
-  Future<void> confirmPhoneChange(String phone, String code) async {
-    final response = await HttpTransport.request(
-      'POST',
-      Uri.parse('${ApiConfig.baseUrl}/me/phone/verify'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode({'phone': phone, 'code': code}),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(response.statusCode, response.body);
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
-    notifyListeners();
-  }
-
-  /// Реквизиты для оплаты разового осмотра (PATCH /me/payout). Ошибку
-  /// бросаем с сырым телом: форме нужны ошибки по полям
-  /// ([ApiException.fieldErrors]).
-  Future<void> updatePayout(Payout payout) async {
-    final response = await HttpTransport.request(
-      'PATCH',
-      Uri.parse('${ApiConfig.baseUrl}/me/payout'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode(payout.toJson()),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(response.statusCode, response.body);
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
-    notifyListeners();
-  }
-
-  /// Заглушённые категории пушей (PATCH /me/notifications) — полный список.
-  Future<void> updatePushMuted(Set<NotificationCategory> muted) async {
-    final response = await HttpTransport.request(
-      'PATCH',
-      Uri.parse('${ApiConfig.baseUrl}/me/notifications'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode({
-        'push_muted': [for (final c in muted) c.apiValue],
-      }),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(
-        response.statusCode,
-        _extractMessage(
-          response.body,
-          fallback: 'Не удалось сохранить настройки',
-        ),
-      );
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
-    notifyListeners();
-  }
-
-  /// Подписка на новые заказы (PUT /me/order-alerts) — целиком.
-  Future<void> updateOrderAlerts(OrderAlerts alerts) async {
-    final response = await HttpTransport.request(
-      'PUT',
-      Uri.parse('${ApiConfig.baseUrl}/me/order-alerts'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-      body: jsonEncode(alerts.toJson()),
-    );
-    if (response.statusCode != 200) {
-      if (response.statusCode == 401) expireSession();
-      throw ApiException(
-        response.statusCode,
-        _extractMessage(
-          response.body,
-          fallback: 'Не удалось сохранить подписку',
-        ),
-      );
-    }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _user = CurrentUser.fromJson(body['data'] as Map<String, dynamic>);
-    notifyListeners();
+    // хранилище может сбоить — сессия в памяти уже стёрта
+    await _storage.delete(key: _tokenKey).catchError((_) {});
   }
 
   /// Выход. Сессия на телефоне стирается сразу, экран сети не ждёт; токен
@@ -525,53 +350,6 @@ class AuthService extends ChangeNotifier {
   Future<void> _removePendingLogout(String token) async {
     final tokens = await _readPendingLogouts();
     await _writePendingLogouts([...tokens.where((t) => t != token)]);
-  }
-
-  /// Удалить аккаунт (DELETE /me). Сервер обезличивает его, а не стирает:
-  /// закрытые заказы и отзывы остаются без имени. 204 — сессия стирается
-  /// как при выходе (токен на сервере уже отозван, `/logout` не нужен).
-  /// 422 — идут заказы или ждёт выплата: [ApiException] с текстом сервера,
-  /// пользователь остаётся вошедшим. 401 — [expireSession].
-  Future<void> deleteAccount() async {
-    final response = await HttpTransport.request(
-      'DELETE',
-      Uri.parse('${ApiConfig.baseUrl}/me'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $_token',
-      },
-    );
-    if (response.statusCode == 401) {
-      expireSession();
-    }
-    if (response.statusCode != 204 && response.statusCode != 200) {
-      throw ApiException(
-        response.statusCode,
-        _extractMessage(response.body, fallback: 'Не удалось удалить аккаунт'),
-      );
-    }
-
-    _token = null;
-    _user = null;
-    notifyListeners();
-    // хранилище может сбоить — сессия в памяти уже стёрта
-    await _storage.delete(key: _tokenKey).catchError((_) {});
-  }
-
-  /// Первая ошибка валидации, иначе `message`, иначе [fallback] — как
-  /// [ApiException.userMessage], но без сырого тела в худшем случае.
-  String _extractMessage(String body, {String fallback = 'Ошибка входа'}) {
-    try {
-      final decoded = jsonDecode(body) as Map<String, dynamic>;
-      final errors = decoded['errors'];
-      if (errors is Map && errors.isNotEmpty) {
-        final first = errors.values.first;
-        if (first is List && first.isNotEmpty) return '${first.first}';
-      }
-      return decoded['message'] as String? ?? fallback;
-    } catch (_) {
-      return fallback;
-    }
   }
 }
 

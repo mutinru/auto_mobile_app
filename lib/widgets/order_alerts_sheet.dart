@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
 import '../data/city_repository.dart';
+import '../data/profile_repository.dart';
 import '../models/order_alerts.dart';
 import '../models/order_kind.dart';
 import '../state/city_locator.dart';
@@ -56,6 +57,7 @@ class OrderAlertsSheet extends StatefulWidget {
 }
 
 class _OrderAlertsSheetState extends State<OrderAlertsSheet> {
+  late final _profile = ProfileRepository.of(widget.auth);
   late OrderAlerts _alerts = _initial();
 
   OrderAlerts _initial() {
@@ -90,7 +92,7 @@ class _OrderAlertsSheetState extends State<OrderAlertsSheet> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await widget.auth.updateOrderAlerts(_alerts);
+      await _profile.updateOrderAlerts(_alerts);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) showApiError(context, e);

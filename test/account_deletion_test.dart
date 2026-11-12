@@ -5,13 +5,18 @@ import 'package:http/testing.dart';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
+import 'package:auto_podbor_mobile/data/profile_repository.dart';
+import 'package:auto_podbor_mobile/models/current_user.dart';
 
 /// Удаление аккаунта (DELETE /me): 204 стирает сессию, отказ сервера —
 /// оставляет вошедшим с текстом причины, 401 — протухшая сессия.
 void main() {
   Future<AuthService> signedIn() async {
     FlutterSecureStorage.setMockInitialValues({'auth_token': 't'});
-    return AuthService()..debugSetToken('t');
+    // профиль уже загружен, как в приложении: ApiClient не ходит за /me
+    return AuthService()
+      ..debugSetToken('t')
+      ..debugSetUser(const CurrentUser(id: 1, name: 'Андрей', email: 'a@b.c'));
   }
 
   Future<String?> savedToken() =>
@@ -22,7 +27,7 @@ void main() {
     late http.Request sent;
 
     await http.runWithClient(
-      auth.deleteAccount,
+      ProfileRepository(auth).deleteAccount,
       () => MockClient((request) async {
         sent = request;
         return http.Response('', 204);
@@ -42,7 +47,7 @@ void main() {
 
     await expectLater(
       http.runWithClient(
-        auth.deleteAccount,
+        ProfileRepository(auth).deleteAccount,
         () => MockClient(
           (_) async => http.Response(
             '{"message":"Удалить аккаунт пока нельзя — дождитесь выплаты за выполненные заказы.","orders":[]}',
@@ -71,7 +76,7 @@ void main() {
 
     await expectLater(
       http.runWithClient(
-        auth.deleteAccount,
+        ProfileRepository(auth).deleteAccount,
         () => MockClient((_) async => http.Response('{}', 401)),
       ),
       throwsA(isA<ApiException>()),

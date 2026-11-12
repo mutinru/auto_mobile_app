@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
+import '../data/profile_repository.dart';
 import '../models/order_alerts.dart';
 import '../theme/app_colors.dart';
 import 'api_error.dart';
@@ -33,6 +34,7 @@ class OrderAlertsPrompt extends StatefulWidget {
 }
 
 class _OrderAlertsPromptState extends State<OrderAlertsPrompt> {
+  late final _profile = ProfileRepository.of(widget.auth);
   bool _saving = false;
 
   Future<void> _subscribe(OrderAlerts alerts, Set<String> missing) async {
@@ -44,7 +46,7 @@ class _OrderAlertsPromptState extends State<OrderAlertsPrompt> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _saving = true);
     try {
-      await widget.auth.updateOrderAlerts(alerts.copyWith(cities: cities));
+      await _profile.updateOrderAlerts(alerts.copyWith(cities: cities));
       messenger.showSnackBar(
         SnackBar(
           content: Text(

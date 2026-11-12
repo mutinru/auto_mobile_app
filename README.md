@@ -122,7 +122,7 @@ flutter test --run-skipped -t integration
 ```
 lib/
   config/     ApiConfig — адрес бекенда, SupportConfig — контакты поддержки
-  data/       репозитории (api_* и mock_*), ApiClient, AuthService
+  data/       репозитории (api_* и mock_*), ApiClient, AuthService (сессия), ProfileRepository (правки профиля)
   models/     доменные модели и enum'ы, зеркала PHP-энамов
   state/      OrderStore (один на сессию — OrderSession), InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
   push/       PushService, PushMessaging (обёртка над Firebase)

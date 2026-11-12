@@ -6,6 +6,7 @@ import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
+import 'package:auto_podbor_mobile/data/profile_repository.dart';
 import 'package:auto_podbor_mobile/models/nearby_filter.dart';
 import 'package:auto_podbor_mobile/models/current_user.dart';
 import 'package:auto_podbor_mobile/models/order_alerts.dart';
@@ -20,26 +21,33 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_alerts_prompt.dart';
 import 'package:auto_podbor_mobile/widgets/order_alerts_sheet.dart';
 
-/// AuthService без сети: сохранение подписки пишется в [saved] и сразу
-/// подменяет профиль — как ответ сервера.
+/// Сессия без сети; сохранённые подписки — в [saved].
 class _FakeAuth extends AuthService {
   _FakeAuth(OrderAlerts alerts) {
-    debugSetUser(_user(alerts));
+    debugSetUser(userWith(alerts));
   }
 
   final saved = <OrderAlerts>[];
 
-  static CurrentUser _user(OrderAlerts alerts) => CurrentUser(
+  static CurrentUser userWith(OrderAlerts alerts) => CurrentUser(
     id: 3,
     name: 'Игорь В.',
     email: '+79000000003',
     orderAlerts: alerts,
   );
+}
+
+/// Профиль без сети ([ProfileRepository.factory]): сохранение подписки
+/// пишется в [_FakeAuth.saved] и сразу подменяет профиль — как ответ сервера.
+class _FakeProfile extends ProfileRepository {
+  _FakeProfile(this._fake) : super(_fake);
+
+  final _FakeAuth _fake;
 
   @override
   Future<void> updateOrderAlerts(OrderAlerts alerts) async {
-    saved.add(alerts);
-    debugSetUser(_user(alerts));
+    _fake.saved.add(alerts);
+    _fake.debugSetUser(_FakeAuth.userWith(alerts));
   }
 }
 
@@ -49,6 +57,11 @@ Widget _app(Widget child) => MaterialApp(
 );
 
 void main() {
+  setUp(() {
+    ProfileRepository.factory = (auth) => _FakeProfile(auth as _FakeAuth);
+  });
+  tearDown(() => ProfileRepository.factory = ProfileRepository.new);
+
   group('OrderAlerts', () {
     test('разбор профиля и подпись', () {
       final user = CurrentUser.fromJson({

@@ -13,7 +13,7 @@ import 'phone_input.dart';
 /// Лист смены номера из профиля: номер → код на него → номер сменён. Макета
 /// нет — шаги и отсчёт те же, что на экране входа (PhoneLoginScreen).
 /// Запросы передаются снаружи (в приложении это
-/// AuthService.requestPhoneChange/confirmPhoneChange), чтобы лист можно было
+/// ProfileRepository.requestPhoneChange/confirmPhoneChange), чтобы лист можно было
 /// проверить без сети.
 Future<void> showChangePhoneSheet(
   BuildContext context, {

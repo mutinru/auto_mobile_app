@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_service.dart';
 import '../data/city_repository.dart';
+import '../data/profile_repository.dart';
 import '../models/notification_category.dart';
 import '../state/city_locator.dart';
 import '../theme/app_colors.dart';
@@ -31,6 +32,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  late final _profile = ProfileRepository.of(widget.auth);
   late Set<NotificationCategory> _muted = {...?widget.auth.user?.pushMuted};
 
   /// Переключатель меняется сразу, при ошибке — откат. Каждый запрос шлёт
@@ -41,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     enabled ? next.remove(category) : next.add(category);
     setState(() => _muted = next);
     try {
-      await widget.auth.updatePushMuted(next);
+      await _profile.updatePushMuted(next);
     } catch (e) {
       if (!mounted) return;
       setState(() => _muted = before);

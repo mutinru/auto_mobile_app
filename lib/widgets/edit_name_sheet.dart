@@ -6,7 +6,7 @@ import 'app_ui.dart';
 
 /// Лист смены имени из шапки профиля. Макета под него нет — собран из
 /// тех же кирпичей, что лист выбора вида заказа. Сохранение передаётся
-/// снаружи (в приложении это AuthService.updateName), чтобы лист можно
+/// снаружи (в приложении это ProfileRepository.updateName), чтобы лист можно
 /// было проверить без сети.
 Future<void> showEditNameSheet(
   BuildContext context, {

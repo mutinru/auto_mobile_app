@@ -17,6 +17,7 @@ import 'data/auth_service.dart';
 import 'data/car_catalog_repository.dart';
 import 'data/city_repository.dart';
 import 'data/location_service.dart';
+import 'data/profile_repository.dart';
 import 'l10n/app_locale.dart';
 import 'models/order.dart';
 import 'models/order_kind.dart';
@@ -515,10 +516,10 @@ class _RootGateState extends State<_RootGate> {
     _nav.reset();
   }
 
-  /// Удаление аккаунта: сессию стирает [AuthService.deleteAccount], дальше —
+  /// Удаление аккаунта: сессию стирает [ProfileRepository.deleteAccount], дальше —
   /// как выход. Ошибка (идут заказы) уходит в профиль, ничего не сбросив.
   Future<void> _deleteAccount() async {
-    await _auth.deleteAccount();
+    await ProfileRepository.of(_auth).deleteAccount();
     await InspectionCache.clear();
     await widget.lastSection?.clear();
     if (!mounted) return;
