@@ -10,6 +10,7 @@ import 'data/api_device_repository.dart';
 import 'data/api_notification_repository.dart';
 import 'data/api_order_repository.dart';
 import 'data/api_verification_repository.dart';
+import 'data/app_build.dart';
 import 'data/auth_service.dart';
 import 'data/car_catalog_repository.dart';
 import 'data/city_repository.dart';
@@ -31,6 +32,7 @@ import 'screens/auto_refresh.dart';
 import 'screens/order_routes.dart';
 import 'screens/phone_login_screen.dart';
 import 'screens/public_feed_screen.dart';
+import 'screens/update_required_screen.dart';
 import 'screens/profile_screen.dart';
 import 'state/city_locator.dart';
 import 'state/last_section.dart';
@@ -39,6 +41,7 @@ import 'state/notification_scope.dart';
 import 'state/notification_unread.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
+import 'state/app_update.dart';
 import 'state/support_unread.dart';
 import 'state/verification_status.dart';
 import 'theme/app_theme.dart';
@@ -55,6 +58,8 @@ Future<void> main() async {
   // сразу, вопрос о намерении не мелькает
   final lastSection = LastSection.secure();
   await lastSection.load();
+  // номер сборки — до первого запроса: его несёт каждый (X-App-Build)
+  await AppBuild.load();
   final auth = AuthService();
   // бейджи непрочитанных поддержки: одна сессия — один счётчик
   final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))
@@ -74,6 +79,9 @@ Future<void> main() async {
     support: unread,
   );
   unawaited(push.start());
+  // устаревшую сборку сервер узнаёт и по 426, но гость на первом экране
+  // может долго ничего не запрашивать — сверяемся сразу
+  unawaited(AppUpdate.checkOnStart(ApiClient(auth)));
   runApp(
     AutoPodborApp(
       theme: theme,
@@ -149,7 +157,7 @@ class AutoPodborApp extends StatelessWidget {
                 value: theme.isLight
                     ? SystemUiOverlayStyle.dark
                     : SystemUiOverlayStyle.light,
-                child: child!,
+                child: UpdateGate(child: child!),
               ),
             ),
           ),

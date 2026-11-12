@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import '../state/app_update.dart';
+import 'app_build.dart';
+
 /// Единственное место, где приложение ходит в сеть (бэклог №35): у каждого
 /// запроса есть таймаут, иначе на плохой сети спиннер висел бесконечно.
 /// Над ним — [ApiClient] (базовый адрес, токен, JSON, 401); напрямую
@@ -14,7 +17,13 @@ import 'package:http/http.dart' as http;
 ///
 /// Таймаут — `TimeoutException`; экраны показывают его как «Нет связи»
 /// (`isNetworkError` в `widgets/api_error.dart`).
+///
+/// Каждый запрос несёт номер сборки (`X-App-Build`), ответ 426 — сборка
+/// устарела — включает экран обновления ([AppUpdate]).
 abstract final class HttpTransport {
+  /// Номер сборки для сервера (`RequireAppBuild`).
+  static const buildHeader = 'X-App-Build';
+
   /// Обычный запрос: JSON туда и обратно.
   static const requestTimeout = Duration(seconds: 30);
 
@@ -31,12 +40,16 @@ abstract final class HttpTransport {
     final limit =
         timeout ??
         (request is http.MultipartRequest ? uploadTimeout : requestTimeout);
+    final build = AppBuild.number;
+    if (build != null) request.headers[buildHeader] = '$build';
     final client = http.Client();
     try {
-      return await client
+      final response = await client
           .send(request)
           .then(http.Response.fromStream)
           .timeout(limit);
+      if (response.statusCode == 426) AppUpdate.markRequired();
+      return response;
     } finally {
       client.close();
     }

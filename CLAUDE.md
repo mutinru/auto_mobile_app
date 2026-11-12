@@ -104,6 +104,12 @@ README перечисляет ограничения приложения; зд�
   это ловит `test/http_transport_test.dart`. Запросы к API — через `ApiClient`
   (`get/post/patch/delete`, файлы — `multipart`); транспорт напрямую — только у
   `AuthService` (от него зависит сам клиент) и гостевой витрины.
+- **Номер сборки — только из Makefile** (`--build-number` = число коммитов),
+  не правь `+1` в `pubspec.yaml`. Сервер сравнивает его с `min_build`;
+  заголовок `X-App-Build` ставит только `HttpTransport.send`, а ответ 426
+  там же включает `AppUpdate.required` — экран обновления (`UpdateGate` в
+  `MaterialApp.builder`) встаёт вместо навигатора и обратно не снимается.
+  Проверку prod-release (ключ, номер ≠ 1) держит `android/app/build.gradle.kts`.
 - **401 — только через `AuthService.expireSession()`.** `ApiClient` делает это
   сам (`ApiClient.failure`, в том числе у загрузок). Запрос мимо `ApiClient`
   (только `AuthService`) обязан на 401 звать `expireSession()` — иначе

@@ -16,6 +16,9 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
+# Номер сборки (+1) здесь не меняют: его задаёт `make` (--build-number =
+# число коммитов, BUILD_NUMBER в CI). +1 — только у `flutter run` без make;
+# prod-release с ним Gradle не соберёт. Сервер сравнивает номер с min_build.
 version: 1.0.0+1
 
 environment:
@@ -57,6 +60,8 @@ dependencies:
   flutter_rustore_push: ^7.5.0
   yookassa_payments_flutter: ^2.0.1
   device_info_plus: ^13.3.0
+  # номер сборки и магазин-установщик — для принудительного обновления
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:

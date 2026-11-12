@@ -12,7 +12,8 @@ plugins {
 // Релизный ключ — android/key.properties (в .gitignore; на машине разработчика
 // это ссылка на ~/keys/bitnebit/key.properties). Его SHA-256 указан в RuStore
 // для пушей: другой ключ — и пуш-токен не выдадут, а обновление не встанет.
-// Нет файла — релиз подписывается отладочным ключом, как раньше.
+// Нет файла — devRelease подписывается отладочным ключом (для эмулятора), а
+// prodRelease не собирается вовсе (проверка ниже, ревью №36).
 val keyProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) file.inputStream().use { load(it) }
@@ -90,6 +91,29 @@ android {
                 "proguard-rules.pro",
             )
         }
+    }
+}
+
+// prodRelease уходит в магазины: отладочная подпись или номер сборки 1
+// (собрали не через make, без --build-number) там — отказ или, хуже, сборка
+// у тестировщиков, которую нельзя обновить. Падаем сразу и понятно.
+// Ловим упаковку, а не любую задачу с ProdRelease в имени: в графе
+// devRelease бывает служебная preProdReleaseBuild.
+val prodReleasePackaging = Regex("^(assemble|bundle|package)ProdRelease$")
+gradle.taskGraph.whenReady {
+    if (allTasks.none { prodReleasePackaging.matches(it.name) }) return@whenReady
+    if (!hasReleaseKey) {
+        throw GradleException(
+            "prodRelease без релизного ключа: нет android/key.properties. " +
+                "Сделайте ссылку на ~/keys/bitnebit/key.properties (ключ — " +
+                "у владельца проекта); отладочным ключом prod не подписываем.",
+        )
+    }
+    if (flutter.versionCode == 1) {
+        throw GradleException(
+            "prodRelease с номером сборки 1: собирайте через make " +
+                "(make build-appbundle-prod) — он передаёт --build-number.",
+        )
     }
 }
 

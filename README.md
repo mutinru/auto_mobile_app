@@ -48,6 +48,22 @@ make test
 Без `--flavor` (тесты, `flutter run` без флага) адрес — dev; релизная сборка
 без флага — prod.
 
+Номер сборки (`versionCode` / `CFBundleVersion`) у `build-*` задаёт Makefile:
+число коммитов этого репозитория (`git rev-list --count HEAD`), в CI —
+`BUILD_NUMBER=…`. `+1` в `pubspec.yaml` не трогают. prod-release Gradle не
+соберёт без релизного ключа (`android/key.properties` — ссылка на
+`~/keys/bitnebit/key.properties`) и с номером 1 (собрали не через `make`);
+devRelease без ключа подписывается отладочным — для эмулятора.
+
+**Принудительное обновление.** Каждый запрос несёт номер сборки
+(`X-App-Build`, ставит `HttpTransport`). Сервер держит минимальную
+(`min_build` в `GET /config`, `APP_MIN_BUILD` в `.env` бекенда): старой
+сборке он отвечает 426, и `AppUpdate` (`lib/state/app_update.dart`) вместо
+всего приложения показывает «Обновите приложение»
+(`UpdateRequiredScreen`) — со ссылкой в магазин, откуда поставили
+(`installerStore`: Google Play или RuStore; APK вручную — оба). При запуске
+`AppUpdate.checkOnStart` сверяется с `/config` сразу, не дожидаясь запроса.
+
 iOS: минимум **15.5** — этого требует ML Kit (скан VIN). Версию держат
 `ios/Runner.xcodeproj/project.pbxproj` и `ios/Podfile`; в Podfile перечислены
 flavor-конфигурации `DebugDev`/`DebugProd`/`ReleaseDev`/`ReleaseProd`. Поды
