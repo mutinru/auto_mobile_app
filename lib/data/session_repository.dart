@@ -1,5 +1,6 @@
 import '../models/session.dart';
 import 'api_client.dart';
+import 'json_list.dart';
 
 /// «Активные устройства»: где пользователь вошёл, и выход на чужом
 /// устройстве. Сервер вместе с сессией удаляет её пуш-устройство.
@@ -21,9 +22,7 @@ class ApiSessionRepository implements SessionRepository {
   @override
   Future<List<Session>> fetchSessions() async {
     final json = await _client.get('/me/sessions');
-    return (json['data'] as List)
-        .map((s) => Session.fromJson(s as Map<String, dynamic>))
-        .toList();
+    return parseList(json['data'], Session.fromJson, what: 'сессия');
   }
 
   @override

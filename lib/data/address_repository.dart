@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import 'json_list.dart';
 
 /// Подсказка адреса: [value] — без города (его выбирают отдельно),
 /// [unrestrictedValue] — полный адрес, по нему [AddressRepository.resolve]
@@ -65,9 +66,9 @@ class ApiAddressRepository implements AddressRepository {
         '/addresses/suggest?q=${Uri.encodeQueryComponent(q)}'
         '${cityId == null ? '' : '&city_id=${Uri.encodeQueryComponent(cityId)}'}',
       );
-      final list = (json['data'] as List)
-          .map((e) => AddressSuggestion.fromJson(e as Map<String, dynamic>))
-          .toList(growable: false);
+      final list = List<AddressSuggestion>.unmodifiable(
+        parseList(json['data'], AddressSuggestion.fromJson, what: 'адрес'),
+      );
       // пустой ответ может значить «кончился лимит» — его не запоминаем
       if (list.isNotEmpty) _suggest[key] = list;
       return list;

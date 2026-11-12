@@ -5,6 +5,7 @@ import '../models/feed_card.dart';
 import '../models/public_order.dart';
 import 'api_exception.dart';
 import 'http_transport.dart';
+import 'json_list.dart';
 
 /// Витрина доступна без входа, поэтому ходит мимо ApiClient — прямо
 /// транспортом (с его таймаутом); токена здесь нет по замыслу.
@@ -20,9 +21,7 @@ class PublicFeedRepository {
     }
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final stats = FeedStats.fromJson(body['stats'] as Map<String, dynamic>);
-    final cards = (body['data'] as List)
-        .map((c) => FeedCard.fromJson(c as Map<String, dynamic>))
-        .toList();
+    final cards = parseList(body['data'], FeedCard.fromJson, what: 'карточка');
     return (stats, cards);
   }
 

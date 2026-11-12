@@ -17,6 +17,7 @@ import '../models/vin_report.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
 import 'photo_upload.dart';
+import 'json_list.dart';
 
 class ApiOrderRepository implements OrderRepository {
   ApiOrderRepository(this._client);
@@ -325,9 +326,7 @@ class ApiOrderRepository implements OrderRepository {
     final json = await _client.get('/users/$userId/reviews?page=$page');
     final meta = json['meta'] as Map<String, dynamic>? ?? const {};
     return ReviewPage(
-      items: (json['data'] as List)
-          .map((r) => Review.fromJson(r as Map<String, dynamic>))
-          .toList(),
+      items: parseList(json['data'], Review.fromJson, what: 'отзыв'),
       hasMore:
           (meta['current_page'] as int? ?? 1) <
           (meta['last_page'] as int? ?? 1),
@@ -446,10 +445,11 @@ class ApiOrderRepository implements OrderRepository {
   @override
   Future<List<VinReportPurchase>> fetchVinReportPurchases() async {
     final json = await _client.get('/vin-reports/purchases');
-    return [
-      for (final p in json['data'] as List)
-        VinReportPurchase.fromJson(p as Map<String, dynamic>),
-    ];
+    return parseList(
+      json['data'],
+      VinReportPurchase.fromJson,
+      what: 'купленный отчёт',
+    );
   }
 
   @override
@@ -492,7 +492,7 @@ class ApiOrderRepository implements OrderRepository {
   String _ymd(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  List<Order> _parseList(Map<String, dynamic> json) => (json['data'] as List)
-      .map((o) => Order.fromJson(o as Map<String, dynamic>))
-      .toList();
+  /// Битый заказ пропускается, остальные показываются (ревью №35).
+  List<Order> _parseList(Map<String, dynamic> json) =>
+      parseList(json['data'], Order.fromJson, what: 'заказ');
 }

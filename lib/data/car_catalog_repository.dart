@@ -1,5 +1,6 @@
 import '../models/car_catalog.dart';
 import 'api_client.dart';
+import 'json_list.dart';
 
 /// Справочник марок и моделей. Две реализации, как у OrderRepository:
 /// [ApiCarCatalogRepository] поверх бекенда и MockCarCatalogRepository
@@ -29,9 +30,9 @@ class ApiCarCatalogRepository implements CarCatalogRepository {
   Future<List<CarMake>> fetchMakes() async {
     if (_makes != null) return _makes!;
     final json = await _client.get('/car-makes');
-    return _makes = (json['data'] as List)
-        .map((e) => CarMake.fromJson(e as Map<String, dynamic>))
-        .toList(growable: false);
+    return _makes = List.unmodifiable(
+      parseList(json['data'], CarMake.fromJson, what: 'марка'),
+    );
   }
 
   @override
@@ -41,9 +42,9 @@ class ApiCarCatalogRepository implements CarCatalogRepository {
     final json = await _client.get(
       '/car-makes/${Uri.encodeComponent(makeId)}/models',
     );
-    return _models[makeId] = (json['data'] as List)
-        .map((e) => CarModel.fromJson(e as Map<String, dynamic>))
-        .toList(growable: false);
+    return _models[makeId] = List.unmodifiable(
+      parseList(json['data'], CarModel.fromJson, what: 'модель'),
+    );
   }
 
   @override

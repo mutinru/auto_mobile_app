@@ -9,7 +9,7 @@ class CurrentUser {
   const CurrentUser({
     required this.id,
     required this.name,
-    required this.email,
+    this.email,
     this.phone,
     this.avatarUrl,
     this.registeredAt,
@@ -24,7 +24,8 @@ class CurrentUser {
 
   final int id;
   final String name;
-  final String email;
+  /// Почта; null — вход по телефону, почты нет.
+  final String? email;
 
   /// `+79001234567`; null — аккаунт входит по почте и номер не привязан.
   final String? phone;
@@ -85,7 +86,7 @@ class CurrentUser {
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
     id: json['id'] as int,
     name: json['name'] as String,
-    email: json['email'] as String,
+    email: json['email'] as String?,
     phone: json['phone'] as String?,
     avatarUrl: mediaUrl(json['avatar_url'] as String?),
     registeredAt: json['registered_at'] != null

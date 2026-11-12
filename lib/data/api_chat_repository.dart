@@ -5,6 +5,7 @@ import '../models/conversation.dart';
 import '../models/conversation_type.dart';
 import 'api_client.dart';
 import 'chat_repository.dart';
+import 'json_list.dart';
 
 class ApiChatRepository implements ChatRepository {
   ApiChatRepository(this._client);
@@ -30,10 +31,7 @@ class ApiChatRepository implements ChatRepository {
     final json = await _client.get(
       '/conversations/$conversationId/messages${query.isEmpty ? '' : '?$query'}',
     );
-    return [
-      for (final m in json['data'] as List)
-        ChatMessage.fromJson(m as Map<String, dynamic>),
-    ];
+    return parseList(json['data'], ChatMessage.fromJson, what: 'сообщение');
   }
 
   @override
@@ -58,8 +56,11 @@ class ApiChatRepository implements ChatRepository {
     // GET, а не POST /support/conversation — тот заводит разговор
     final json = await _client.get('/conversations');
     var total = 0;
-    for (final c in json['data'] as List) {
-      final conversation = Conversation.fromJson(c as Map<String, dynamic>);
+    for (final conversation in parseList(
+      json['data'],
+      Conversation.fromJson,
+      what: 'разговор',
+    )) {
       if (conversation.type == ConversationType.support) {
         total += conversation.unreadCount;
       }

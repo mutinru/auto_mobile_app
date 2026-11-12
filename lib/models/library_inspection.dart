@@ -1,3 +1,4 @@
+import '../data/json_list.dart';
 import 'inspection_verdict.dart';
 import 'order_car.dart';
 
@@ -52,10 +53,11 @@ class InspectionLibraryPage {
 
   factory InspectionLibraryPage.fromJson(Map<String, dynamic> json) =>
       InspectionLibraryPage(
-        items: [
-          for (final item in json['data'] as List)
-            LibraryInspection.fromJson(item as Map<String, dynamic>),
-        ],
+        items: parseList(
+          json['data'],
+          LibraryInspection.fromJson,
+          what: 'осмотр библиотеки',
+        ),
         days: json['days'] as int,
       );
 }

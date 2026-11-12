@@ -1,5 +1,6 @@
 import '../models/city.dart';
 import 'api_client.dart';
+import 'json_list.dart';
 
 /// Справочник городов. Две реализации, как у CarCatalogRepository:
 /// [ApiCityRepository] поверх бекенда и MockCityRepository для виджет-тестов.
@@ -29,9 +30,9 @@ class ApiCityRepository implements CityRepository {
     final json = await _client.get(
       q.isEmpty ? '/cities' : '/cities?q=${Uri.encodeQueryComponent(q)}',
     );
-    return _search[q] = (json['data'] as List)
-        .map((e) => City.fromJson(e as Map<String, dynamic>))
-        .toList(growable: false);
+    return _search[q] = List.unmodifiable(
+      parseList(json['data'], City.fromJson, what: 'город'),
+    );
   }
 
   @override
