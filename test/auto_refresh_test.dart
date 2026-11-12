@@ -177,14 +177,20 @@ void main() {
     expect(pill(OrderStatus.paymentSent), findsOneWidget);
   });
 
-  testWidgets('опрос раз в 30 с; после закрытия экрана — тишина', (
+  testWidgets('опрос — страховка раз в pollInterval; после закрытия — тишина', (
     tester,
   ) async {
     final repo = _ServerRepo(order(OrderStatus.paymentSent));
     await open(tester, () => customerScreen(repo));
 
     repo.server = order(OrderStatus.completed);
-    await tester.pump(AutoRefresh.pollInterval);
+    // основной сигнал — уведомление; таймер редкий (ревью №42): заказ
+    // целиком за 30 с не перечитываем
+    final opened = repo.fetches;
+    const early = Duration(seconds: 30);
+    await tester.pump(early);
+    expect(repo.fetches, opened);
+    await tester.pump(AutoRefresh.pollInterval - early);
     await tester.pump();
     expect(pill(OrderStatus.completed), findsOneWidget);
 

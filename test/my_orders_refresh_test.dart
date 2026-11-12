@@ -173,14 +173,20 @@ void main() {
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('опрос раз в 30 с; после закрытия экрана — тишина', (
+  testWidgets('опрос — страховка раз в pollInterval; после закрытия — тишина', (
     tester,
   ) async {
     final repo = _ServerRepo()..mine = [order('Solaris')];
     await open(tester, repo);
 
     repo.mine = [order('Creta')];
-    await tester.pump(AutoRefresh.pollInterval);
+    // основной сигнал — уведомление; таймер редкий (ревью №42): список
+    // целиком за 30 с не перечитываем
+    final opened = repo.fetches;
+    const early = Duration(seconds: 30);
+    await tester.pump(early);
+    expect(repo.fetches, opened);
+    await tester.pump(AutoRefresh.pollInterval - early);
     await tester.pump();
     expect(card('Creta'), findsOneWidget);
 
