@@ -1,48 +1,46 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
 import '../data/inspection_repository.dart';
-import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
-import '../models/library_inspection.dart';
 import '../models/order.dart';
 import '../models/order_action.dart';
 import '../models/order_car.dart';
-import '../models/order_response_status.dart';
-import '../models/order_status.dart';
 import '../models/user_summary.dart';
+import '../state/inspection_outbox.dart';
+import '../state/inspection_store.dart';
+import '../state/order_detail_controller.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
-import '../util/ru_date.dart';
-import '../state/inspection_store.dart';
-import '../state/inspection_outbox.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';
 import '../widgets/executor_box.dart';
 import '../widgets/library_sheet.dart';
 import '../widgets/order_review_section.dart';
-import '../widgets/order_status_card.dart';
-import '../widgets/payment_parts.dart';
-import '../widgets/phone_contact.dart';
-import '../widgets/phone_input.dart';
-import '../widgets/seller_phone_sheet.dart';
 import '../widgets/purchase_sheet.dart';
-import '../widgets/response_card.dart';
 import '../widgets/review_sheet.dart';
+import '../widgets/seller_phone_sheet.dart';
 import '../widgets/verdict_sheet.dart';
-import 'executor_reviews_screen.dart';
 import 'auto_refresh.dart';
+import 'executor_reviews_screen.dart';
 import 'inspection_overview_screen.dart';
 import 'inspection_report_screen.dart';
+import 'order_detail/candidates_section.dart';
+import 'order_detail/customer_box.dart';
+import 'order_detail/executor_actions_section.dart';
+import 'order_detail/purchase_section.dart';
+import 'order_detail/responses_section.dart';
+import 'order_detail/selection_summary.dart';
 import 'start_inspection_screen.dart';
 
+/// Карточка подбора (ревью №16): оболочка — шапка, опрос, ошибка, порядок
+/// секций и шторки. Состояние и действия — [OrderDetailController], секции —
+/// `order_detail/`. Кнопки — только по `Order.actions` с сервера.
 class OrderDetailScreen extends StatefulWidget {
   const OrderDetailScreen({
     super.key,
@@ -73,125 +71,63 @@ class OrderDetailScreen extends StatefulWidget {
 
 class _OrderDetailScreenState extends State<OrderDetailScreen>
     with AutoRefresh<OrderDetailScreen> {
-  Order? _order;
-  bool _loading = true;
-  String? _error;
-  bool _accepting = false;
-  bool _completing = false;
-  bool _cancelling = false;
-  bool _attaching = false;
+  late final _c = OrderDetailController(
+    widget.store,
+    orderId: widget.orderId,
+    viewerIsCustomerHint: widget.viewerIsCustomer,
+  )..addListener(_changed);
 
-  /// Сообщение о покупке, ответ «нет» или смена купленной машины.
-  bool _purchaseBusy = false;
-
-  /// Идёт отказ исполнителя от подбора.
-  bool _releasing = false;
-
-  /// Свои готовые осмотры подборщика для этого подбора; null — не положено
-  /// или не загрузилось (кнопки тогда нет: это не главное на экране).
-  InspectionLibraryPage? _library;
+  void _changed() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  /// Без finally любая ошибка (сеть, 500) оставляла карточку на вечном
-  /// спиннере — теперь вместо него текст и «Повторить».
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final order = await widget.store.fetchOrder(widget.orderId);
-      if (mounted) setState(() => _order = order);
-      _loadLibrary(order);
-    } catch (e) {
-      if (mounted) setState(() => _error = apiErrorText(e));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    _c.load();
   }
 
   @override
-  bool get refreshPaused =>
-      _loading ||
-      _accepting ||
-      _completing ||
-      _cancelling ||
-      _attaching ||
-      _purchaseBusy;
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  bool get refreshPaused => _c.busy;
 
   /// Тихое перечитывание (AutoRefresh): без спиннера, ошибку бросает.
   @override
-  Future<void> refresh() async {
-    final before = _order;
-    final order = await widget.store.fetchOrder(widget.orderId);
-    // пока ждали, заказ подменило действие — его ответ свежее
-    if (!mounted || refreshPaused || !identical(_order, before)) return;
-    setState(() {
-      _order = order;
-      _error = null;
-    });
-    widget.store.replaceOrder(order);
-    _loadLibrary(order);
-  }
+  Future<void> refresh() => _c.refresh();
 
-  /// Заказчик ли смотрит (ревью №31): роль — из загруженного заказа
-  /// (`viewer_role`), параметр экрана — только подсказка до загрузки и для
-  /// мока, где роли нет.
-  bool get _viewerIsCustomer => switch (_order?.viewerRole) {
-    ViewerRole.customer => true,
-    ViewerRole.executor => false,
-    null => widget.viewerIsCustomer,
-  };
-
-  /// Заводить кандидатов (и брать из библиотеки) — по правилу сервера
-  /// (`actions.add_candidate`): назначенный исполнитель идущего подбора.
-  bool _canAddCandidates(Order order) =>
-      !_viewerIsCustomer && order.can(OrderAction.addCandidate);
-
-  /// Библиотека осмотров — тихо, без спиннера: сбой лишь прячет кнопку.
-  /// Что в неё попадает, решает сервер — список не фильтруем.
-  Future<void> _loadLibrary(Order order) async {
-    if (!_canAddCandidates(order)) {
-      if (_library != null && mounted) setState(() => _library = null);
-      return;
-    }
+  /// Действие контроллера: ошибку — снекбаром, успех — [done], если задан.
+  Future<bool> _run(Future<void> Function() action, {String? done}) async {
     try {
-      final page = await widget.store.fetchInspectionLibrary(order.id);
-      if (mounted) setState(() => _library = page);
-    } catch (_) {
-      if (mounted) setState(() => _library = null);
+      await action();
+      if (done != null && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(done)));
+      }
+      return true;
+    } catch (e) {
+      if (mounted) showApiError(context, e);
+      return false;
     }
   }
 
   /// Свой готовый осмотр — кандидатом: выбор, подтверждение «ещё
   /// продаётся», запрос. Отчёт не открываем — он заморожен и исполнителю
-  /// знаком; заказ перечитываем, кандидат приходит с сервера.
-  Future<void> _attachFromLibrary(Order order) async {
-    final library = _library;
-    if (library == null || _attaching) return;
+  /// знаком.
+  Future<void> _attachFromLibrary() async {
+    final library = _c.library;
+    if (library == null || _c.attaching) return;
     final picked = await pickFromLibrary(context, library);
     if (picked == null || !mounted) return;
-    setState(() => _attaching = true);
-    try {
-      await widget.store.attachFromLibrary(order.id, picked.inspectionId);
-      await _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Кандидат добавлен')),
-        );
-      }
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-      // правило — у сервера: список мог устареть, перечитываем
-      await _loadLibrary(order);
-    } finally {
-      if (mounted) setState(() => _attaching = false);
-    }
+    await _run(
+      () => _c.attachFromLibrary(picked.inspectionId),
+      done: 'Кандидат добавлен',
+    );
   }
 
   /// Открыть осмотр кандидата можно, если есть откуда его грузить.
@@ -209,9 +145,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     final repo = _inspectionRepo(car.inspectionId!);
     // править кандидата может только исполнитель; заказчик смотрит —
     // сервер ему запись всё равно не разрешит (403)
+    final order = _c.order;
     final isExecutor =
-        _order?.executor != null &&
-        _order!.executor!.id == widget.auth?.user?.id;
+        order?.executor != null && order!.executor!.id == widget.auth?.user?.id;
     // осмотренный кандидат — отчёт, а не рабочая схема, и у заказчика, и
     // у исполнителя: после вердикта отчёт заморожен (сервер правку не
     // примет), итог с комментарием, балл, VIN, пробег по одометру
@@ -253,9 +189,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         ),
       ),
     );
-    await _load();
-    if (finish && mounted && _order != null) {
-      await _finishCandidate(_order!, car);
+    await _c.load();
+    if (finish && mounted && _c.order != null) {
+      await _finishCandidate(_c.order!, car);
     }
   }
 
@@ -276,17 +212,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       ),
     );
     if (result == null || !mounted) return;
-    try {
-      final updated = await widget.store.completeCandidate(
-        order.id,
-        car.id,
-        verdict: result.$1,
-        comment: result.$2,
-      );
-      if (mounted) setState(() => _order = updated);
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    }
+    await _run(() => _c.completeCandidate(car, result.$1, result.$2));
   }
 
   /// Смотрит назначенный подборщик — ему телефон продавца и его правка.
@@ -307,13 +233,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       onSave: (phone) =>
           widget.store.updateCarSellerPhone(order.id, car.id, phone),
     );
-    if (updated == null || !mounted) return;
-    final current = _order ?? order;
-    final next = current.copyWith(
-      cars: [for (final c in current.cars) c.id == updated.id ? updated : c],
-    );
-    setState(() => _order = next);
-    widget.store.replaceOrder(next);
+    if (updated != null && mounted) _c.applyCar(updated);
   }
 
   /// Новый кандидат приходит с начатым осмотром — открываем его сразу,
@@ -334,59 +254,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       await refresh().catchError((_) {});
       return;
     }
-    await _load();
+    await _c.load();
     if (mounted && widget.auth != null && car.inspectionId != null) {
       await _openInspection(car);
     }
   }
 
-  Future<void> _accept(int responseId) async {
-    if (_accepting) return;
-    setState(() => _accepting = true);
-    try {
-      await widget.store.acceptResponse(widget.orderId, responseId);
-      await _load();
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _accepting = false);
-    }
-  }
-
-  /// Покупка закрывает подбор; заказ — из ответа сервера, и в нём сразу
-  /// can_review, так что блок отзыва появится без перезагрузки. С [reported]
-  /// — «Да» на сообщение исполнителя: машина уже выбрана, листа нет.
+  /// Покупка закрывает подбор. С [reported] — «Да» на сообщение
+  /// исполнителя: машина уже выбрана, листа нет.
   Future<void> _completePurchase(Order order, {int? reported}) async {
     final carId = reported ?? await showPurchaseSheet(context, order: order);
     if (carId == null || !mounted) return;
-    setState(() => _completing = true);
-    try {
-      final updated = await widget.store.completeSelection(
-        order.id,
-        carId: carId,
-      );
-      if (mounted) setState(() => _order = updated);
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _completing = false);
-    }
+    await _run(() => _c.completePurchase(carId));
   }
 
-  /// Исполнитель: «заказчик купил эту машину». Заказ не закрывается —
-  /// ждём ответа заказчика (purchaseReport в ответе сервера).
+  /// Исполнитель: «заказчик купил эту машину».
   Future<void> _reportPurchase(Order order) async {
     final carId = await showReportPurchaseSheet(context, order: order);
     if (carId == null || !mounted) return;
-    await _purchaseAction(
-      () => widget.store.reportPurchase(order.id, carId: carId),
+    await _run(
+      () => _c.reportPurchase(carId),
       done: 'Заказчик получит уведомление',
     );
   }
 
   /// Исполнитель отказывается от подбора (правило — Order.canRelease с
   /// сервера). Срывом не считается; заказ уходит в ленту — экран закрываем.
-  Future<void> _release(Order order) async {
+  Future<void> _release() async {
     final ok = await showConfirmSheet(
       context,
       title: 'Отказаться от подбора?',
@@ -398,19 +292,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     );
     if (!ok || !mounted) return;
     final navigator = Navigator.of(context);
-    setState(() => _releasing = true);
-    try {
-      await widget.store.declineOrder(order.id);
-      if (mounted) navigator.pop();
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _releasing = false);
-    }
+    if (await _run(_c.release) && mounted) navigator.pop();
   }
 
   /// Заказчик: «нет, не покупал» на сообщение исполнителя.
-  Future<void> _declinePurchaseReport(Order order, OrderCar? car) async {
+  Future<void> _declinePurchaseReport(OrderCar? car) async {
     final ok = await showConfirmSheet(
       context,
       title: 'Не покупали ${car?.title ?? 'эту машину'}?',
@@ -420,99 +306,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       confirmLabel: 'Нет, не покупал',
     );
     if (!ok || !mounted) return;
-    await _purchaseAction(() => widget.store.declinePurchaseReport(order.id));
+    await _run(_c.declinePurchaseReport);
   }
 
   /// Заказчик ошибся с купленной машиной — пока сервер пускает.
   Future<void> _changePurchase(Order order) async {
     final carId = await showChangePurchaseSheet(context, order: order);
     if (carId == null || !mounted) return;
-    await _purchaseAction(
-      () => widget.store.changePurchase(order.id, carId: carId),
-      done: 'Покупка изменена',
-    );
+    await _run(() => _c.changePurchase(carId), done: 'Покупка изменена');
   }
-
-  Future<void> _purchaseAction(
-    Future<Order> Function() action, {
-    String? done,
-  }) async {
-    setState(() => _purchaseBusy = true);
-    try {
-      final updated = await action();
-      if (!mounted) return;
-      setState(() => _order = updated);
-      if (done != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(done)));
-      }
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _purchaseBusy = false);
-    }
-  }
-
-  /// Сообщение исполнителя о покупке, пока подбор идёт: заказчику — вопрос
-  /// с «Да»/«Нет», исполнителю — «ждём подтверждения».
-  List<Widget> _purchaseReport(Order order) {
-    final report = order.purchaseReport;
-    if (report == null ||
-        order.isInspection ||
-        (order.status != OrderStatus.sourcing &&
-            order.status != OrderStatus.inspecting)) {
-      return const [];
-    }
-    final car = order.cars.where((c) => c.id == report.carId).firstOrNull;
-    final title = car?.title ?? 'машины';
-    if (!_viewerIsCustomer) {
-      return [
-        const SizedBox(height: 22),
-        StatusNote(text: 'Ждём подтверждения заказчика: $title.'),
-      ];
-    }
-    final executor = order.executor?.name ?? 'Подборщик';
-    return [
-      const SizedBox(height: 22),
-      StatusNote(
-        icon: Icons.key_outlined,
-        text:
-            '$executor отметил покупку $title. Подтвердите — и сможете '
-            'оценить подборщика.',
-      ),
-      const SizedBox(height: 10),
-      if (order.can(OrderAction.complete))
-        CtaPrimary(
-          label: 'Да, купил',
-          icon: Icons.check,
-          loading: _completing,
-          onPressed: _purchaseBusy
-              ? null
-              : () => _completePurchase(order, reported: report.carId),
-        ),
-      if (order.can(OrderAction.declinePurchaseReport))
-        CtaGhost(
-          label: 'Нет, не покупал',
-          onPressed: _purchaseBusy || _completing
-              ? null
-              : () => _declinePurchaseReport(order, car),
-        ),
-    ];
-  }
-
-  /// Есть из чего выбрать другую купленную: кандидатов с осмотром больше
-  /// одного (без осмотра покупку не отметить — сервер ответит 422).
-  bool _hasPurchaseChoice(Order order) =>
-      order.cars.where((c) => c.inspectionId != null).length > 1;
-
-  /// Отметить покупку — по правилу сервера (`actions.complete`): заказчик,
-  /// подбор идёт, есть кандидат с осмотром.
-  bool _canCompletePurchase(Order order) =>
-      _viewerIsCustomer && order.can(OrderAction.complete);
 
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
-  Future<void> _cancel(Order order) async {
+  Future<void> _cancel() async {
     final ok = await showConfirmSheet(
       context,
       title: 'Отменить заказ?',
@@ -521,45 +326,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
       cancelLabel: 'Не отменять',
     );
     if (!ok || !mounted) return;
-    setState(() => _cancelling = true);
-    try {
-      final updated = await widget.store.cancelOrder(order.id);
-      if (mounted) setState(() => _order = updated);
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _cancelling = false);
-    }
+    await _run(_c.cancel);
   }
 
   /// Новый отзыв или правка; заказ — из ответа сервера, как и рейтинг.
-  Future<void> _writeReview(Order order) {
-    return showReviewSheet(
-      context,
-      order: order,
-      initial: order.review,
-      onSubmit: (rating, text) async {
-        final updated = order.review == null
-            ? await widget.store.leaveReview(
-                order.id,
-                rating: rating,
-                text: text,
-              )
-            : await widget.store.updateReview(
-                order.id,
-                rating: rating,
-                text: text,
-              );
-        if (mounted) setState(() => _order = updated);
-      },
-    );
-  }
+  Future<void> _writeReview(Order order) => showReviewSheet(
+    context,
+    order: order,
+    initial: order.review,
+    onSubmit: (rating, text) => _c.submitReview(order, rating, text),
+  );
 
-  void _showReviews(Order order, UserSummary executor) =>
+  void _showReviews(UserSummary executor) =>
       openExecutorReviews(context, widget.store.reviews, executor);
 
   @override
   Widget build(BuildContext context) {
+    final order = _c.order;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -582,7 +365,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      _order != null ? 'Заказ #${_order!.id}' : 'Заказ',
+                      order != null ? 'Заказ #${order.id}' : 'Заказ',
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.w600,
@@ -594,11 +377,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
               ),
             ),
             Expanded(
-              child: _error != null && !_loading
-                  ? _buildError(_error!)
-                  : _loading || _order == null
+              child: _c.error != null && !_c.loading
+                  ? _buildError(_c.error!)
+                  : _c.loading || order == null
                   ? const Center(child: CircularProgressIndicator())
-                  : _buildBody(_order!),
+                  : _buildBody(order),
             ),
           ],
         ),
@@ -624,483 +407,91 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             style: TextStyle(fontSize: 11.5, color: context.colors.text3),
           ),
           const SizedBox(height: 10),
-          CtaGhost(label: 'Повторить', onPressed: _load),
+          CtaGhost(label: 'Повторить', onPressed: _c.load),
         ],
       ),
     );
   }
 
   Widget _buildBody(Order order) {
+    final customer = _c.viewerIsCustomer;
     return RefreshIndicator(
       onRefresh: pullToRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         children: [
-          OrderStatusCard(order: order),
-          const SizedBox(height: 14),
-          Text(
-            order.carTitle,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.w600,
-              color: context.colors.text1,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            [
-              if (order.cities.isNotEmpty) order.cities.join(', '),
-              if (order.mileageTo != null)
-                'пробег до ${money(order.mileageTo!)} км',
-              ?budgetRange(order.budgetMin, order.budgetMax),
-            ].join(' · '),
-            style: TextStyle(fontSize: 12.5, color: context.colors.text2),
-          ),
-          if (order.requirements.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final r in order.requirements)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.bg1,
-                      border: Border.all(color: context.colors.chipEdge),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      r,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: context.colors.text2,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          if (order.comment != null && order.comment!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              order.comment!,
-              style: TextStyle(fontSize: 13, color: context.colors.text2),
-            ),
-          ],
+          SelectionSummary(order: order),
           if (order.executor != null) ...[
             const SizedBox(height: 22),
             const SectionHead('Исполнитель'),
             ExecutorBox(
               order: order,
-              onShowReviews: () => _showReviews(order, order.executor!),
+              onShowReviews: () => _showReviews(order.executor!),
               // исполнителю сервер отдаёт номер заказчика — он ниже, в «Заказчике»
-              phone: _viewerIsCustomer ? order.counterpartPhone : null,
+              phone: customer ? order.counterpartPhone : null,
             ),
           ],
-          if (!_viewerIsCustomer && order.counterpartPhone != null) ...[
+          if (!customer && order.counterpartPhone != null) ...[
             const SizedBox(height: 22),
             const SectionHead('Заказчик'),
-            _CustomerBox(order: order, phone: order.counterpartPhone!),
+            CustomerBox(order: order, phone: order.counterpartPhone!),
           ],
-          // сообщение о покупке — главное действие, пока ждёт ответа
-          ..._purchaseReport(order),
-          // кандидаты — то, ради чего заказчик открывает подбор: сразу под
-          // исполнителем, до отзыва и откликов
-          if (order.cars.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            SectionHead('Кандидаты', extra: '${order.cars.length}'),
-            for (final car in order.cars)
-              _CandidateCard(
-                car: car,
-                onTap: car.inspectionId != null && _canOpenInspection
-                    ? () => _openInspection(car)
-                    : null,
-                // телефон продавца — заметка подборщика; заказчику сервер
-                // его не отдаёт, но и показывать незачем
-                showSellerPhone: _isAssignedExecutor(order),
-                onEditSellerPhone: order.can(OrderAction.editSellerPhone)
-                    ? () => _editSellerPhone(order, car)
-                    : null,
-              ),
-          ],
-          // при ждущем сообщении исполнителя главная кнопка — «Да, купил»
-          // выше; другую машину заказчик всё равно может отметить сам
-          if (_canCompletePurchase(order))
-            if (order.purchaseReport == null) ...[
-              const SizedBox(height: 14),
-              CtaPrimary(
-                label: 'Зафиксировать покупку',
-                icon: Icons.check,
-                loading: _completing,
-                onPressed: () => _completePurchase(order),
-              ),
-            ] else if (_hasPurchaseChoice(order))
-              CtaGhost(
-                label: 'Купил другую машину',
-                onPressed: _completing || _purchaseBusy
-                    ? null
-                    : () => _completePurchase(order),
-              ),
-          // перевыбор покупки — сутки после закрытия, окно с сервера
-          if (_viewerIsCustomer && order.can(OrderAction.changePurchase)) ...[
-            const SizedBox(height: 14),
-            CtaGhost(
-              label: 'Изменить покупку',
-              onPressed: _purchaseBusy ? null : () => _changePurchase(order),
-            ),
-          ],
-          // Заводить кандидата и стартовать осмотр может только назначенный
-          // исполнитель — у заказчика этот вызов вернёт 403; в закрытый подбор
-          // нового кандидата не завести (422), начатые — дозавершаются.
-          if (_canAddCandidates(order)) ...[
-            const SizedBox(height: 14),
-            CtaPrimary(
-              label: 'Осмотреть новый вариант',
-              icon: Icons.add,
-              onPressed: () => _startInspection(order),
-            ),
-            // свои готовые осмотры — только если есть что добавить
-            if (_library?.items.isNotEmpty ?? false)
-              CtaGhost(
-                label: 'Из моих осмотров · ${_library!.items.length}',
-                onPressed: _attaching ? null : () => _attachFromLibrary(order),
-              ),
-          ],
-          // заказчик купил, но не отметил — сообщает подборщик (правило с сервера)
-          if (!_viewerIsCustomer && order.canReportPurchase)
-            CtaGhost(
-              label: 'Заказчик купил машину',
-              onPressed: _purchaseBusy ? null : () => _reportPurchase(order),
-            ),
-          // выход из подбора — только по правилу с сервера (can_release)
-          if (!_viewerIsCustomer && order.canRelease)
-            CtaGhost(
-              label: 'Отказаться от подбора',
-              onPressed: _releasing ? null : () => _release(order),
-            ),
+          PurchaseReportBlock(
+            order: order,
+            viewerIsCustomer: customer,
+            completing: _c.completing,
+            busy: _c.purchaseBusy,
+            onConfirm: (carId) => _completePurchase(order, reported: carId),
+            onDecline: _declinePurchaseReport,
+          ),
+          CandidatesSection(
+            order: order,
+            showSellerPhone: _isAssignedExecutor(order),
+            onOpen: _canOpenInspection ? _openInspection : null,
+            onEditSellerPhone: (car) => _editSellerPhone(order, car),
+          ),
+          PurchaseActions(
+            order: order,
+            viewerIsCustomer: customer,
+            completing: _c.completing,
+            busy: _c.purchaseBusy,
+            onComplete: () => _completePurchase(order),
+            onChange: () => _changePurchase(order),
+          ),
+          ExecutorActionsSection(
+            order: order,
+            viewerIsCustomer: customer,
+            canAddCandidates: _c.canAddCandidates(order),
+            library: _c.library,
+            attaching: _c.attaching,
+            purchaseBusy: _c.purchaseBusy,
+            releasing: _c.releasing,
+            onStartInspection: () => _startInspection(order),
+            onAttachFromLibrary: _attachFromLibrary,
+            onReportPurchase: () => _reportPurchase(order),
+            onRelease: _release,
+          ),
           OrderReviewSection(
             order: order,
-            viewerIsCustomer: _viewerIsCustomer,
+            viewerIsCustomer: customer,
             onWrite: () => _writeReview(order),
           ),
-          if (_viewerIsCustomer && order.responses.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            SectionHead('Отклики', extra: '${order.responses.length}'),
-            if (order.status == OrderStatus.awaitingExecutor &&
-                order.responses.any(
-                  (r) => r.status == OrderResponseStatus.pending,
-                ))
-              const PhoneExchangeNote(
-                'Когда вы выберете исполнителя, вы увидите телефоны друг '
-                'друга — сможете созвониться напрямую.',
-              ),
-            // выбранный — первым, за ним ждущие решения, решённые — в конце
-            for (final r in [
-              ...order.responses.where(
-                (r) => r.status == OrderResponseStatus.accepted,
-              ),
-              ...order.responses.where(
-                (r) => r.status == OrderResponseStatus.pending,
-              ),
-              ...order.responses.where((r) => !r.status.isActive),
-            ])
-              ResponseCard(
-                response: r,
-                askingPrice: order.askingPrice,
-                onAccept:
-                    r.status == OrderResponseStatus.pending &&
-                        order.can(OrderAction.acceptResponse)
-                    ? () => _accept(r.id)
-                    : null,
-                onShowReviews: () => _showReviews(order, r.executor),
-              ),
-          ],
-          if (_viewerIsCustomer && order.canCancel) ...[
+          if (customer)
+            ResponsesSection(
+              order: order,
+              onAccept: (id) => _run(() => _c.accept(id)),
+              onShowReviews: _showReviews,
+            ),
+          if (customer && order.canCancel) ...[
             const SizedBox(height: 14),
             CtaGhost(
               label: 'Отменить заказ',
-              onPressed: _cancelling ? null : () => _cancel(order),
+              onPressed: _c.cancelling ? null : _cancel,
             ),
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Заказчик подбора для исполнителя: имя и телефон с «Позвонить» — номер
-/// сервер открывает с выбора исполнителя.
-class _CustomerBox extends StatelessWidget {
-  const _CustomerBox({required this.order, required this.phone});
-
-  final Order order;
-  final String phone;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: c.bg1,
-        border: Border.all(color: c.line),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Avatar(
-                initialsOf(order.customer.name),
-                size: 36,
-                url: order.customer.avatarUrl,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  order.customer.name,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: c.text1,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          PhoneCallRow(label: 'Телефон заказчика', phone: phone),
-        ],
-      ),
-    );
-  }
-}
-
-/// Кандидат подбора: машина, комментарий к вердикту и плашка — идёт
-/// осмотр, исход покупки или вердикт. Купленная — в зелёной рамке, как
-/// выбранный отклик: в длинном списке её видно сразу. Тап открывает осмотр.
-class _CandidateCard extends StatelessWidget {
-  const _CandidateCard({
-    required this.car,
-    this.onTap,
-    this.showSellerPhone = false,
-    this.onEditSellerPhone,
-  });
-
-  final OrderCar car;
-  final VoidCallback? onTap;
-
-  /// Подборщику — строка телефона продавца (или «Добавить»).
-  final bool showSellerPhone;
-
-  /// Правка номера; null — заказ отменён, только показ.
-  final VoidCallback? onEditSellerPhone;
-
-  /// Цвет плашки: идущий осмотр — синий, покупка — зелёный, дальше вердикт
-  /// (и у некупленных после покупки); «осмотрена» и «осмотр не начат» —
-  /// нейтральные.
-  Color? _pillColor(AppColors c) {
-    if (car.inspectionStatus == 'in_progress') return c.statusInfo;
-    if (car.inspectionOutcome == InspectionOutcome.purchased) {
-      return c.statusDone;
-    }
-    return car.verdict?.color(c);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final comment = car.verdictComment;
-    final bought = car.inspectionOutcome == InspectionOutcome.purchased;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: bought ? Color.alphaBlend(c.buySoft, c.bg1) : c.bg1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: bought
-              ? BorderSide(color: c.buyEdge, width: 1.5)
-              : BorderSide(color: c.line),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            car.title,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: c.text1,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Pill(car.inspectionLabel, color: _pillColor(c)),
-                          // осмотр из библиотеки сделан раньше — когда
-                          if (car.fromLibrary &&
-                              car.inspectionCompletedAt != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 7),
-                              child: Text(
-                                inspectedAgo(car.inspectionCompletedAt!),
-                                style: TextStyle(fontSize: 12, color: c.text2),
-                              ),
-                            ),
-                          if (comment != null && comment.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 7),
-                              child: Text(
-                                comment,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  height: 1.4,
-                                  color: c.text2,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (onTap != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(Icons.chevron_right, size: 20, color: c.text2),
-                    ],
-                  ],
-                ),
-                if (showSellerPhone)
-                  _SellerPhoneLine(
-                    phone: car.sellerPhone,
-                    onEdit: onEditSellerPhone,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Телефон продавца в карточке кандидата — только подборщику: номер с
-/// «Скопировать» и «Позвонить», тап по номеру — правка. Номера нет —
-/// «Добавить телефон продавца».
-class _SellerPhoneLine extends StatelessWidget {
-  const _SellerPhoneLine({required this.phone, this.onEdit});
-
-  final String? phone;
-  final VoidCallback? onEdit;
-
-  void _copy(BuildContext context, String phone) {
-    Clipboard.setData(ClipboardData(text: formatPhone(phone)));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Номер продавца скопирован')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final phone = this.phone;
-    if (phone == null) {
-      if (onEdit == null) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: TextButton.icon(
-          onPressed: onEdit,
-          icon: const Icon(Icons.add, size: 16),
-          label: const Text('Телефон продавца · только для вас'),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            textStyle: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 11),
-        Container(height: 1, color: c.line),
-        const SizedBox(height: 9),
-        Row(
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: onEdit,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Продавец · только для вас',
-                        style: TextStyle(fontSize: 11.5, color: c.text2),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              formatPhone(phone),
-                              style: TextStyle(
-                                fontFamily: AppTheme.monoFamily,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: c.text1,
-                              ),
-                            ),
-                          ),
-                          if (onEdit != null) ...[
-                            const SizedBox(width: 6),
-                            Icon(Icons.edit_outlined, size: 14, color: c.text2),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Скопировать',
-              onPressed: () => _copy(context, phone),
-              icon: Icon(Icons.copy_rounded, size: 19, color: c.text1),
-            ),
-            IconButton.filled(
-              tooltip: 'Позвонить',
-              onPressed: () => callPhone(context, phone),
-              style: IconButton.styleFrom(
-                backgroundColor: c.modeBuy,
-                foregroundColor: c.modeBuyInk,
-              ),
-              icon: const Icon(Icons.call, size: 19),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

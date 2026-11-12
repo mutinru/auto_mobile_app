@@ -127,7 +127,7 @@ lib/
   state/      OrderStore (один на сессию — OrderSession), InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
   push/       PushService, PushMessaging (обёртка над Firebase)
   payments/   PaymentFlow — оплата по payment.checkout, PaymentSdk (ЮKassa)
-  screens/    экраны
+  screens/    экраны; order_detail/ — секции экрана подбора (состояние — state/order_detail_controller.dart)
   widgets/    переиспользуемые блоки макета
   theme/      палитры (тёмная и светлая), тема, ThemeController
 design/       HTML-макеты — источник правды по дизайну, см. design/README.md
