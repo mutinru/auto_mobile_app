@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/order_repository.dart';
+import '../data/review_repository.dart';
 import '../models/review.dart';
 import '../models/user_summary.dart';
 import '../theme/app_colors.dart';
@@ -12,7 +12,7 @@ import '../widgets/executor_stats.dart';
 /// Открыть отзывы об исполнителе из отклика или блока «Исполнитель».
 Future<void> openExecutorReviews(
   BuildContext context,
-  OrderRepository repository,
+  ReviewRepository repository,
   UserSummary executor,
 ) {
   return Navigator.of(context).push(
@@ -32,7 +32,7 @@ class ExecutorReviewsScreen extends StatefulWidget {
     required this.executor,
   });
 
-  final OrderRepository repository;
+  final ReviewRepository repository;
   final UserSummary executor;
 
   @override

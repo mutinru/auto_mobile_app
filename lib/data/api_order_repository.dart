@@ -1,19 +1,15 @@
 import 'package:http/http.dart' as http;
 
 import '../models/available_page.dart';
-import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/order_page.dart';
-import '../models/payment.dart';
 import '../models/payout.dart';
-import '../models/review.dart';
 import '../models/time_slot.dart';
 import '../models/vin_kind.dart';
-import '../models/vin_report.dart';
 import 'api_client.dart';
 import 'order_repository.dart';
 import 'photo_upload.dart';
@@ -322,18 +318,6 @@ class ApiOrderRepository implements OrderRepository {
   };
 
   @override
-  Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1}) async {
-    final json = await _client.get('/users/$userId/reviews?page=$page');
-    final meta = json['meta'] as Map<String, dynamic>? ?? const {};
-    return ReviewPage(
-      items: parseList(json['data'], Review.fromJson, what: 'отзыв'),
-      hasMore:
-          (meta['current_page'] as int? ?? 1) <
-          (meta['last_page'] as int? ?? 1),
-    );
-  }
-
-  @override
   Future<OrderCar> addCar(
     int orderId, {
     required String brand,
@@ -429,63 +413,8 @@ class ApiOrderRepository implements OrderRepository {
   }
 
   @override
-  Future<VinReportCheck> checkVinReports(String vin) async {
-    final json = await _client.get(
-      '/vin-reports/check?vin=${Uri.encodeQueryComponent(vin)}',
-    );
-    return VinReportCheck.fromJson(json['data'] as Map<String, dynamic>);
-  }
-
-  @override
-  Future<VinReportPurchase> purchaseVinReport(String vin) async {
-    final json = await _client.post('/vin-reports/purchases', {'vin': vin});
-    return VinReportPurchase.fromJson(json['data'] as Map<String, dynamic>);
-  }
-
-  @override
-  Future<List<VinReportPurchase>> fetchVinReportPurchases() async {
-    final json = await _client.get('/vin-reports/purchases');
-    return parseList(
-      json['data'],
-      VinReportPurchase.fromJson,
-      what: 'купленный отчёт',
-    );
-  }
-
-  @override
-  Future<VinReportPurchase> fetchVinReportPurchase(int id) async {
-    final json = await _client.get('/vin-reports/purchases/$id');
-    return VinReportPurchase.fromJson(json['data'] as Map<String, dynamic>);
-  }
-
-  @override
-  Future<ClientConfig> fetchClientConfig() async {
-    final json = await _client.get('/config');
-    return ClientConfig.fromJson(json['data'] as Map<String, dynamic>);
-  }
-
-  @override
   Future<Order> payPlacement(int orderId) =>
       _orderAction('/orders/$orderId/placement-payment');
-
-  @override
-  Future<Payment> fetchPayment(int id) async {
-    final json = await _client.get('/payments/$id');
-    return Payment.fromJson(json['data'] as Map<String, dynamic>);
-  }
-
-  @override
-  Future<Payment> submitPaymentToken(
-    int paymentId, {
-    required String token,
-    required String methodType,
-  }) async {
-    final json = await _client.post('/payments/$paymentId/token', {
-      'payment_token': token,
-      'payment_method_type': methodType,
-    });
-    return Payment.fromJson(json['data'] as Map<String, dynamic>);
-  }
 
   /// Бекенд ждёт дату без времени — иначе валидация after_or_equal
   /// и cast date:Y-m-d разойдутся на часовом поясе.

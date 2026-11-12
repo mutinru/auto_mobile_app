@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Подсказка «Похоже, это …» под ссылкой на объявление в форме осмотра.
 void main() {
@@ -14,10 +13,8 @@ void main() {
       'https://www.avito.ru/moskva/avtomobili/toyota_camry_2019_3456789012';
 
   Future<void> openForm(WidgetTester tester) async {
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
     );
     await tester.pumpWidget(
       MaterialApp(

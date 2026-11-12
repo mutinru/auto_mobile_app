@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
@@ -12,9 +10,10 @@ import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/selection_close_reason.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_status_card.dart';
+
+import 'support/stores.dart';
 
 /// Выход из подбора (бекенд, ревью №2/№3): отказ исполнителя по
 /// actions.release, автоархив (closes_at), причина закрытия, новые уведомления.
@@ -128,10 +127,8 @@ void main() {
       tester.view.devicePixelRatio = 2;
       addTearDown(tester.view.reset);
       final repo = MockOrderRepository(orders: [selection()]);
-      final store = OrderStore(
-        repo,
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      final store = mockStore(
+        orders: repo,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -186,10 +183,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: OrderDetailScreen(
-          store: OrderStore(
-            repo,
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: repo,
           ),
           orderId: 3201,
           viewerIsCustomer: false,

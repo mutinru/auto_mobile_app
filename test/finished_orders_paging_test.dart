@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
@@ -12,10 +10,11 @@ import 'package:auto_podbor_mobile/models/order_page.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/paged_orders.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_card.dart';
+
+import 'support/stores.dart';
 
 const _customer = UserSummary(id: 1, name: 'Андрей С.');
 
@@ -121,10 +120,8 @@ void main() {
     tester,
   ) async {
     final repo = _Paged(finished);
-    final store = OrderStore(
-      repo,
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: repo,
     );
     tester.view.physicalSize = const Size(900, 8000);
     tester.view.devicePixelRatio = 1;
@@ -159,10 +156,8 @@ void main() {
     (tester) async {
       // стор живёт сессию: заказ мог закрыться, пока вкладки не было видно
       final repo = _Paged(finished);
-      final store = OrderStore(
-        repo,
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      final store = mockStore(
+        orders: repo,
       );
       await tester.pumpWidget(
         MaterialApp(

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -18,6 +16,9 @@ import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/deadline_countdown.dart';
+import 'package:auto_podbor_mobile/data/mock_fixtures.dart';
+
+import 'support/stores.dart';
 
 /// Разовый осмотр после вердикта: оплата напрямую, подтверждение, спор,
 /// отказ исполнителя (docs/plan-inspection-payment-flow.md на бекенде).
@@ -47,7 +48,7 @@ void main() {
     actions: {if (canDispute) OrderAction.dispute},
     disputeAvailableAt: disputeAvailableAt,
     paymentSentAt: paymentSentAt,
-    payout: status.isAwaitingPayment ? MockOrderRepository.mockPayout : null,
+    payout: status.isAwaitingPayment ? MockFixtures.payout : null,
     reportSummary: status.isAwaitingPayment
         ? const ReportSummary(
             panelsTotal: 17,
@@ -72,10 +73,8 @@ void main() {
     ],
   );
 
-  OrderStore store(MockOrderRepository repo) => OrderStore(
-    repo,
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore store(MockOrderRepository repo) => mockStore(
+    orders: repo,
   );
 
   /// Экран открыт поверх «домашнего», чтобы его закрытие было видно.

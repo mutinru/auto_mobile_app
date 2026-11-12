@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
+
+import 'support/stores.dart';
 
 /// Экран, который грузит списки при открытии — как профиль и разделы.
 class _Loader extends StatefulWidget {
@@ -43,10 +43,8 @@ void main() {
     testWidgets('$name: загрузка из initState при общем сторе', (
       tester,
     ) async {
-      final store = OrderStore(
-        MockOrderRepository(),
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      final store = mockStore(
+        orders: MockOrderRepository(),
       );
       final open = ValueNotifier(false);
       var builds = 0;

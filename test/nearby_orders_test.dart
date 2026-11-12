@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
@@ -19,9 +18,10 @@ import 'package:auto_podbor_mobile/data/verification_repository.dart';
 import 'package:auto_podbor_mobile/models/available_page.dart';
 import 'package:auto_podbor_mobile/models/nearby_filter.dart';
 import 'package:auto_podbor_mobile/screens/nearby_orders_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Мок, у которого вторая и дальше страницы ленты не грузятся.
 class _FailingMorePages extends MockOrderRepository {
@@ -110,10 +110,8 @@ void main() {
   }) => MaterialApp(
     theme: AppTheme.dark,
     home: NearbyOrdersScreen(
-      store: OrderStore(
-        repository ?? MockOrderRepository(),
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      store: mockStore(
+        orders: repository ?? MockOrderRepository(),
       ),
       verification:
           verification ??
@@ -197,10 +195,8 @@ void main() {
   testWidgets('после отклика заказ остаётся в ленте с погашенной кнопкой', (
     tester,
   ) async {
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -381,16 +377,14 @@ void main() {
         MaterialApp(
           theme: AppTheme.dark,
           home: NearbyOrdersScreen(
-            store: OrderStore(
-              MockOrderRepository(
+            store: mockStore(
+              orders: MockOrderRepository(
                 orders: [
                   at(1, 'Podolsk', 55.4312, 37.5458),
                   at(2, 'Center', 55.7558, 37.6173),
                   at(3, 'Khimki', 55.8897, 37.4449),
                 ],
               ),
-              catalog: MockCarCatalogRepository(),
-              cities: MockCityRepository(),
               locator: CityLocator(MockCityRepository(), _Here(here)),
             ),
             verification: VerificationStatus(
@@ -507,10 +501,8 @@ void main() {
         MaterialApp(
           theme: AppTheme.dark,
           home: NearbyOrdersScreen(
-            store: OrderStore(
-              MockOrderRepository(),
-              catalog: MockCarCatalogRepository(),
-              cities: MockCityRepository(),
+            store: mockStore(
+              orders: MockOrderRepository(),
             ),
             verification: VerificationStatus(
               MockVerificationRepository(passed: 4, required: false),
@@ -606,10 +598,8 @@ void main() {
         MaterialApp(
           theme: AppTheme.dark,
           home: NearbyOrdersScreen(
-            store: OrderStore(
-              MockOrderRepository(),
-              catalog: MockCarCatalogRepository(),
-              cities: MockCityRepository(),
+            store: mockStore(
+              orders: MockOrderRepository(),
               locator: locator,
             ),
             verification: VerificationStatus(

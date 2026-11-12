@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'package:auto_podbor_mobile/data/profile_repository.dart';
@@ -15,11 +13,12 @@ import 'package:auto_podbor_mobile/models/push_target.dart';
 import 'package:auto_podbor_mobile/screens/nearby_orders_screen.dart';
 import 'package:auto_podbor_mobile/screens/settings_screen.dart';
 import 'package:auto_podbor_mobile/state/nearby_filter_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_alerts_prompt.dart';
 import 'package:auto_podbor_mobile/widgets/order_alerts_sheet.dart';
+
+import 'support/stores.dart';
 
 /// Сессия без сети; сохранённые подписки — в [saved].
 class _FakeAuth extends AuthService {
@@ -206,10 +205,8 @@ void main() {
         MaterialApp(
           theme: AppTheme.dark,
           home: NearbyOrdersScreen(
-            store: OrderStore(
-              MockOrderRepository(),
-              catalog: MockCarCatalogRepository(),
-              cities: MockCityRepository(),
+            store: mockStore(
+              orders: MockOrderRepository(),
             ),
             verification: VerificationStatus(
               MockVerificationRepository(passed: 4, required: false),

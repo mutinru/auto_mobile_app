@@ -556,7 +556,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   void _showReviews(Order order, UserSummary executor) =>
-      openExecutorReviews(context, widget.store.repository, executor);
+      openExecutorReviews(context, widget.store.reviews, executor);
 
   @override
   Widget build(BuildContext context) {

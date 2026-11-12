@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/current_user.dart';
@@ -14,11 +13,12 @@ import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/models/vin_kind.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/start_inspection_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 import 'package:auto_podbor_mobile/widgets/phone_input.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
+
+import 'support/stores.dart';
 
 /// Мок, который считает добавленные машины: форма с ошибками не должна
 /// ничего отправлять.
@@ -290,10 +290,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: OrderDetailScreen(
-          store: OrderStore(
-            repo,
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: repo,
           ),
           orderId: sourcing.id,
           viewerIsCustomer: false,

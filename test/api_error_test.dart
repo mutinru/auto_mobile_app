@@ -6,8 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/available_page.dart';
 import 'package:auto_podbor_mobile/models/nearby_filter.dart';
@@ -16,6 +14,8 @@ import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/api_error.dart';
+
+import 'support/stores.dart';
 
 /// Сервер отказывает во всех списках — проверяем, что пользователь видит
 /// причину, а не сырой `ApiException(403): {json}`.
@@ -39,10 +39,8 @@ class _FailingRepository extends MockOrderRepository {
 }
 
 void main() {
-  OrderStore store(Object error) => OrderStore(
-    _FailingRepository(error),
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore store(Object error) => mockStore(
+    orders: _FailingRepository(error),
   );
 
   group('apiErrorText', () {

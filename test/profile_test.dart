@@ -3,18 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'package:auto_podbor_mobile/models/current_user.dart';
 import 'package:auto_podbor_mobile/screens/profile_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/theme/theme_controller.dart';
 import 'package:auto_podbor_mobile/widgets/theme_switch.dart';
 import 'package:auto_podbor_mobile/widgets/executor_stats.dart';
+
+import 'support/stores.dart';
 
 void main() {
   /// Блок «Выполнять заказы» ниже сгиба: в стандартные 800×600 ленивый
@@ -34,10 +33,8 @@ void main() {
     theme: AppTheme.dark,
     home: ProfileScreen(
       auth: user == null ? AuthService() : (AuthService()..debugSetUser(user)),
-      store: OrderStore(
-        MockOrderRepository(),
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      store: mockStore(
+        orders: MockOrderRepository(),
       ),
       verification: VerificationStatus(
         MockVerificationRepository(required: required),

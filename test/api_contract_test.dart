@@ -7,6 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import 'package:auto_podbor_mobile/data/api_vin_report_repository.dart';
+import 'package:auto_podbor_mobile/data/api_review_repository.dart';
+import 'package:auto_podbor_mobile/data/api_payment_repository.dart';
+import 'package:auto_podbor_mobile/data/api_config_repository.dart';
 import 'package:auto_podbor_mobile/data/api_chat_repository.dart';
 import 'package:auto_podbor_mobile/data/api_client.dart';
 import 'package:auto_podbor_mobile/data/api_inspection_repository.dart';
@@ -369,26 +373,28 @@ void main() {
 
   group('оплата и настройки', () {
     test('config', () async {
-      final config = await serve(['config'], orders().fetchClientConfig);
+      final config = await serve([
+        'config',
+      ], ApiConfigRepository(client()).fetchClientConfig);
       expect(config.inspectionPlacementFee, isNotNull);
     });
 
     test('vin_report_check, vin_report_purchase, payment', () async {
       const vin = 'XW8ZZZ61ZKG100111';
-      final repo = orders();
+      final reports = ApiVinReportRepository(client());
       final check = await serve([
         'vin_report_check',
-      ], () => repo.checkVinReports(vin));
+      ], () => reports.checkVinReports(vin));
       expect(check.items, isNotEmpty);
 
       final purchase = await serve([
         'vin_report_purchase',
-      ], () => repo.purchaseVinReport(vin));
+      ], () => reports.purchaseVinReport(vin));
       final paymentId = purchase.payment!.id;
 
       final payment = await serve([
         'payment',
-      ], () => repo.fetchPayment(paymentId));
+      ], () => ApiPaymentRepository(client()).fetchPayment(paymentId));
       expect(payment.status, isNot(PaymentStatus.unknown));
       expect(payment.checkout?.method, CheckoutMethod.sdk);
     });
@@ -406,7 +412,7 @@ void main() {
       final userId = int.parse(RegExp(r'users/(\d+)').firstMatch(path)![1]!);
       final page = await serve(
         ['reviews'],
-        () => orders().fetchExecutorReviews(userId),
+        () => ApiReviewRepository(client()).fetchExecutorReviews(userId),
       );
       expect(page.items, hasLength(dataList('reviews').length));
     });

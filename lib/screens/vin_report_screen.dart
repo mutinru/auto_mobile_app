@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/api_client.dart';
 import '../data/api_inspection_repository.dart';
 import '../data/auth_service.dart';
-import '../data/order_repository.dart';
+import '../data/vin_report_repository.dart';
 import '../models/vin_report.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
@@ -26,7 +26,7 @@ class VinReportScreen extends StatefulWidget {
     this.auth,
   });
 
-  final OrderRepository repository;
+  final VinReportRepository repository;
   final int purchaseId;
   final AuthService? auth;
 
@@ -196,7 +196,7 @@ String vinReportLine(VinReportItem item) => [
 class VinReportsScreen extends StatefulWidget {
   const VinReportsScreen({super.key, required this.repository, this.auth});
 
-  final OrderRepository repository;
+  final VinReportRepository repository;
   final AuthService? auth;
 
   @override

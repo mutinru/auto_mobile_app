@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_verification_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -13,9 +11,10 @@ import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/time_slot.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/nearby_orders_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/verification_status.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Перенос осмотра: отклик под прежнюю дату устарел (outdated) —
 /// исполнитель откликается снова; отказавшийся до переноса и сорвавший
@@ -83,10 +82,8 @@ void main() {
     final repo = MockOrderRepository(
       orders: [order(mine: OrderResponseStatus.outdated)],
     );
-    final store = OrderStore(
-      repo,
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: repo,
     );
     await tester.pumpWidget(
       MaterialApp(

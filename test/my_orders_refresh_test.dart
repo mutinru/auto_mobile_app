@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_notification_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -14,8 +12,9 @@ import 'package:auto_podbor_mobile/screens/auto_refresh.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/notification_scope.dart';
 import 'package:auto_podbor_mobile/state/notification_unread.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// «Сервер»: списки можно поменять между запросами, как это делает другая
 /// сторона; можно уронить следующий запрос.
@@ -70,10 +69,8 @@ void main() {
     NotificationUnread? unread,
     AuthService? auth,
   }) async {
-    final store = OrderStore(
-      repo,
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: repo,
     );
     navigator = GlobalKey<NavigatorState>();
     await tester.pumpWidget(

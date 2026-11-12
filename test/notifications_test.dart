@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_notification_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/app_notification.dart';
@@ -20,6 +18,8 @@ import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/notification_bell.dart';
 import 'package:auto_podbor_mobile/widgets/unread_badge.dart';
+
+import 'support/stores.dart';
 
 /// Лента уведомлений: модель, бейдж колокольчика, экран и переход к заказу.
 void main() {
@@ -50,10 +50,8 @@ void main() {
     createdAt: at ?? now,
   );
 
-  OrderStore orders() => OrderStore(
-    MockOrderRepository(),
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore orders() => mockStore(
+    orders: MockOrderRepository(),
   );
 
   group('модель', () {

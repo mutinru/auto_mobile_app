@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -10,10 +8,11 @@ import 'package:auto_podbor_mobile/models/order_car.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
+
+import 'support/stores.dart';
 
 /// Машина заказа 2047 с другим пробегом по одометру; флаг расхождения —
 /// как его посчитал бы сервер.
@@ -60,10 +59,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: InspectionOrderDetailScreen(
-          store: OrderStore(
-            repo,
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: repo,
           ),
           orderId: id,
           viewerIsCustomer: customer,

@@ -148,7 +148,7 @@ class _InspectionOrderDetailScreenState
           order.pendingPayment ??
           (await widget.store.payPlacement(order.id)).pendingPayment;
       if (payment != null && mounted) {
-        await runPayment(context, widget.store.repository, payment);
+        await runPayment(context, widget.store.payments, payment);
       }
       final updated = await widget.store.fetchOrder(order.id);
       widget.store.replaceOrder(updated);
@@ -410,7 +410,7 @@ class _InspectionOrderDetailScreenState
               order: order,
               onShowReviews: () => openExecutorReviews(
                 context,
-                widget.store.repository,
+                widget.store.reviews,
                 order.executor!,
               ),
             ),
@@ -445,7 +445,7 @@ class _InspectionOrderDetailScreenState
                 onAccept: canPick ? () => _accept(response.id) : null,
                 onShowReviews: () => openExecutorReviews(
                   context,
-                  widget.store.repository,
+                  widget.store.reviews,
                   response.executor,
                 ),
               ),

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/location_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/new_order_screen.dart';
 import 'package:auto_podbor_mobile/state/city_locator.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 import 'package:auto_podbor_mobile/widgets/city_picker_sheet.dart';
+
+import 'support/stores.dart';
 
 /// Геопозиция без плагина: [point] — что «вернул GPS», [calls] — сколько раз спросили.
 class FakeLocation implements LocationService {
@@ -247,10 +247,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: NewOrderScreen(
-          store: OrderStore(
-            MockOrderRepository(),
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: MockOrderRepository(),
             locator: locator,
           ),
         ),

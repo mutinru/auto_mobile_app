@@ -1,21 +1,19 @@
 import '../models/available_page.dart';
-import '../models/client_config.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
 import '../models/nearby_filter.dart';
 import '../models/order.dart';
 import '../models/order_car.dart';
 import '../models/order_page.dart';
-import '../models/payment.dart';
 import '../models/payout.dart';
-import '../models/review.dart';
 import '../models/vin_kind.dart';
-import '../models/vin_report.dart';
 import '../models/time_slot.dart';
 
-/// Источник данных маркетплейса заказов. Как и InspectionRepository —
-/// две реализации: [MockOrderRepository] для UI без бекенда,
-/// [ApiOrderRepository] поверх Laravel API (routes/api.php, группа orders).
+/// Заказы: списки, создание, отклики, кандидаты, осмотр, покупка, оплата
+/// исполнителю и спор, отзыв по заказу. Две реализации: [MockOrderRepository]
+/// для тестов и [ApiOrderRepository] поверх Laravel API. Отзывы исполнителя,
+/// отчёты по VIN, платежи и настройки — свои репозитории (ревью №39): новый
+/// метод API — в репозиторий своего домена, не сюда.
 abstract class OrderRepository {
   /// Активные «Мои заказы» — целиком (по ним идёт опрос).
   Future<List<Order>> fetchMyOrders();
@@ -156,9 +154,6 @@ abstract class OrderRepository {
   /// Правка отзыва — сервер разрешает её 24 часа после создания.
   Future<Order> updateReview(int orderId, {required int rating, String? text});
 
-  /// Отзывы об исполнителе, свежие сверху; [page] с 1.
-  Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1});
-
   /// Завести кандидата подбора — исполнитель нашёл вариант и начинает его
   /// осмотр. Сервер создаёт машину и осмотр со всеми пунктами одной
   /// транзакцией: у вернувшейся машины уже есть [OrderCar.inspectionId].
@@ -204,36 +199,8 @@ abstract class OrderRepository {
     required CapturedOdometer odometer,
   });
 
-  /// Готовые отчёты по VIN (или номеру кузова): тизер без вердикта и цена.
-  /// Сервер считает разные VIN — не больше 15 в сутки, сверх — 429.
-  Future<VinReportCheck> checkVinReports(String vin);
-
-  /// Купить пакет готовых отчётов по VIN. С заглушкой оплаты сервера —
-  /// сразу оплачено; с провайдером — неоплаченная покупка с
-  /// [VinReportPurchase.payment], его проводит PaymentFlow.
-  Future<VinReportPurchase> purchaseVinReport(String vin);
-
-  /// Оплаченные пакеты заказчика, свежие сверху.
-  Future<List<VinReportPurchase>> fetchVinReportPurchases();
-
-  Future<VinReportPurchase> fetchVinReportPurchase(int id);
-
-  /// Цены и лимиты с сервера (GET /config).
-  Future<ClientConfig> fetchClientConfig();
-
   /// Оплатить размещение осмотра заново (заказ в awaitingPlacement, прошлая
   /// оплата не прошла). Начатая живая оплата — та же; заказ — с
   /// [Order.pendingPayment].
   Future<Order> payPlacement(int orderId);
-
-  /// Платёж; ждущий оплаты сервер перед ответом сверяет с провайдером.
-  Future<Payment> fetchPayment(int id);
-
-  /// Токен из платёжной формы SDK: сервер создаёт платёж у провайдера и
-  /// отдаёт его — с confirmationUrl, если нужно подтверждение.
-  Future<Payment> submitPaymentToken(
-    int paymentId, {
-    required String token,
-    required String methodType,
-  });
 }

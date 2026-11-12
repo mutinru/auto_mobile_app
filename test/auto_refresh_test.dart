@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_notification_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -21,6 +19,8 @@ import 'package:auto_podbor_mobile/state/notification_unread.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/app_ui.dart';
+
+import 'support/stores.dart';
 
 /// «Сервер»: заказ можно поменять между запросами, как это делает другая
 /// сторона или поддержка. Отметку оплаты можно придержать.
@@ -66,10 +66,8 @@ void main() {
         cities: const ['Москва'],
       );
 
-  OrderStore store(MockOrderRepository repo) => OrderStore(
-    repo,
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore store(MockOrderRepository repo) => mockStore(
+    orders: repo,
   );
 
   Finder pill(OrderStatus status) => find.descendant(

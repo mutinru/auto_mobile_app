@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
@@ -11,9 +9,10 @@ import 'package:auto_podbor_mobile/models/order_response_status.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/respond_sheet.dart';
+
+import 'support/stores.dart';
 
 /// Подбор: после выбора исполнителя стороны видят телефоны друг друга
 /// (counterpart_phone) и могут позвонить; до выбора об этом предупреждают.
@@ -48,10 +47,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.light,
         home: OrderDetailScreen(
-          store: OrderStore(
-            MockOrderRepository(orders: [order]),
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: MockOrderRepository(orders: [order]),
           ),
           orderId: order.id,
           viewerIsCustomer: viewerIsCustomer,

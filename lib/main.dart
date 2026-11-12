@@ -8,7 +8,11 @@ import 'data/address_repository.dart';
 import 'data/api_client.dart';
 import 'data/api_device_repository.dart';
 import 'data/api_notification_repository.dart';
+import 'data/api_config_repository.dart';
 import 'data/api_order_repository.dart';
+import 'data/api_payment_repository.dart';
+import 'data/api_review_repository.dart';
+import 'data/api_vin_report_repository.dart';
 import 'data/api_verification_repository.dart';
 import 'data/api_inspection_repository.dart';
 import 'data/app_build.dart';
@@ -237,6 +241,10 @@ class _RootGateState extends State<_RootGate> {
     _auth,
     () => OrderStore(
       ApiOrderRepository(ApiClient(_auth)),
+      reviews: ApiReviewRepository(ApiClient(_auth)),
+      vinReports: ApiVinReportRepository(ApiClient(_auth)),
+      payments: ApiPaymentRepository(ApiClient(_auth)),
+      config: ApiConfigRepository(ApiClient(_auth)),
       catalog: _carCatalog,
       cities: _cities,
       locator: _cityLocator,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_action.dart';
@@ -13,6 +11,8 @@ import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Роль на экране заказа — из заказа (`viewer_role`, ревью №31), а кнопки —
 /// по карте действий сервера (ревью №32), а не по вкладке и статусу.
@@ -31,10 +31,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  OrderStore store(Order order) => OrderStore(
-    serverAnswers(order),
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore store(Order order) => mockStore(
+    orders: serverAnswers(order),
   );
 
   testWidgets('открыли «как исполнитель», а заказ — свой: действия заказчика', (

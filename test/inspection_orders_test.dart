@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/widgets/inspection_order_parts.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
@@ -16,6 +14,8 @@ import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 
+import 'support/stores.dart';
+
 /// Разовый осмотр в интерфейсе заказчика (design/order-types.html).
 void main() {
   Widget myOrders(OrderStore store) => MaterialApp(
@@ -28,10 +28,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       myOrders(
-        OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+        mockStore(
+          orders: MockOrderRepository(),
         ),
       ),
     );
@@ -55,10 +53,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       myOrders(
-        OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+        mockStore(
+          orders: MockOrderRepository(),
         ),
       ),
     );
@@ -82,10 +78,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       myOrders(
-        OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+        mockStore(
+          orders: MockOrderRepository(),
         ),
       ),
     );
@@ -104,10 +98,8 @@ void main() {
   testWidgets('«Новый заказ» открывает лист выбора вида', (tester) async {
     await tester.pumpWidget(
       myOrders(
-        OrderStore(
-          MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+        mockStore(
+          orders: MockOrderRepository(),
         ),
       ),
     );
@@ -138,10 +130,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: InspectionOrderDetailScreen(
-          store: OrderStore(
-            MockOrderRepository(),
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: MockOrderRepository(),
           ),
           orderId: 2053,
         ),
@@ -166,10 +156,8 @@ void main() {
   testWidgets('ссылка подписана площадкой, чужой сайт — доменом с пометкой', (
     tester,
   ) async {
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -214,10 +202,8 @@ void main() {
   });
 
   testWidgets('выбор отклика переводит осмотр в «назначен»', (tester) async {
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -306,10 +292,8 @@ void main() {
     });
     expect(car.mileageKm, isNull);
 
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
     );
     final order = await store.createInspectionOrder(
       brand: 'Kia',

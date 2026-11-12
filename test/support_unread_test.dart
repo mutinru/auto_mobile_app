@@ -2,20 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_chat_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/chat_message.dart';
 import 'package:auto_podbor_mobile/models/chat_role.dart';
 import 'package:auto_podbor_mobile/screens/intent_screen.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
 import 'package:auto_podbor_mobile/screens/support_chat_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/state/support_chat_scope.dart';
 import 'package:auto_podbor_mobile/state/support_unread.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/unread_badge.dart';
+
+import 'support/stores.dart';
 
 /// Бейдж непрочитанных поддержки (SupportUnread + SupportUnreadBadge).
 void main() {
@@ -133,10 +132,8 @@ void main() {
     });
 
     testWidgets('«Мои заказы»: бейдж на иконке профиля', (tester) async {
-      final store = OrderStore(
-        MockOrderRepository(),
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      final store = mockStore(
+        orders: MockOrderRepository(),
       );
       final unread = await pump(
         tester,

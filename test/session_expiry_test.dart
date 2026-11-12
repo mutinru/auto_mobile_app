@@ -7,16 +7,15 @@ import 'package:auto_podbor_mobile/data/api_client.dart';
 import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/inspection_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Заказ не грузится — сеть, 500 или что угодно.
 class _FailingOrders extends MockOrderRepository {
@@ -96,10 +95,8 @@ void main() {
         MaterialApp(
           theme: AppTheme.dark,
           home: OrderDetailScreen(
-            store: OrderStore(
-              _FailingOrders(),
-              catalog: MockCarCatalogRepository(),
-              cities: MockCityRepository(),
+            store: mockStore(
+              orders: _FailingOrders(),
             ),
             orderId: 2044,
             viewerIsCustomer: true,

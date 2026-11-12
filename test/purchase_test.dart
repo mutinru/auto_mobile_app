@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_outcome.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -12,6 +10,8 @@ import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// «Зафиксировать покупку» закрывает подбор (POST /orders/{id}/complete).
 void main() {
@@ -62,10 +62,8 @@ void main() {
     Order order, {
     bool viewerIsCustomer = true,
   }) async {
-    final store = OrderStore(
-      MockOrderRepository(orders: [order]),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(orders: [order]),
     );
     await tester.pumpWidget(
       MaterialApp(

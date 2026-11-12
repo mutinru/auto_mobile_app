@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_action.dart';
@@ -15,6 +13,8 @@ import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// «Отменить заказ» (POST /orders/{id}/cancel): кнопка — по can_cancel с
 /// сервера, правило отмены клиент не повторяет.
@@ -51,10 +51,8 @@ void main() {
     Order o, {
     bool viewerIsCustomer = true,
   }) async {
-    final store = OrderStore(
-      MockOrderRepository(orders: [o]),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(orders: [o]),
     );
     await tester.pumpWidget(
       MaterialApp(

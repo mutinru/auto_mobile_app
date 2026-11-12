@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_car.dart';
@@ -15,6 +13,8 @@ import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/odometer_capture.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
+
+import 'support/stores.dart';
 
 /// Сервер отклоняет фото таблички — ошибка должна лечь под блок VIN.
 class _RejectingPhoto extends MockOrderRepository {
@@ -53,10 +53,8 @@ class _Mismatch extends MockOrderRepository {
 
 /// Разовый осмотр начинается с таблички VIN — экран исполнителя.
 void main() {
-  OrderStore store(MockOrderRepository repo) => OrderStore(
-    repo,
-    catalog: MockCarCatalogRepository(),
-    cities: MockCityRepository(),
+  OrderStore store(MockOrderRepository repo) => mockStore(
+    orders: repo,
   );
 
   Future<Order> order2051() => MockOrderRepository().fetchOrder(2051);

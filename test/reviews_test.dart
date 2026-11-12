@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
@@ -15,6 +13,8 @@ import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/util/ru_plural.dart';
 import 'package:auto_podbor_mobile/widgets/executor_stats.dart';
 import 'package:auto_podbor_mobile/widgets/review_sheet.dart';
+
+import 'support/stores.dart';
 
 /// Рейтинг исполнителя в откликах и отзыв заказчика после завершения.
 void main() {
@@ -248,10 +248,8 @@ void main() {
   });
 
   group('карточка заказа', () {
-    OrderStore store() => OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    OrderStore store() => mockStore(
+      orders: MockOrderRepository(),
     );
 
     testWidgets('отклики показывают рейтинг и «Новый исполнитель»', (

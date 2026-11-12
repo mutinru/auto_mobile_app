@@ -6,13 +6,12 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/current_user.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/state/order_session.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
+
+import 'support/stores.dart';
 
 /// «Мои заказы» отвечают, когда тест отпустит [hold].
 class _Slow extends MockOrderRepository {
@@ -37,10 +36,8 @@ void main() {
   OrderSession session(AuthService auth, [MockOrderRepository? repo]) =>
       OrderSession(
         auth,
-        () => OrderStore(
-          repo ?? MockOrderRepository(),
-          catalog: MockCarCatalogRepository(),
-          cities: MockCityRepository(),
+        () => mockStore(
+          orders: repo ?? MockOrderRepository(),
         ),
       );
 

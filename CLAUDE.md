@@ -161,10 +161,21 @@ README перечисляет ограничения приложения; зд�
   миксин `AutoRefresh`, а не свой таймер. Опрос счётчиков не замедляй: при
   заглушённой категории (`mutesPush` на сервере) или без сервисов пушей он
   единственный сигнал, а запрос лёгкий.
-- **Мок-репозиторий — общая фикстура всех виджет-тестов.** Новая запись в
-  `MockOrderRepository._seed()` двигает вёрстку и ломает чужие `find.text` в
-  соседних suites. Правя `_seed()`, прогоняй `flutter test` целиком, а не одну
-  свою suite.
+- **Мок — общая фикстура всех виджет-тестов** (ревью №39). Данные —
+  `lib/data/mock_fixtures.dart` (`MockFixtures.orders()`, пользователи, отчёты
+  по VIN): новая запись двигает вёрстку и ломает чужие `find.text` в соседних
+  suites — прогоняй `flutter test` целиком. Состояние — общий мир
+  `MockBackend` (заказы, платежи, покупки по VIN), поведение — моки по
+  доменам над ним (`MockOrderRepository`, `MockPaymentRepository`,
+  `MockVinReportRepository`, …); побочные эффекты оплаты — `MockBackend.settle`.
+  Стор в тестах — `mockStore()` из `test/support/stores.dart`: все моки над
+  одним миром.
+- **Репозиторий — по домену** (ревью №39): `OrderRepository` — заказы;
+  отзывы исполнителя — `ReviewRepository`, отчёты по VIN —
+  `VinReportRepository`, платежи — `PaymentRepository`, `/config` —
+  `ConfigRepository`. Экран берёт узкий из стора (`store.payments`,
+  `store.vinReports`, …). Новый метод API — в репозиторий своего домена, не в
+  `OrderRepository`.
 - **Ошибки запросов — через `widgets/api_error.dart`**: `showApiError(context, e)`
   (SnackBar) или `apiErrorText(e)` (строка в форме). Не печатай `'$e'` — это
   сырой `ApiException(422): {json}`. Ошибки 422 по полям —
@@ -309,7 +320,8 @@ README перечисляет ограничения приложения; зд�
   корня — «назад», закрывающее приложение (QA 2026-11-05 №2). Экран раздела
   создаёт фабрика `SectionNav`, не `builder` маршрута.
 - **Оплата — только через `PaymentFlow`** (`lib/payments/payment_flow.dart`,
-  с экрана — `runPayment`). Не открывай `confirmation_url` сам и не зови SDK
+  с экрана — `runPayment(context, store.payments, …)`, зависит только от
+  `PaymentRepository`). Не открывай `confirmation_url` сам и не зови SDK
   ЮKassa из экранов: способ выбирает сервер (`payment.checkout.method`), итог —
   только `GET /payments/{id}`, не колбэк SDK. Секретов в сборке нет: ключ SDK
   и магазин приходят в `checkout`. Цены (комиссия, отчёт по VIN) — только с

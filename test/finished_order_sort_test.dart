@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
@@ -10,9 +8,10 @@ import 'package:auto_podbor_mobile/models/order_page.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/my_orders_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_card.dart';
+
+import 'support/stores.dart';
 
 class _Repo extends MockOrderRepository {
   _Repo(this.orders);
@@ -98,10 +97,8 @@ void main() {
       order(70, 'ActiveB', OrderStatus.awaitingExecutor),
       order(71, 'ActiveA', OrderStatus.awaitingExecutor),
     ];
-    final store = OrderStore(
-      _Repo(orders),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: _Repo(orders),
     );
     // высокий экран: все карточки построены, порядок — по дереву
     tester.view.physicalSize = const Size(900, 8000);

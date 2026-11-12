@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../data/order_repository.dart';
+import '../data/payment_repository.dart';
 import '../models/payment.dart';
 import '../widgets/api_error.dart';
 import 'payment_sdk.dart';
@@ -68,7 +68,7 @@ class PaymentFlow {
   /// Страница оплаты по умолчанию; виджет-тесты подменяют.
   static PaymentPageOpener openPage = _openInAppBrowser;
 
-  final OrderRepository _repository;
+  final PaymentRepository _repository;
   final PaymentSdk _sdk;
   final PaymentPageOpener _openPage;
   final Duration pollDelay;
@@ -182,7 +182,7 @@ class PaymentFlow {
 /// перечитывает заказ или покупку.
 Future<PaymentOutcome> runPayment(
   BuildContext context,
-  OrderRepository repository,
+  PaymentRepository repository,
   Payment payment,
 ) async {
   final result = await PaymentFlow(repository).run(payment);

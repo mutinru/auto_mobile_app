@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/address_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/address_field.dart';
+
+import 'support/stores.dart';
 
 /// «Где и когда» в форме осмотра: город из справочника и адрес с подсказками.
 void main() {
@@ -87,10 +86,8 @@ void main() {
   testWidgets('город осмотра выбирается одним тапом, без «Вся Россия»', (
     tester,
   ) async {
-    final store = OrderStore(
-      MockOrderRepository(),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(),
       addresses: MockAddressRepository(),
     );
     await tester.pumpWidget(

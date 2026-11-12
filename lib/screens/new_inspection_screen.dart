@@ -127,7 +127,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
 
   Future<void> _loadPlacementFee() async {
     try {
-      final config = await widget.store.repository.fetchClientConfig();
+      final config = await widget.store.config.fetchClientConfig();
       if (mounted) {
         setState(() => _placementFee = config.inspectionPlacementFee);
       }
@@ -204,7 +204,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   Future<void> _checkVin(String vin, int generation) async {
     setState(() => _vinChecking = true);
     try {
-      final check = await widget.store.repository.checkVinReports(vin);
+      final check = await widget.store.vinReports.checkVinReports(vin);
       if (!mounted || generation != _vinGeneration) return;
       setState(() => _vinCheck = check.available ? check : null);
     } on ApiException catch (e) {
@@ -242,19 +242,19 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
     if (!await confirmVinReportPurchase(context, check) || !mounted) return;
     setState(() => _buying = true);
     try {
-      final repository = widget.store.repository;
-      var purchase = await repository.purchaseVinReport(check.vin);
+      final vinReports = widget.store.vinReports;
+      var purchase = await vinReports.purchaseVinReport(check.vin);
       if (!mounted) return;
       // с провайдером покупка приходит неоплаченной — проводим платёж и
       // перечитываем её: вердикты открываются только после оплаты
       if (!purchase.paid && purchase.payment != null) {
         final outcome = await runPayment(
           context,
-          repository,
+          widget.store.payments,
           purchase.payment!,
         );
         if (!mounted || outcome != PaymentOutcome.paid) return;
-        purchase = await repository.fetchVinReportPurchase(purchase.id);
+        purchase = await vinReports.fetchVinReportPurchase(purchase.id);
         if (!mounted) return;
       }
       if (purchase.paid) {
@@ -285,7 +285,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   Future<void> _openReport(int purchaseId) => Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => VinReportScreen(
-        repository: widget.store.repository,
+        repository: widget.store.vinReports,
         purchaseId: purchaseId,
         auth: widget.auth,
       ),
@@ -440,7 +440,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
       final payment = order.pendingPayment;
       if (order.status == OrderStatus.awaitingPlacement && payment != null) {
         if (!mounted) return;
-        await runPayment(context, widget.store.repository, payment);
+        await runPayment(context, widget.store.payments, payment);
         result = await widget.store.fetchOrder(order.id);
         widget.store.replaceOrder(result);
       }

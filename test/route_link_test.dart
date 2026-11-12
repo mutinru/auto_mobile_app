@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_kind.dart';
@@ -13,6 +11,8 @@ import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/util/route_link.dart';
+
+import 'support/stores.dart';
 
 /// «Маршрут до осмотра» (бэклог №28): по точке — только если она сам дом.
 void main() {
@@ -90,10 +90,8 @@ void main() {
     Widget Function(OrderStore) screen,
     Order o,
   ) async {
-    final store = OrderStore(
-      MockOrderRepository(orders: [o]),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    final store = mockStore(
+      orders: MockOrderRepository(orders: [o]),
     );
     // прошлый экран — прочь, иначе его состояние переживёт новый стор
     await tester.pumpWidget(const SizedBox());

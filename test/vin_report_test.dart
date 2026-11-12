@@ -5,10 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/api_exception.dart';
 import 'package:auto_podbor_mobile/data/address_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
 import 'package:auto_podbor_mobile/models/payment.dart';
 import 'package:auto_podbor_mobile/models/vin_report.dart';
@@ -18,11 +15,17 @@ import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/vin_report_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/data/mock_backend.dart';
+import 'package:auto_podbor_mobile/data/mock_fixtures.dart';
+import 'package:auto_podbor_mobile/data/mock_vin_report_repository.dart';
+
+import 'support/stores.dart';
 
 /// Проверка VIN по команде теста — чтобы поймать устаревший ответ.
-class _SlowCheck extends MockOrderRepository {
+class _SlowCheck extends MockVinReportRepository {
+  _SlowCheck() : super(MockBackend());
+
   final pending = <String, Completer<VinReportCheck>>{};
 
   @override
@@ -30,7 +33,9 @@ class _SlowCheck extends MockOrderRepository {
       (pending[vin] = Completer()).future;
 }
 
-class _LimitReached extends MockOrderRepository {
+class _LimitReached extends MockVinReportRepository {
+  _LimitReached() : super(MockBackend());
+
   @override
   Future<VinReportCheck> checkVinReports(String vin) async =>
       throw ApiException(
@@ -39,7 +44,10 @@ class _LimitReached extends MockOrderRepository {
       );
 }
 
-const _vin = MockOrderRepository.reportVin;
+const _vin = MockFixtures.reportVin;
+
+/// Отчёты по VIN над своим миром мока.
+MockVinReportRepository _reports() => MockVinReportRepository(MockBackend());
 
 /// Форма SDK без плагина.
 class _Sdk implements PaymentSdk {
@@ -64,7 +72,10 @@ class _Sdk implements PaymentSdk {
 
 /// Готовые отчёты по VIN в форме разового осмотра и купленные пакеты.
 void main() {
-  Future<void> open(WidgetTester tester, MockOrderRepository repo) async {
+  Future<void> open(
+    WidgetTester tester,
+    MockVinReportRepository reports,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
@@ -72,10 +83,9 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: NewInspectionScreen(
-          store: OrderStore(
-            repo,
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            backend: reports.backend,
+            vinReports: reports,
             addresses: MockAddressRepository(),
           ),
         ),
@@ -95,7 +105,7 @@ void main() {
   testWidgets('подсказка у поля, отчётов нет — предложения нет', (
     tester,
   ) async {
-    await open(tester, MockOrderRepository());
+    await open(tester, _reports());
 
     expect(find.textContaining('проверим, нет ли готового'), findsOneWidget);
     await typeVin(tester, 'Z94CB41AAGR123456');
@@ -103,7 +113,7 @@ void main() {
   });
 
   testWidgets('VIN с отчётами — тизер и цена, без вердикта', (tester) async {
-    await open(tester, MockOrderRepository());
+    await open(tester, _reports());
     await typeVin(tester, _vin.toLowerCase());
 
     expect(find.text('Эту машину уже осматривали 2 раза'), findsOneWidget);
@@ -147,7 +157,7 @@ void main() {
       'Z94CB41AAGR123456',
     );
     repo.pending[_vin]!.complete(
-      await MockOrderRepository().checkVinReports(_vin),
+      await _reports().checkVinReports(_vin),
     );
     await tester.pumpAndSettle();
 
@@ -167,7 +177,7 @@ void main() {
   testWidgets('покупка открывает пакет с вердиктами, затем «Открыть»', (
     tester,
   ) async {
-    final repo = MockOrderRepository();
+    final repo = _reports();
     await open(tester, repo);
     await typeVin(tester, _vin);
 
@@ -196,7 +206,7 @@ void main() {
     final sdk = _Sdk(const SdkToken('tok', 'sbp'));
     PaymentFlow.sdk = sdk;
     addTearDown(() => PaymentFlow.sdk = const YooKassaSdk());
-    final repo = MockOrderRepository()..vinReportPaidInstantly = false;
+    final repo = _reports()..backend.vinReportPaidInstantly = false;
     await open(tester, repo);
     await typeVin(tester, _vin);
 
@@ -213,7 +223,7 @@ void main() {
   testWidgets('закрыл форму оплаты — отчёт не открывается', (tester) async {
     PaymentFlow.sdk = _Sdk(const SdkCanceled());
     addTearDown(() => PaymentFlow.sdk = const YooKassaSdk());
-    final repo = MockOrderRepository()..vinReportPaidInstantly = false;
+    final repo = _reports()..backend.vinReportPaidInstantly = false;
     await open(tester, repo);
     await typeVin(tester, _vin);
 
@@ -227,7 +237,7 @@ void main() {
   });
 
   testWidgets('купленные отчёты: пусто, затем пакет', (tester) async {
-    final repo = MockOrderRepository();
+    final repo = _reports();
     Widget list() => MaterialApp(
       theme: AppTheme.dark,
       home: VinReportsScreen(repository: repo),

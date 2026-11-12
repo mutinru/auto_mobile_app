@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
 import 'package:auto_podbor_mobile/models/order_status.dart';
@@ -11,8 +9,9 @@ import 'package:auto_podbor_mobile/models/panel_condition.dart';
 import 'package:auto_podbor_mobile/screens/assigned_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_summary_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Мок, в котором осмотр уже начат: штатный мок не двигает статус
 /// при startInspection.
@@ -33,10 +32,8 @@ void main() {
   Widget app(int orderId, [MockOrderRepository? repo]) => MaterialApp(
     theme: AppTheme.dark,
     home: AssignedInspectionScreen(
-      store: OrderStore(
-        repo ?? MockOrderRepository(),
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      store: mockStore(
+        orders: repo ?? MockOrderRepository(),
       ),
       orderId: orderId,
     ),

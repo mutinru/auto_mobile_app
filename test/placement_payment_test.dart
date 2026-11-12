@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -15,6 +13,10 @@ import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/order_card.dart';
+import 'package:auto_podbor_mobile/data/mock_backend.dart';
+import 'package:auto_podbor_mobile/data/mock_payment_repository.dart';
+
+import 'support/stores.dart';
 
 /// Форма SDK без плагина: отдаёт заданный итог и считает вызовы.
 class FakeSdk implements PaymentSdk {
@@ -38,9 +40,10 @@ class FakeSdk implements PaymentSdk {
   }) async => confirmed.add(url);
 }
 
-/// Мок с заданными платежами: ответ токена и чтения задаёт тест.
-class ScriptedRepository extends MockOrderRepository {
-  ScriptedRepository({required this.onToken, required this.onFetch});
+/// Платежи с заданными ответами: ответ токена и чтения задаёт тест.
+class ScriptedRepository extends MockPaymentRepository {
+  ScriptedRepository({required this.onToken, required this.onFetch})
+    : super(MockBackend());
 
   Payment Function(int id) onToken;
   Payment Function(int id) onFetch;
@@ -326,10 +329,8 @@ void main() {
           askingPrice: 3500,
         );
 
-    OrderStore store(MockOrderRepository repo) => OrderStore(
-      repo,
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
+    OrderStore store(MockOrderRepository repo) => mockStore(
+      orders: repo,
     );
 
     test('без комиссии заказ публикуется сразу', () async {
@@ -339,7 +340,7 @@ void main() {
     });
 
     testWidgets('оплата из карточки заказа публикует его', (tester) async {
-      final repo = MockOrderRepository()..placementFee = 199;
+      final repo = MockOrderRepository()..backend.placementFee = 199;
       final order = await placed(repo);
       expect(order.status, OrderStatus.awaitingPlacement);
 
@@ -371,7 +372,7 @@ void main() {
 
     testWidgets('закрыл форму — заказ ждёт оплаты дальше', (tester) async {
       sdk.result = const SdkCanceled();
-      final repo = MockOrderRepository()..placementFee = 199;
+      final repo = MockOrderRepository()..backend.placementFee = 199;
       final order = await placed(repo);
 
       await tester.pumpWidget(
@@ -394,7 +395,7 @@ void main() {
     testWidgets('карточка в «Моих заказах» напоминает об оплате', (
       tester,
     ) async {
-      final repo = MockOrderRepository()..placementFee = 199;
+      final repo = MockOrderRepository()..backend.placementFee = 199;
       final order = await placed(repo);
 
       await tester.pumpWidget(

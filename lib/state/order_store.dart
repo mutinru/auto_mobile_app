@@ -6,7 +6,11 @@ import 'package:flutter/foundation.dart';
 import '../data/address_repository.dart';
 import '../data/car_catalog_repository.dart';
 import '../data/city_repository.dart';
+import '../data/config_repository.dart';
 import '../data/order_repository.dart';
+import '../data/payment_repository.dart';
+import '../data/review_repository.dart';
+import '../data/vin_report_repository.dart';
 import '../models/available_page.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
@@ -24,6 +28,10 @@ import 'city_locator.dart';
 class OrderStore extends ChangeNotifier {
   OrderStore(
     this._repository, {
+    required this.reviews,
+    required this.vinReports,
+    required this.payments,
+    required this.config,
     required this.catalog,
     required this.cities,
     this.locator,
@@ -31,6 +39,13 @@ class OrderStore extends ChangeNotifier {
   });
 
   final OrderRepository _repository;
+
+  /// Узкие репозитории сессии (ревью №39) — экраны берут свой, а не весь
+  /// [repository]: отзывы исполнителя, отчёты по VIN, платежи, настройки.
+  final ReviewRepository reviews;
+  final VinReportRepository vinReports;
+  final PaymentRepository payments;
+  final ConfigRepository config;
 
   /// Справочник марок и моделей для форм заказа. Один на приложение
   /// (см. main.dart): кеш справочника живёт дольше отдельного стора.

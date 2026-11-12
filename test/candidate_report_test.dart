@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_inspection_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/inspection_verdict.dart';
@@ -15,8 +13,9 @@ import 'package:auto_podbor_mobile/screens/inspection_report_screen.dart';
 import 'package:auto_podbor_mobile/screens/inspection_summary_screen.dart';
 import 'package:auto_podbor_mobile/screens/order_detail_screen.dart';
 import 'package:auto_podbor_mobile/state/inspection_store.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+
+import 'support/stores.dart';
 
 /// Заказчик подбора видит итог по кандидату: комментарий к вердикту в
 /// карточке и полный отчёт по тапу. Идущий осмотр — схема только для чтения.
@@ -66,10 +65,8 @@ void main() {
       MaterialApp(
         theme: AppTheme.dark,
         home: OrderDetailScreen(
-          store: OrderStore(
-            MockOrderRepository(orders: [order]),
-            catalog: MockCarCatalogRepository(),
-            cities: MockCityRepository(),
+          store: mockStore(
+            orders: MockOrderRepository(orders: [order]),
           ),
           orderId: order.id,
           viewerIsCustomer: asCustomer,

@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       user: me.asSummary,
       onTap: () => openExecutorReviews(
         context,
-        widget.store.repository,
+        widget.store.reviews,
         me.asSummary,
       ),
     );
@@ -487,7 +487,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => VinReportsScreen(
-                              repository: widget.store.repository,
+                              repository: widget.store.vinReports,
                               auth: widget.auth,
                             ),
                           ),

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../models/available_page.dart';
-import '../models/client_config.dart';
 import '../models/inspection_outcome.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
@@ -13,239 +12,41 @@ import '../models/order_kind.dart';
 import '../models/order_response.dart';
 import '../models/order_response_status.dart';
 import '../models/order_status.dart';
-import '../models/payment.dart';
 import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../models/review.dart';
 import '../models/vin_kind.dart';
-import '../models/vin_report.dart';
 import 'api_exception.dart';
 import '../models/time_slot.dart';
 import '../models/user_summary.dart';
 import '../util/listing_url.dart';
+import 'mock_backend.dart';
+import 'mock_fixtures.dart';
 import 'order_repository.dart';
 
-/// Фейковые заказы по мотивам мокапа (design/app_auto_podbor.html,
-/// экран "Мои заказы") — для UI-разработки и виджет-тестов без бекенда.
+/// Заказы для виджет-тестов без бекенда (ревью №39): поведение сервера
+/// над общим миром [MockBackend]. Фикстура заказов — [MockFixtures.orders]
+/// (правка двигает вёрстку соседних suites — прогоняй flutter test целиком).
 class MockOrderRepository implements OrderRepository {
   /// [orders] — свой набор вместо общей фикстуры: тестам оплаты нужны
   /// заказы в reportReady/paymentSent, а правка [_seed] двигает вёрстку
   /// соседних suites.
   /// [availablePageSize] — страница ленты «Заказы рядом»; маленькая —
   /// чтобы проверить подгрузку на двух заказах фикстуры.
-  MockOrderRepository({List<Order>? orders, this.availablePageSize = 20})
-    : _orders = orders ?? _seed();
+  MockOrderRepository({
+    List<Order>? orders,
+    this.availablePageSize = 20,
+    MockBackend? backend,
+  }) : backend = backend ?? MockBackend(orders: orders);
+
+  /// Общий мир мока: заказы, платежи, покупки по VIN. Остальные моки
+  /// (`MockPaymentRepository` и др.) работают над ним же — оплата
+  /// размещения публикует заказ, как на сервере.
+  final MockBackend backend;
+
+  List<Order> get _orders => backend.orders;
 
   final int availablePageSize;
-
-  /// Комиссия за размещение осмотра, как INSPECTION_PLACEMENT_FEE на
-  /// сервере: 0 — заказ публикуется сразу, иначе ждёт оплаты.
-  int placementFee = 0;
-
-  /// Платежи мока: оплата формы SDK (submitPaymentToken) проходит сразу —
-  /// размещение удерживается и публикует заказ, VIN — списывается.
-  final Map<int, Payment> _payments = {};
-  int _paymentSeq = 900;
-
-  Payment _startPayment(int amount, String purpose, {int? orderId}) {
-    final payment = Payment(
-      id: ++_paymentSeq,
-      status: PaymentStatus.pending,
-      amount: amount,
-      purpose: purpose,
-      orderId: orderId,
-      checkout: PaymentCheckout(
-        method: CheckoutMethod.sdk,
-        provider: 'yookassa',
-        clientKey: 'test_client_key',
-        shopId: '000000',
-        title: purpose == 'vin_report'
-            ? 'Готовые отчёты по VIN'
-            : 'Размещение осмотра',
-        amount: amount,
-        paymentMethods: const ['bank_card', 'sberbank', 'sbp'],
-      ),
-    );
-    _payments[payment.id] = payment;
-    return payment;
-  }
-
-  /// Реквизиты, которые мок отдаёт заказчику в момент оплаты.
-  static const mockPayout = Payout(
-    card: '2200700000000009',
-    phone: '+79000000001',
-    bank: 'Т-Банк',
-  );
-
-  final List<Order> _orders;
-
-  static const _me = UserSummary(id: 1, name: 'Андрей С.');
-
-  // сводка исполнителей — чтобы в откликах были и рейтинг, и «новый»
-  static const _maxim = UserSummary(
-    id: 10,
-    name: 'Максим К.',
-    rating: 4.9,
-    reviewsCount: 12,
-    completedOrdersCount: 30,
-  );
-  static const _sergey = UserSummary(
-    id: 14,
-    name: 'Сергей П.',
-    rating: 4.7,
-    reviewsCount: 5,
-    completedOrdersCount: 8,
-  );
-  static const _oleg = UserSummary(id: 15, name: 'Олег К.');
-
-  static List<Order> _seed() => [
-    // разовые осмотры (order-types.html, кадры 01 и 05)
-    Order(
-      id: 2051,
-      kind: OrderKind.inspection,
-      status: OrderStatus.scheduled,
-      brand: 'Kia',
-      model: 'Rio',
-      yearFrom: 2019,
-      mileageTo: 64000,
-      customer: _me,
-      executor: _maxim,
-      cities: ['Химки'],
-      address: 'ул. Ленина, 5',
-      inspectOn: DateTime.now().add(const Duration(days: 1)),
-      timeSlot: TimeSlot.exact,
-      inspectTime: '16:00',
-      askingPrice: 4000,
-      price: 4000,
-      sellerPhone: '+79161234567',
-      cars: const [
-        OrderCar(
-          id: 511,
-          brand: 'Kia',
-          model: 'Rio',
-          year: 2019,
-          vinMasked: '—',
-          // осмотр не начат: пробег пока только со слов продавца
-          customerMileageKm: 64000,
-        ),
-      ],
-    ),
-    Order(
-      id: 2053,
-      kind: OrderKind.inspection,
-      status: OrderStatus.awaitingExecutor,
-      brand: 'BMW',
-      model: 'X3',
-      yearFrom: 2017,
-      mileageTo: 112000,
-      customer: _me,
-      cities: ['Москва'],
-      address: 'Варшавское ш., 170',
-      inspectOn: DateTime.now().add(const Duration(days: 3)),
-      timeSlot: TimeSlot.day,
-      askingPrice: 3500,
-      listingUrl: 'https://auto.ru/cars/used/sale/bmw/x3/1120000123',
-      listingHost: 'auto.ru',
-      listingSite: 'Авто.ру',
-      hasListing: true,
-      responses: const [
-        OrderResponse(
-          id: 21,
-          status: OrderResponseStatus.pending,
-          proposedPrice: 3000,
-          executor: _sergey,
-        ),
-        OrderResponse(
-          id: 22,
-          status: OrderResponseStatus.pending,
-          proposedPrice: 3500,
-          executor: _maxim,
-        ),
-        OrderResponse(
-          id: 23,
-          status: OrderResponseStatus.pending,
-          proposedPrice: 4500,
-          executor: _oleg,
-        ),
-      ],
-    ),
-    Order(
-      id: 2047,
-      kind: OrderKind.inspection,
-      status: OrderStatus.completed,
-      completedAt: DateTime.now().subtract(const Duration(days: 2)),
-      actions: const {OrderAction.review},
-      brand: 'Hyundai',
-      model: 'Creta',
-      yearFrom: 2020,
-      mileageTo: 71000,
-      customer: _me,
-      executor: _maxim,
-      cities: ['Мытищи'],
-      address: 'ул. Мира, 12',
-      inspectOn: DateTime.now().subtract(const Duration(days: 2)),
-      timeSlot: TimeSlot.morning,
-      askingPrice: 4000,
-      price: 4000,
-      cars: const [
-        OrderCar(
-          id: 512,
-          brand: 'Hyundai',
-          model: 'Creta',
-          year: 2020,
-          vinMasked: '··· 100077',
-          // по одометру больше, чем в объявлении, — плашка расхождения
-          mileageKm: 98000,
-          customerMileageKm: 71000,
-          mileageMismatch: true,
-          inspectionId: 90,
-          inspectionStatus: 'completed',
-          verdict: InspectionVerdict.notRecommended,
-          verdictComment: '3 детали перекрашены, замена крыла',
-        ),
-      ],
-    ),
-    const Order(
-      id: 2041,
-      status: OrderStatus.inspecting,
-      brand: 'Toyota',
-      model: 'Camry',
-      yearFrom: 2018,
-      budgetMin: 2000000,
-      budgetMax: 2400000,
-      customer: _me,
-      executor: _maxim,
-      price: 12000,
-    ),
-    const Order(
-      id: 2038,
-      status: OrderStatus.sourcing,
-      brand: 'Kia',
-      model: 'Sportage',
-      yearFrom: 2021,
-      budgetMax: 3100000,
-      customer: _me,
-      executor: UserSummary(id: 11, name: 'Игорь В.'),
-      price: 15000,
-    ),
-    const Order(
-      id: 2044,
-      status: OrderStatus.awaitingExecutor,
-      brand: 'Volkswagen',
-      model: 'Tiguan',
-      yearFrom: 2019,
-      budgetMax: 2000000,
-      customer: _me,
-      responses: [
-        OrderResponse(
-          id: 1,
-          status: OrderResponseStatus.pending,
-          proposedPrice: 10000,
-          executor: UserSummary(id: 12, name: 'Денис П.'),
-        ),
-      ],
-    ),
-  ];
 
   /// Страница завершённых — как на сервере (App\Queries\OrderLists::PAGE).
   static const finishedPageSize = 20;
@@ -335,7 +136,9 @@ class MockOrderRepository implements OrderRepository {
   /// Как бекенд (OrderResource): не заказчику — только свой отклик,
   /// в responsesCount — отклики в игре, без устаревших после переноса.
   static Order _asExecutor(Order o) => o.copyWith(
-    responses: o.responses.where((r) => r.executor.id == _me.id).toList(),
+    responses: o.responses
+        .where((r) => r.executor.id == MockFixtures.me.id)
+        .toList(),
     responsesCount: o.responses.where((r) => r.status.isActive).length,
   );
 
@@ -378,7 +181,7 @@ class MockOrderRepository implements OrderRepository {
   /// показывает их только экран исполнителя.
   @visibleForTesting
   static Order withActions(Order o) {
-    final mine = o.customer.id == _me.id;
+    final mine = o.customer.id == MockFixtures.me.id;
     final hasExecutor = o.executor != null;
     final selection = !o.isInspection;
     final open =
@@ -459,7 +262,7 @@ class MockOrderRepository implements OrderRepository {
       cities: cities,
       requirements: requirements,
       comment: comment,
-      customer: _me,
+      customer: MockFixtures.me,
     );
     _orders.insert(0, order);
     return order;
@@ -487,7 +290,7 @@ class MockOrderRepository implements OrderRepository {
     int? addressPrecision,
   }) async {
     final id = DateTime.now().millisecondsSinceEpoch;
-    final fee = placementFee;
+    final fee = backend.placementFee;
     final order = Order(
       id: id,
       kind: OrderKind.inspection,
@@ -496,13 +299,13 @@ class MockOrderRepository implements OrderRepository {
           : OrderStatus.awaitingExecutor,
       placementFee: fee > 0 ? fee : null,
       pendingPayment: fee > 0
-          ? _startPayment(fee, 'inspection_placement', orderId: id)
+          ? backend.startPayment(fee, 'inspection_placement', orderId: id)
           : null,
       brand: brand,
       model: model,
       yearFrom: year,
       mileageTo: mileageKm,
-      customer: _me,
+      customer: MockFixtures.me,
       cities: [city],
       address: address,
       lat: lat,
@@ -547,7 +350,7 @@ class MockOrderRepository implements OrderRepository {
     // как на бекенде: заказ не закрывается, отчёт ждёт оплаты
     final updated = order.copyWith(
       status: OrderStatus.reportReady,
-      payout: mockPayout,
+      payout: MockFixtures.payout,
       reportSummary: const ReportSummary(
         panelsTotal: 17,
         panelsInspected: 17,
@@ -585,17 +388,19 @@ class MockOrderRepository implements OrderRepository {
   }) async {
     final order = await fetchOrder(orderId);
     // как Order::addResponse(): устаревший после переноса отклик оживает
-    final mine = order.responses.where((r) => r.executor.id == _me.id);
+    final mine = order.responses.where(
+      (r) => r.executor.id == MockFixtures.me.id,
+    );
     final updated = order.copyWith(
       responses: [
         for (final r in order.responses)
-          if (r.executor.id != _me.id) r,
+          if (r.executor.id != MockFixtures.me.id) r,
         OrderResponse(
           id: mine.isEmpty ? order.responses.length + 1 : mine.first.id,
           status: OrderResponseStatus.pending,
           proposedPrice: proposedPrice,
           message: message,
-          executor: _me,
+          executor: MockFixtures.me,
         ),
       ],
     );
@@ -820,7 +625,7 @@ class MockOrderRepository implements OrderRepository {
     );
   }
 
-  /// Библиотека осмотров исполнителя. В `_seed()` её нет намеренно (общая
+  /// Библиотека осмотров исполнителя. В `MockFixtures.orders()` её нет намеренно (общая
   /// фикстура всех suites) — тесты кладут записи сами.
   List<LibraryInspection> library = [];
 
@@ -896,119 +701,6 @@ class MockOrderRepository implements OrderRepository {
   /// Последний пробег по одометру — для тех же тестов.
   CapturedOdometer? lastOdometer;
 
-  /// VIN, по которому в моке есть готовые отчёты: два осмотра.
-  static const reportVin = 'XW8ZZZ61ZKG100111';
-
-  /// Разные VIN, проверенные за «сутки», — лимит как у сервера.
-  final _checkedVins = <String>{};
-  final _purchases = <VinReportPurchase>[];
-
-  static final _reportItems = [
-    VinReportItem(
-      date: DateTime(2026, 10, 20),
-      city: 'Москва',
-      mileageKm: 112000,
-    ),
-    VinReportItem(date: DateTime(2026, 9, 2), city: 'Химки', mileageKm: 98000),
-  ];
-
-  @override
-  Future<VinReportCheck> checkVinReports(String vin) async {
-    if (!_checkedVins.contains(vin) && _checkedVins.length >= 15) {
-      throw ApiException(
-        429,
-        '{"message":"Можно проверить 15 VIN в сутки — попробуйте завтра"}',
-      );
-    }
-    _checkedVins.add(vin);
-    final has = vin == reportVin;
-    return VinReportCheck(
-      vin: vin,
-      items: has ? _reportItems : const [],
-      price: 299,
-      purchaseId: has ? _purchases.firstOrNull?.id : null,
-    );
-  }
-
-  /// false — покупка по VIN ждёт оплаты формой SDK, как с провайдером на
-  /// сервере; true — оплачена сразу, как с заглушкой.
-  bool vinReportPaidInstantly = true;
-
-  /// Покупки, ждущие оплаты: id платежа → покупка.
-  final Map<int, VinReportPurchase> _unpaidPurchases = {};
-
-  VinReportPurchase _vinPurchase(String vin, {required bool paid}) =>
-      VinReportPurchase(
-        id: 701,
-        vinMasked: '··· ${vin.substring(vin.length - 6)}',
-        paid: paid,
-        price: 299,
-        paidAt: paid ? DateTime(2026, 11, 3) : null,
-        items: [
-          for (final (i, item) in _reportItems.indexed)
-            VinReportItem(
-              date: item.date,
-              city: item.city,
-              mileageKm: item.mileageKm,
-              // как сервер: до оплаты без вердикта и id осмотра
-              inspectionId: paid ? 9001 + i : null,
-              brand: 'Volkswagen',
-              model: 'Tiguan',
-              year: 2019,
-              verdict: !paid
-                  ? null
-                  : i == 0
-                  ? InspectionVerdict.withReservations
-                  : InspectionVerdict.recommended,
-              verdictComment: paid && i == 0 ? 'Перекрашено крыло' : null,
-            ),
-        ],
-      );
-
-  void _payVinPurchase(int paymentId) {
-    final unpaid = _unpaidPurchases.remove(paymentId);
-    if (unpaid == null) return;
-    _purchases.add(_vinPurchase(reportVin, paid: true));
-  }
-
-  @override
-  Future<VinReportPurchase> purchaseVinReport(String vin) async {
-    if (vin != reportVin) {
-      throw ApiException(422, '{"message":"Готовых отчётов по этому VIN нет"}');
-    }
-    if (_purchases.firstOrNull case final p?) return p;
-    if (!vinReportPaidInstantly) {
-      final payment = _startPayment(299, 'vin_report');
-      final unpaid = _vinPurchase(vin, paid: false);
-      final withPayment = VinReportPurchase(
-        id: unpaid.id,
-        vinMasked: unpaid.vinMasked,
-        paid: false,
-        price: unpaid.price,
-        items: unpaid.items,
-        payment: payment,
-      );
-      _unpaidPurchases[payment.id] = withPayment;
-      return withPayment;
-    }
-    final purchase = _vinPurchase(vin, paid: true);
-    _purchases.add(purchase);
-    return purchase;
-  }
-
-  @override
-  Future<List<VinReportPurchase>> fetchVinReportPurchases() async =>
-      List.of(_purchases);
-
-  @override
-  Future<VinReportPurchase> fetchVinReportPurchase(int id) async =>
-      _purchases.where((p) => p.id == id).firstOrNull ??
-      _unpaidPurchases.values.firstWhere((p) => p.id == id);
-
-  @override
-  Future<ClientConfig> fetchClientConfig() async =>
-      ClientConfig(inspectionPlacementFee: placementFee, vinReportPrice: 299);
-
   @override
   Future<Order> payPlacement(int orderId) async {
     final order = await fetchOrder(orderId);
@@ -1017,55 +709,13 @@ class MockOrderRepository implements OrderRepository {
     }
     if (order.pendingPayment != null) return order;
     final updated = order.copyWith(
-      pendingPayment: _startPayment(
-        order.placementFee ?? placementFee,
+      pendingPayment: backend.startPayment(
+        order.placementFee ?? backend.placementFee,
         'inspection_placement',
         orderId: orderId,
       ),
     );
     return _replace(updated);
-  }
-
-  @override
-  Future<Payment> fetchPayment(int id) async {
-    final payment = _payments[id];
-    if (payment == null) throw ApiException(404, '{"message":"Не найдено"}');
-    return payment;
-  }
-
-  @override
-  Future<Payment> submitPaymentToken(
-    int paymentId, {
-    required String token,
-    required String methodType,
-  }) async {
-    final payment = await fetchPayment(paymentId);
-    if (!payment.isPending) {
-      throw ApiException(422, '{"message":"Платёж уже не ждёт оплаты"}');
-    }
-    final placement = payment.purpose == 'inspection_placement';
-    final done = Payment(
-      id: payment.id,
-      // как сервер: размещение удерживается до отчёта, VIN списывается
-      status: placement ? PaymentStatus.authorized : PaymentStatus.paid,
-      amount: payment.amount,
-      purpose: payment.purpose,
-      orderId: payment.orderId,
-      methodType: methodType,
-    );
-    _payments[paymentId] = done;
-    if (placement && payment.orderId != null) {
-      // как Order::paymentSucceeded: заказ опубликован
-      final order = await fetchOrder(payment.orderId!);
-      _replace(
-        order.copyWith(
-          status: OrderStatus.awaitingExecutor,
-          clearPendingPayment: true,
-        ),
-      );
-    }
-    if (payment.purpose == 'vin_report') _payVinPurchase(paymentId);
-    return done;
   }
 
   @override
@@ -1119,33 +769,6 @@ class MockOrderRepository implements OrderRepository {
       executor: _withRating(e, sum, e.reviewsCount),
     );
     return _replace(updated);
-  }
-
-  @override
-  Future<ReviewPage> fetchExecutorReviews(int userId, {int page = 1}) async {
-    final now = DateTime.now();
-    return ReviewPage(
-      items: [
-        Review(
-          id: 1,
-          rating: 5,
-          text: 'Нашёл машину за неделю, все косяки показал на месте.',
-          editableUntil: now,
-          createdAt: now.subtract(const Duration(days: 3)),
-          customer: _me,
-          orderTitle: 'Kia Sportage',
-        ),
-        Review(
-          id: 2,
-          rating: 4,
-          editableUntil: now,
-          createdAt: now.subtract(const Duration(days: 20)),
-          customer: _me,
-          orderTitle: 'Skoda Octavia',
-        ),
-      ],
-      hasMore: false,
-    );
   }
 
   Review _review(int rating, String? text) {
@@ -1229,7 +852,7 @@ class MockOrderRepository implements OrderRepository {
       status: OrderStatus.disputed,
       clearDisputeWindow: true,
       dispute: OrderDispute(
-        openedBy: _me.id,
+        openedBy: MockFixtures.me.id,
         reason: reason,
         openedAt: DateTime.now(),
       ),
@@ -1238,10 +861,5 @@ class MockOrderRepository implements OrderRepository {
   }
 
   /// Сохранить заказ и отдать его с картой действий, как сервер.
-  Order _replace(Order updated) {
-    final stored = withActions(updated);
-    final i = _orders.indexWhere((o) => o.id == stored.id);
-    if (i != -1) _orders[i] = stored;
-    return stored;
-  }
+  Order _replace(Order updated) => backend.replaceOrder(updated);
 }

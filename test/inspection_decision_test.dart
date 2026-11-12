@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:auto_podbor_mobile/data/mock_car_catalog_repository.dart';
-import 'package:auto_podbor_mobile/data/mock_city_repository.dart';
 import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -14,10 +12,11 @@ import 'package:auto_podbor_mobile/models/order_status.dart';
 import 'package:auto_podbor_mobile/models/time_slot.dart';
 import 'package:auto_podbor_mobile/models/user_summary.dart';
 import 'package:auto_podbor_mobile/screens/inspection_order_detail_screen.dart';
-import 'package:auto_podbor_mobile/state/order_store.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
 import 'package:auto_podbor_mobile/widgets/executor_stats.dart';
 import 'package:auto_podbor_mobile/widgets/inspection_when_picker.dart';
+
+import 'support/stores.dart';
 
 /// Срок осмотра — день осмотра: срыв или пропущенный день → заказчик
 /// решает, разместить заново или отменить; срывы видит только заказчик.
@@ -146,10 +145,8 @@ void main() {
     'срыв: причина, «Разместить заново» с новой датой, старые отклики скрыты',
     (tester) async {
       final repo = MockOrderRepository(orders: [decisionOrder()]);
-      final store = OrderStore(
-        repo,
-        catalog: MockCarCatalogRepository(),
-        cities: MockCityRepository(),
+      final store = mockStore(
+        orders: repo,
       );
       await tester.pumpWidget(
         MaterialApp(
@@ -189,12 +186,10 @@ void main() {
   );
 
   testWidgets('день прошёл без исполнителя — своя причина', (tester) async {
-    final store = OrderStore(
-      MockOrderRepository(
+    final store = mockStore(
+      orders: MockOrderRepository(
         orders: [decisionOrder(reason: DecisionReason.datePassed)],
       ),
-      catalog: MockCarCatalogRepository(),
-      cities: MockCityRepository(),
     );
     await tester.pumpWidget(
       MaterialApp(
