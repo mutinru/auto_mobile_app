@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -21,6 +22,10 @@ import 'http_transport.dart';
 /// потребует отдельного решения.
 class AuthService extends ChangeNotifier {
   static const _tokenKey = 'auth_token';
+
+  /// Токены вышедших сессий, которые сервер ещё не отозвал (ревью №30):
+  /// пока сессия жива, на телефон идут пуши вышедшего аккаунта.
+  static const _pendingLogoutsKey = 'pending_logouts';
   static const _storage = FlutterSecureStorage();
 
   String? _token;
@@ -59,6 +64,8 @@ class AuthService extends ChangeNotifier {
       _restoring = false;
       notifyListeners();
     }
+    // выход прошлого запуска мог не дойти до сервера
+    unawaited(flushPendingLogouts());
   }
 
   Future<void>? _ensuring;
@@ -191,6 +198,8 @@ class AuthService extends ChangeNotifier {
     _token = token;
     await _storage.write(key: _tokenKey, value: token);
     await _loadUser();
+    // вход прошёл — сеть есть, отзываем сессии, из которых вышли без неё
+    unawaited(flushPendingLogouts());
   }
 
   /// Профилю нужны имя и дата регистрации — их отдаёт GET /me. Код ответа —
@@ -408,26 +417,114 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Выход. Сессия на телефоне стирается сразу, экран сети не ждёт; токен
+  /// уходит в долг ([flushPendingLogouts]), пока сервер его не отзовёт:
+  /// вместе с сессией сервер удаляет и устройство для пушей. Иначе вышедший
+  /// без сети продолжал бы получать пуши своего аккаунта.
   Future<void> logout() async {
     final token = _token;
     _token = null;
     _user = null;
-    await _storage.delete(key: _tokenKey);
+    if (token != null) await _addPendingLogout(token);
+    // хранилище может сбоить — сессия в памяти уже стёрта
+    await _storage.delete(key: _tokenKey).catchError((_) {});
     notifyListeners();
+    if (token != null) unawaited(flushPendingLogouts());
+  }
 
-    if (token == null) return;
-    // локальная сессия уже стёрта — без сети выход не должен падать,
-    // токен на сервере тогда просто доживёт своё
+  final _logoutFallbacks = <Future<void> Function()>[];
+
+  /// Что сделать, если сервер выход не подтвердил: `PushService` делает
+  /// пуш-токен недействительным, и сервер удалит устройство по ответу
+  /// FCM или RuStore.
+  void addLogoutFallback(Future<void> Function() fallback) =>
+      _logoutFallbacks.add(fallback);
+
+  Future<void>? _flushing;
+
+  /// Отозвать на сервере сессии, из которых вышли (`POST /logout`). 2xx и
+  /// 401 (сессии уже нет) снимают долг; сбой сети, 5xx, 426 — оставляют до
+  /// следующего раза (запуск, вход) и зовут [addLogoutFallback].
+  /// Параллельные вызовы делят один проход.
+  Future<void> flushPendingLogouts() =>
+      _flushing ??= _flush().whenComplete(() => _flushing = null);
+
+  Future<void> _flush() async {
+    final pending = await _readPendingLogouts();
+    var failed = false;
+    for (final token in pending) {
+      int? status;
+      try {
+        final response = await HttpTransport.request(
+          'POST',
+          Uri.parse('${ApiConfig.baseUrl}/logout'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json',
+          },
+        );
+        status = response.statusCode;
+      } catch (_) {
+        status = null;
+      }
+      final revoked =
+          status != null && (status == 401 || (status >= 200 && status < 300));
+      if (!revoked) {
+        failed = true;
+        break; // сети нет или сервер лежит — остальные тоже не пройдут
+      }
+      await _removePendingLogout(token);
+    }
+    // вошли снова — пуш-токен уже переехал к новой сессии (сервер переносит
+    // его при регистрации), гасить его нельзя
+    if (!failed || _token != null) return;
+    for (final fallback in _logoutFallbacks) {
+      try {
+        await fallback();
+      } catch (_) {}
+    }
+  }
+
+  /// Долг, который не удалось записать (хранилище сбоит): хотя бы до
+  /// конца запуска.
+  List<String>? _unsavedPendingLogouts;
+
+  Future<List<String>> _readPendingLogouts() async {
+    final unsaved = _unsavedPendingLogouts;
+    if (unsaved != null) return unsaved;
     try {
-      await HttpTransport.request(
-        'POST',
-        Uri.parse('${ApiConfig.baseUrl}/logout'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
-    } catch (_) {}
+      final raw = await _storage.read(key: _pendingLogoutsKey);
+      if (raw == null) return [];
+      return (jsonDecode(raw) as List).cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _writePendingLogouts(List<String> tokens) async {
+    try {
+      if (tokens.isEmpty) {
+        await _storage.delete(key: _pendingLogoutsKey);
+      } else {
+        await _storage.write(
+          key: _pendingLogoutsKey,
+          value: jsonEncode(tokens),
+        );
+      }
+      _unsavedPendingLogouts = null;
+    } catch (_) {
+      _unsavedPendingLogouts = tokens;
+    }
+  }
+
+  Future<void> _addPendingLogout(String token) async {
+    final tokens = await _readPendingLogouts();
+    if (!tokens.contains(token)) await _writePendingLogouts([...tokens, token]);
+  }
+
+  Future<void> _removePendingLogout(String token) async {
+    final tokens = await _readPendingLogouts();
+    await _writePendingLogouts([...tokens.where((t) => t != token)]);
   }
 
   /// Удалить аккаунт (DELETE /me). Сервер обезличивает его, а не стирает:

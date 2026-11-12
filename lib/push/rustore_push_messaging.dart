@@ -58,6 +58,9 @@ class RuStorePushMessaging implements PushMessaging {
   Future<String?> getToken() => RustorePushClient.getToken();
 
   @override
+  Future<void> deleteToken() => RustorePushClient.deleteToken();
+
+  @override
   Stream<String> get onTokenRefresh => _tokens.stream;
 
   @override

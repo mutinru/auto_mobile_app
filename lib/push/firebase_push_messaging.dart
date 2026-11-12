@@ -46,6 +46,13 @@ class FirebasePushMessaging implements PushMessaging {
   // ignore: deprecated_member_use
   Future<String?> getToken() => _fcm.getToken();
 
+  /// Пара к [getToken]: приложение работает с токенами FCM. Замена из
+  /// предупреждения — unregister() — для модели FID (register() /
+  /// onRegistered), которой у нас нет.
+  @override
+  // ignore: deprecated_member_use
+  Future<void> deleteToken() => _fcm.deleteToken();
+
   @override
   // ignore: deprecated_member_use
   Stream<String> get onTokenRefresh => _fcm.onTokenRefresh;

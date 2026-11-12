@@ -77,6 +77,15 @@ class PushService {
         }),
       );
     _auth.addListener(_onAuthChanged);
+    // сервер не узнал о выходе — гасим пуш-токен, иначе пуши вышедшего
+    // аккаунта шли бы сюда, пока жива его сессия
+    _auth.addLogoutFallback(() async {
+      try {
+        await _messaging.deleteToken();
+      } catch (e) {
+        debugPrint('Пуш-токен не удалён: $e');
+      }
+    });
 
     try {
       final initial = await _messaging.initialTap();
@@ -96,7 +105,8 @@ class PushService {
   }
 
   /// Новая сессия — регистрируем устройство. Выход сервер отрабатывает
-  /// сам: устройство удаляется вместе с токеном сессии.
+  /// сам: устройство удаляется вместе с токеном сессии (`/logout`, при
+  /// сбое — повтор и `deleteToken`, см. `AuthService.logout`).
   void _onAuthChanged() {
     final session = _auth.token;
     if (session == null) {
@@ -134,6 +144,8 @@ class PushService {
   /// Приложение открыто: система пуш не покажет. Бейджи — сразу с сервера;
   /// ответ поддержки при открытом чате не показываем — он и так на экране.
   Future<void> _onForeground(PushMessage message) async {
+    // вышли, а сервер об этом ещё не знает — чужое не показываем
+    if (!_auth.isAuthenticated) return;
     final target = PushTarget.fromData(message.data);
     if (target is SupportChatTarget) {
       support?.refresh();

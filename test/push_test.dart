@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/mock_chat_repository.dart';
@@ -48,6 +51,11 @@ class FakePushMessaging implements PushMessaging {
 
   @override
   Future<String?> getToken() async => token;
+
+  int deletedTokens = 0;
+
+  @override
+  Future<void> deleteToken() async => deletedTokens++;
 
   @override
   Stream<String> get onTokenRefresh => refresh.stream;
@@ -232,6 +240,33 @@ void main() {
         support.dispose();
       },
     );
+
+    test('выход без подтверждения сервера гасит пуш-токен', () async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final push = service();
+      await push.start();
+      auth.debugSetToken('t');
+      await pumpEventQueue();
+
+      await http.runWithClient(() async {
+        await auth.logout();
+        await auth.flushPendingLogouts();
+      }, () => MockClient((_) => throw http.ClientException('no network')));
+
+      expect(messaging.deletedTokens, 1);
+      push.dispose();
+    });
+
+    test('после выхода пуш в открытом приложении не показывается', () async {
+      final push = service();
+      await push.start();
+
+      messaging.foreground.add(orderPush);
+      await pumpEventQueue();
+
+      expect(messaging.shown, isEmpty);
+      push.dispose();
+    });
 
     test('тап — в поток taps; пуш запуска — забирается один раз', () async {
       messaging.launchedBy = supportPush;

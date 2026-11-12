@@ -65,6 +65,9 @@ class AutoPushMessaging implements PushMessaging {
   Future<String?> getToken() => _impl.getToken();
 
   @override
+  Future<void> deleteToken() => _impl.deleteToken();
+
+  @override
   Stream<String> get onTokenRefresh => _impl.onTokenRefresh;
 
   @override
