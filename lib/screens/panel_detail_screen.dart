@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../data/photo_exif.dart';
 import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
@@ -12,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/audio_note.dart';
 import '../widgets/inspection_sync.dart';
+import '../widgets/photo_source_badge.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/status_dot.dart';
 
@@ -145,7 +147,19 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
 
     // снимок — в очередь осмотра: виден сразу (плитка со значком облака),
     // на сервер уйдёт, когда будет сеть; отказ — снекбаром (listenRejections)
-    unawaited(widget.store.uploadPhoto(_panelId, picked.path));
+    // из галереи — с датой съёмки из EXIF: сжатая копия уйдёт без EXIF, а
+    // отчёт помечает такие снимки (ревью №33)
+    final gallery = source == ImageSource.gallery;
+    final takenAt = gallery ? await photoTakenAt(picked.path) : null;
+    if (!mounted) return;
+    unawaited(
+      widget.store.uploadPhoto(
+        _panelId,
+        picked.path,
+        source: gallery ? PhotoSource.gallery : PhotoSource.camera,
+        takenAt: takenAt,
+      ),
+    );
   }
 
   /// Мутации детали: действие ложится в очередь и видно сразу, сеть не
@@ -334,6 +348,10 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                     thumbUrls: [
                                       for (final p in panel.photos) p.thumbUrl,
                                     ],
+                                    captions: [
+                                      for (final p in panel.photos)
+                                        photoSourceCaption(p),
+                                    ],
                                     initialIndex: i,
                                     onDelete: store.readOnly
                                         ? null
@@ -351,19 +369,27 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                       color: context.colors.bg1,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: photo.isPending
-                                        ? _PendingPhotoTile(
-                                            path: photo.localPath!,
-                                          )
-                                        : Image.network(
-                                            photo.thumbUrl,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, _, _) => Icon(
-                                              Icons.broken_image_outlined,
-                                              size: 20,
-                                              color: context.colors.text3,
-                                            ),
-                                          ),
+                                    // пометка «Галерея» — как её увидит
+                                    // заказчик в отчёте (ревью №33)
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        photo.isPending
+                                            ? _PendingPhotoTile(
+                                                path: photo.localPath!,
+                                              )
+                                            : Image.network(
+                                                photo.thumbUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) => Icon(
+                                                  Icons.broken_image_outlined,
+                                                  size: 20,
+                                                  color: context.colors.text3,
+                                                ),
+                                              ),
+                                        PhotoSourceBadge(photo: photo),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

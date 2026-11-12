@@ -24,6 +24,7 @@ void openPhotoGallery(
   BuildContext context,
   List<String> urls, {
   List<String>? thumbUrls,
+  List<String?>? captions,
   int initialIndex = 0,
   Future<void> Function(int index)? onDelete,
 }) {
@@ -32,6 +33,7 @@ void openPhotoGallery(
       builder: (_) => PhotoViewer(
         urls: urls,
         thumbUrls: thumbUrls,
+        captions: captions,
         initialIndex: initialIndex,
         onDelete: onDelete,
       ),
@@ -46,6 +48,7 @@ class PhotoViewer extends StatefulWidget {
     super.key,
     required this.urls,
     this.thumbUrls,
+    this.captions,
     this.initialIndex = 0,
     this.onDelete,
   }) : assert(thumbUrls == null || thumbUrls.length == urls.length);
@@ -55,6 +58,10 @@ class PhotoViewer extends StatefulWidget {
   /// Превью тех же фото: из плиток они уже в кеше, поэтому снимок виден
   /// сразу, а резкость догружается.
   final List<String>? thumbUrls;
+
+  /// Подписи под кадром по порядку (снимок из галереи, ревью №33); null —
+  /// без подписи.
+  final List<String?>? captions;
   final int initialIndex;
   final Future<void> Function(int index)? onDelete;
 
@@ -167,6 +174,29 @@ class _PhotoViewerState extends State<PhotoViewer> {
                       fontFamily: AppTheme.monoFamily,
                       fontSize: 12.5,
                       color: context.colors.text2,
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.captions?.elementAtOrNull(_index) case final caption?)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 20,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      caption,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13, color: Colors.white),
                     ),
                   ),
                 ),

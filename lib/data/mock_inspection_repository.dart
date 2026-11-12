@@ -270,6 +270,8 @@ class MockInspectionRepository implements InspectionRepository {
     String panelId,
     String filePath, {
     String? clientId,
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
   }) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
     // повтор с тем же ключом — как сервер: второе фото не создаётся
@@ -283,6 +285,8 @@ class MockInspectionRepository implements InspectionRepository {
         url: 'http://localhost/mock/photo/$id.jpg',
         thumbUrl: 'http://localhost/mock/photo/$id.thumb.jpg',
         clientId: clientId,
+        source: source,
+        takenAt: source == PhotoSource.gallery ? takenAt : null,
       ),
     );
     panel.photoCount++;

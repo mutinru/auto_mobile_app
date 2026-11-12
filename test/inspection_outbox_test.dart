@@ -76,6 +76,8 @@ class _Server extends MockInspectionRepository {
     String panelId,
     String filePath, {
     String? clientId,
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
   }) async {
     await _net('photo $panelId');
     final panel = await super.uploadPhoto(

@@ -41,6 +41,8 @@ abstract class InspectionRepository {
     String panelId,
     String filePath, {
     String? clientId,
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
   });
 
   /// Загрузить или заменить голосовую заметку детали (одна на деталь).

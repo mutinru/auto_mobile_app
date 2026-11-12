@@ -14,6 +14,7 @@ import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/photo_source_badge.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/audio_note.dart';
 import '../widgets/inspection_schematic.dart';
@@ -390,6 +391,9 @@ class _PanelReportSheet extends StatelessWidget {
                           context,
                           [for (final p in panel.photos) p.url],
                           thumbUrls: [for (final p in panel.photos) p.thumbUrl],
+                          captions: [
+                            for (final p in panel.photos) photoSourceCaption(p),
+                          ],
                           initialIndex: i,
                         ),
                         child: Container(
@@ -401,14 +405,21 @@ class _PanelReportSheet extends StatelessWidget {
                             color: context.colors.bg1,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Image.network(
-                            photo.thumbUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Icon(
-                              Icons.broken_image_outlined,
-                              size: 20,
-                              color: context.colors.text3,
-                            ),
+                          // снимок из галереи — с пометкой и датой (ревью №33)
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                photo.thumbUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Icon(
+                                  Icons.broken_image_outlined,
+                                  size: 20,
+                                  color: context.colors.text3,
+                                ),
+                              ),
+                              PhotoSourceBadge(photo: photo),
+                            ],
                           ),
                         ),
                       ),

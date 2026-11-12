@@ -24,6 +24,7 @@ class CurrentUser {
 
   final int id;
   final String name;
+
   /// Почта; null — вход по телефону, почты нет.
   final String? email;
 

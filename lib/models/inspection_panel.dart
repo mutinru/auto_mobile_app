@@ -2,6 +2,17 @@ import '../config/api_config.dart';
 import 'panel_condition.dart';
 import 'panel_status.dart';
 
+/// Откуда снимок детали (ревью №33): у снимка из галереи отчёт показывает
+/// пометку и дату съёмки — заказчик сам решает, доверять ли.
+enum PhotoSource {
+  camera('camera'),
+  gallery('gallery');
+
+  const PhotoSource(this.apiValue);
+
+  final String apiValue;
+}
+
 /// Снимок детали: id — для удаления (DELETE /photos/{id}), url — абсолютная
 /// подписанная ссылка, Bearer не нужен.
 class PanelPhoto {
@@ -11,16 +22,34 @@ class PanelPhoto {
     String? thumbUrl,
     this.clientId,
     this.localPath,
+    this.source = PhotoSource.camera,
+    this.takenAt,
+    this.takenBeforeStart,
   }) : thumbUrl = thumbUrl ?? url;
 
   /// Ещё не отправленный снимок из очереди осмотра: файл на телефоне.
   const PanelPhoto.pending({
     required String this.clientId,
     required String path,
+    this.source = PhotoSource.camera,
+    this.takenAt,
   }) : id = 0,
        url = path,
        thumbUrl = path,
-       localPath = path;
+       localPath = path,
+       takenBeforeStart = null;
+
+  /// С камеры или из галереи.
+  final PhotoSource source;
+
+  /// Дата съёмки из EXIF, как её отдал сервер («2025-05-03 14:03:22» и, если
+  /// есть, смещение); null — неизвестна. Есть только у снимков из галереи.
+  final String? takenAt;
+
+  /// Снято раньше начала осмотра (считает сервер); null — неизвестно.
+  final bool? takenBeforeStart;
+
+  bool get fromGallery => source == PhotoSource.gallery;
 
   /// Серверный id; у снимка из очереди — 0.
   final int id;
@@ -179,6 +208,11 @@ class InspectionPanel {
             url: _absolute(p['url'] as String),
             thumbUrl: mediaUrl(p['thumb_url'] as String?),
             clientId: p['client_id'] as String?,
+            source: p['source'] == 'gallery'
+                ? PhotoSource.gallery
+                : PhotoSource.camera,
+            takenAt: p['taken_at'] as String?,
+            takenBeforeStart: p['taken_before_start'] as bool?,
           ),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,

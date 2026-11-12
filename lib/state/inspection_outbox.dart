@@ -256,7 +256,12 @@ class InspectionOutbox extends ChangeNotifier {
     );
   }
 
-  Future<void> addPhoto(String panelId, String path) async {
+  Future<void> addPhoto(
+    String panelId,
+    String path, {
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
+  }) async {
     await ready;
     final clientId = newClientId();
     final kept = await _keep(path, clientId);
@@ -266,6 +271,8 @@ class InspectionOutbox extends ChangeNotifier {
         panelId: panelId,
         clientId: clientId,
         path: kept,
+        source: source,
+        takenAt: takenAt,
       ),
     );
   }
@@ -386,8 +393,14 @@ class InspectionOutbox extends ChangeNotifier {
           await _repository.updateCondition(panelId, condition),
         SetDefectOp(:final panelId, :final defectId, :final on) =>
           await _repository.setDefect(panelId, defectId, on: on),
-        AddPhotoOp(:final panelId, :final path, :final clientId) =>
-          await _uploadPhoto(panelId, path, clientId),
+        AddPhotoOp(
+          :final panelId,
+          :final path,
+          :final clientId,
+          :final source,
+          :final takenAt,
+        ) =>
+          await _uploadPhoto(panelId, path, clientId, source, takenAt),
         DeletePhotoOp(:final photoId, :final clientId) => await _deletePhoto(
           photoId ?? _uploaded[clientId],
         ),
@@ -407,11 +420,15 @@ class InspectionOutbox extends ChangeNotifier {
     String panelId,
     String path,
     String clientId,
+    PhotoSource source,
+    String? takenAt,
   ) async {
     final panel = await _repository.uploadPhoto(
       panelId,
       path,
       clientId: clientId,
+      source: source,
+      takenAt: takenAt,
     );
     for (final p in panel.photos) {
       if (p.clientId == clientId) _uploaded[clientId] = p.id;

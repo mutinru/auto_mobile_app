@@ -290,9 +290,20 @@ class InspectionStore extends ChangeNotifier {
     );
   }
 
-  Future<void> uploadPhoto(String panelId, String filePath) => _queue(
-    (o) => o.addPhoto(panelId, filePath),
-    () => _repository.uploadPhoto(panelId, filePath),
+  /// Снимок детали; из галереи — с датой съёмки из EXIF (ревью №33).
+  Future<void> uploadPhoto(
+    String panelId,
+    String filePath, {
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
+  }) => _queue(
+    (o) => o.addPhoto(panelId, filePath, source: source, takenAt: takenAt),
+    () => _repository.uploadPhoto(
+      panelId,
+      filePath,
+      source: source,
+      takenAt: takenAt,
+    ),
   );
 
   Future<void> uploadAudioNote(

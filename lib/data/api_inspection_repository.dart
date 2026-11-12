@@ -114,13 +114,19 @@ class ApiInspectionRepository implements InspectionRepository {
     String panelId,
     String filePath, {
     String? clientId,
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
   }) {
     return withUploadCopy(
       filePath,
       (upload) async => _multipart(
         '/inspections/$inspectionId/panels/$panelId/photos',
         await http.MultipartFile.fromPath('photo', upload),
-        fields: {'client_id': ?clientId},
+        fields: {
+          'client_id': ?clientId,
+          'source': source.apiValue,
+          'taken_at': ?takenAt,
+        },
       ),
     );
   }

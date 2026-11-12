@@ -40,6 +40,10 @@ sealed class InspectionOp {
         panelId: panel,
         clientId: j['client_id'] as String,
         path: j['path'] as String,
+        source: j['source'] == 'gallery'
+            ? PhotoSource.gallery
+            : PhotoSource.camera,
+        takenAt: j['taken_at'] as String?,
       ),
       'delete_photo' => DeletePhotoOp(
         id: id,
@@ -111,10 +115,16 @@ class AddPhotoOp extends InspectionOp {
     required super.panelId,
     required this.clientId,
     required this.path,
+    this.source = PhotoSource.camera,
+    this.takenAt,
   });
 
   final String clientId;
   final String path;
+
+  /// Камера или галерея (ревью №33) и дата съёмки из EXIF галереи.
+  final PhotoSource source;
+  final String? takenAt;
 
   @override
   String get file => path;
@@ -124,6 +134,8 @@ class AddPhotoOp extends InspectionOp {
     ..._base('add_photo'),
     'client_id': clientId,
     'path': path,
+    'source': source.apiValue,
+    'taken_at': ?takenAt,
   };
 }
 
@@ -207,8 +219,20 @@ void _apply(InspectionPanel panel, InspectionOp op) {
       panel.applyCondition(condition);
     case SetDefectOp(:final label, :final on):
       panel.setDefect(label, on: on);
-    case AddPhotoOp(:final clientId, :final path):
-      panel.photos.add(PanelPhoto.pending(clientId: clientId, path: path));
+    case AddPhotoOp(
+      :final clientId,
+      :final path,
+      :final source,
+      :final takenAt,
+    ):
+      panel.photos.add(
+        PanelPhoto.pending(
+          clientId: clientId,
+          path: path,
+          source: source,
+          takenAt: takenAt,
+        ),
+      );
       panel.photoCount = panel.photos.length;
     case DeletePhotoOp(:final photoId, :final clientId):
       panel.photos.removeWhere(

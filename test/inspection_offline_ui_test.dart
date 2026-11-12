@@ -37,9 +37,17 @@ class _Flaky extends MockInspectionRepository {
     String panelId,
     String filePath, {
     String? clientId,
+    PhotoSource source = PhotoSource.camera,
+    String? takenAt,
   }) async {
     _net();
-    return super.uploadPhoto(panelId, filePath, clientId: clientId);
+    return super.uploadPhoto(
+      panelId,
+      filePath,
+      clientId: clientId,
+      source: source,
+      takenAt: takenAt,
+    );
   }
 }
 
