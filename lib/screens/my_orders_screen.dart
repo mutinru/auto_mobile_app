@@ -231,10 +231,10 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
   void _selectTab(int tab) {
     setState(() => _tab = tab);
-    // первая страница — при первом открытии вкладки, а не на каждый опрос
-    if (tab == 1 && !_finished.isLoaded && !_finished.isLoading) {
-      _finished.load();
-    }
+    // первая страница — при каждом открытии вкладки, а не на каждый опрос:
+    // стор живёт всю сессию, а заказ мог закрыться, пока экрана не было;
+    // прежний список виден, пока идёт загрузка
+    if (tab == 1 && !_finished.isLoading) _finished.load();
   }
 
   /// Подвал «Завершённых»: следующая страница, когда докрутили, или

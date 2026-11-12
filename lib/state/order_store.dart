@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'paged_orders.dart';
 import 'package:flutter/foundation.dart';
 
@@ -93,7 +95,7 @@ class OrderStore extends ChangeNotifier {
     final generation = ++_mineGeneration;
     _loadingMine = true;
     _mineError = null;
-    notifyListeners();
+    _notifyStarted();
     try {
       final orders = await _repository.fetchMyOrders();
       if (generation == _mineGeneration) _myOrders = orders;
@@ -170,7 +172,7 @@ class OrderStore extends ChangeNotifier {
     _loadingMoreAvailable = false;
     _availableError = null;
     _availableMoreError = null;
-    notifyListeners();
+    _notifyStarted();
     try {
       final page = await _repository.fetchAvailableOrders(
         filter: _availableFilter,
@@ -249,7 +251,7 @@ class OrderStore extends ChangeNotifier {
     final generation = ++_assignedGeneration;
     _loadingAssigned = true;
     _assignedError = null;
-    notifyListeners();
+    _notifyStarted();
     try {
       final orders = await _repository.fetchAssignedOrders();
       if (generation == _assignedGeneration) _assignedOrders = orders;
@@ -523,6 +525,31 @@ class OrderStore extends ChangeNotifier {
   /// Прикрепить готовый осмотр; заказ экран перечитывает сам.
   Future<OrderCar> attachFromLibrary(int orderId, int inspectionId) =>
       _repository.attachFromLibrary(orderId, inspectionId);
+
+  /// Стор живёт сессию входа ([OrderSession]) и освобождается при выходе,
+  /// пока экраны ещё уходят, а их запросы в пути: ответ после этого
+  /// никого не уведомляет (иначе assert ChangeNotifier).
+  bool _disposed = false;
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  /// Начало загрузки. Флаг уже стоит, и экран, который строится сейчас, его
+  /// увидит; остальным слушателям сообщаем после кадра. Загрузки зовут из
+  /// `initState`, а стор общий на сессию: синхронное уведомление пометило бы
+  /// для перестройки список под новым экраном посреди сборки кадра —
+  /// assert «markNeedsBuild() called during build».
+  void _notifyStarted() => scheduleMicrotask(notifyListeners);
+
+  @override
+  void dispose() {
+    _disposed = true;
+    myFinished.dispose();
+    assignedFinished.dispose();
+    super.dispose();
+  }
 
   void replaceOrder(Order order) {
     final mine = _myOrders.indexWhere((o) => o.id == order.id);

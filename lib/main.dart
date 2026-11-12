@@ -41,6 +41,7 @@ import 'state/last_section.dart';
 import 'state/nearby_filter_store.dart';
 import 'state/notification_scope.dart';
 import 'state/notification_unread.dart';
+import 'state/order_session.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
 import 'state/app_update.dart';
@@ -220,8 +221,7 @@ class _RootGate extends StatefulWidget {
 class _RootGateState extends State<_RootGate> {
   late final _auth = widget.auth;
 
-  /// Один на приложение: справочник кешируется на всю сессию, а сторы
-  /// заказов создаются заново на каждый раздел.
+  /// Один на приложение: справочник кешируется дольше сессии входа.
   late final _carCatalog = ApiCarCatalogRepository(ApiClient(_auth));
   late final _cities = ApiCityRepository(ApiClient(_auth));
   late final _cityLocator = CityLocator(
@@ -229,6 +229,19 @@ class _RootGateState extends State<_RootGate> {
     const GeolocatorLocationService(),
   );
   late final _addresses = ApiAddressRepository(ApiClient(_auth));
+
+  /// Стор заказов — один на сессию входа (ревью №41): действие на экране
+  /// заказа сразу видно во всех списках, выход его сбрасывает.
+  late final _orders = OrderSession(
+    _auth,
+    () => OrderStore(
+      ApiOrderRepository(ApiClient(_auth)),
+      catalog: _carCatalog,
+      cities: _cities,
+      locator: _cityLocator,
+      addresses: _addresses,
+    ),
+  );
 
   /// Верификация — одна на сессию входа: экраны разделов пересоздаются, а
   /// статус должен рисоваться сразу, без мигания гейта.
@@ -284,6 +297,7 @@ class _RootGateState extends State<_RootGate> {
     _pushTaps?.cancel();
     _auth.removeListener(_onAuthChanged);
     _auth.removeListener(_warmUpCity);
+    _orders.dispose();
     super.dispose();
   }
 
@@ -313,14 +327,14 @@ class _RootGateState extends State<_RootGate> {
         if (target.opensOrder) {
           await openOrderScreen(
             context,
-            store: _orderStore(),
+            store: _orders.store,
             auth: _auth,
             orderId: target.orderId,
             isInspection: target.orderKind.isInspection,
             asExecutor: !target.viewerIsCustomer,
           );
         } else {
-          await openNotifications(context, store: _orderStore(), auth: _auth);
+          await openNotifications(context, store: _orders.store, auth: _auth);
         }
     }
   }
@@ -408,11 +422,11 @@ class _RootGateState extends State<_RootGate> {
     );
   }
 
-  /// Форма возвращает созданный заказ — тогда открываем «Мои заказы» на том
-  /// же сторе, чтобы новый заказ был виден сразу. «Назад» из формы без
-  /// отправки просто возвращает на витрину.
+  /// Форма возвращает созданный заказ — тогда открываем «Мои заказы»: стор
+  /// общий, новый заказ в списке уже есть. «Назад» из формы без отправки
+  /// просто возвращает на витрину.
   Future<void> _openOrderForm(OrderKind kind, {bool replace = false}) async {
-    final store = _orderStore();
+    final store = _orders.store;
     final navigator = Navigator.of(context);
     final route = MaterialPageRoute<Order>(
       builder: (_) => kind.isInspection
@@ -422,9 +436,7 @@ class _RootGateState extends State<_RootGate> {
     final created = replace
         ? await navigator.pushReplacement<Order, void>(route)
         : await navigator.push(route);
-    if (created != null && mounted) {
-      _openHome(HomeSection.myOrders, store: store);
-    }
+    if (created != null && mounted) _openHome(HomeSection.myOrders);
   }
 
   /// После входа сразу выполняем [onLoggedIn] — гость нажимал кнопку ради
@@ -444,14 +456,6 @@ class _RootGateState extends State<_RootGate> {
     );
   }
 
-  OrderStore _orderStore() => OrderStore(
-    ApiOrderRepository(ApiClient(_auth)),
-    catalog: _carCatalog,
-    cities: _cities,
-    locator: _cityLocator,
-    addresses: _addresses,
-  );
-
   /// Стек разделов: вопрос → дом → профиль → другой раздел, без копий.
   late final _nav = SectionNav(() => Navigator.of(context));
 
@@ -462,15 +466,10 @@ class _RootGateState extends State<_RootGate> {
     _openHome(section);
   }
 
-  /// Дом поверх вопроса — со свежим стором или стором только что
-  /// созданного заказа, чтобы тот был виден сразу.
-  void _openHome(
-    HomeSection section, {
-    OrderStore? store,
-    bool animate = true,
-  }) => _nav.openHome(
+  /// Дом поверх вопроса — на сторе сессии: загруженные списки видны сразу.
+  void _openHome(HomeSection section, {bool animate = true}) => _nav.openHome(
     section,
-    () => _sectionScreen(section, store ?? _orderStore()),
+    () => _sectionScreen(section, _orders.store),
     animate: animate,
   );
 
@@ -483,10 +482,10 @@ class _RootGateState extends State<_RootGate> {
     _openHome(section, animate: false);
   }
 
-  /// Иконка профиля в любом разделе. Разделы, открытые из профиля, делят
-  /// его стор: счётчики профиля видят те же списки, что и экран поверх.
+  /// Иконка профиля в любом разделе. Стор — сессии: счётчики профиля видят
+  /// те же списки, что и разделы поверх него.
   void _openProfile() => _nav.openProfile(() {
-    final store = _orderStore();
+    final store = _orders.store;
     return ProfileScreen(
       auth: _auth,
       store: store,
@@ -504,9 +503,9 @@ class _RootGateState extends State<_RootGate> {
     );
   });
 
-  /// Выход: снова виден вопрос о намерении, последний раздел забыт. Сторы
-  /// создаются заново на каждый раздел, поэтому данные прошлого
-  /// пользователя выход не переживут.
+  /// Выход: снова виден вопрос о намерении, последний раздел забыт. Стор
+  /// заказов сбрасывает [OrderSession] — данные прошлого пользователя
+  /// выход не переживут.
   Future<void> _logout() async {
     await _auth.logout();
     await InspectionCache.clear();
@@ -577,7 +576,7 @@ class _RootGateState extends State<_RootGate> {
         onNotifications: _auth.isAuthenticated
             ? () => openNotifications(
                 context,
-                store: _orderStore(),
+                store: _orders.store,
                 auth: _auth,
               )
             : null,

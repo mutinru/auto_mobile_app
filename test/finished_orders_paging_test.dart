@@ -153,4 +153,34 @@ void main() {
     // пилюля статуса — заглавными
     expect(find.textContaining('ЗАКРЫТ БЕЗ ПОКУПКИ'), findsOneWidget);
   });
+
+  testWidgets(
+    'вкладка перечитывает первую страницу при каждом открытии (ревью №41)',
+    (tester) async {
+      // стор живёт сессию: заказ мог закрыться, пока вкладки не было видно
+      final repo = _Paged(finished);
+      final store = OrderStore(
+        repo,
+        catalog: MockCarCatalogRepository(),
+        cities: MockCityRepository(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          home: MyOrdersScreen(store: store),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Завершённые'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Активные'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Завершённые'));
+      await tester.pumpAndSettle();
+
+      expect(repo.requested.where((p) => p == 1), hasLength(2));
+      expect(find.byType(OrderCard), findsWidgets);
+    },
+  );
 }

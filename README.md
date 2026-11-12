@@ -120,7 +120,7 @@ lib/
   config/     ApiConfig — адрес бекенда, SupportConfig — контакты поддержки
   data/       репозитории (api_* и mock_*), ApiClient, AuthService
   models/     доменные модели и enum'ы, зеркала PHP-энамов
-  state/      OrderStore, InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
+  state/      OrderStore (один на сессию — OrderSession), InspectionStore, ChatStore, NotificationStore — ChangeNotifier; SupportChatScope, NotificationScope
   push/       PushService, PushMessaging (обёртка над Firebase)
   payments/   PaymentFlow — оплата по payment.checkout, PaymentSdk (ЮKassa)
   screens/    экраны

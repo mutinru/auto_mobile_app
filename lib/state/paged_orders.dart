@@ -93,6 +93,21 @@ class PagedOrders extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Освобождается вместе со стором ([OrderStore.dispose]); страница,
+  /// пришедшая позже, никого не уведомляет.
+  bool _disposed = false;
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   void _accept(OrderPage page, int number) {
     _page = number;
     _hasMore = page.hasMore;
