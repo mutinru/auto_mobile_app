@@ -3,7 +3,13 @@ import '../models/defect_def.dart';
 import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
 
-typedef InspectionSnapshot = ({Car car, List<InspectionPanel> panels});
+/// [offline] — сети нет, осмотр взят из копии на телефоне
+/// (`InspectionCache`): фото с сервера в ней не откроются.
+typedef InspectionSnapshot = ({
+  Car car,
+  List<InspectionPanel> panels,
+  bool offline,
+});
 
 /// Источник данных осмотра. Две реализации:
 /// [MockInspectionRepository] — для UI-разработки без бекенда,
@@ -30,7 +36,12 @@ abstract class InspectionRepository {
   });
 
   /// Загрузить снимок детали (multipart). Возвращает обновлённую деталь.
-  Future<InspectionPanel> uploadPhoto(String panelId, String filePath);
+  /// [clientId] — ключ повтора: сервер не создаст второе фото с тем же.
+  Future<InspectionPanel> uploadPhoto(
+    String panelId,
+    String filePath, {
+    String? clientId,
+  });
 
   /// Загрузить или заменить голосовую заметку детали (одна на деталь).
   /// Длительность считает клиент — сервер аудио не разбирает.

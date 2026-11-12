@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/geo.dart';
 import '../util/ru_date.dart';
+import '../widgets/resumable_inspections.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/load_more.dart';
 import '../widgets/nearby_filter_sheet.dart';
@@ -364,6 +365,11 @@ class _NearbyOrdersScreenState extends State<NearbyOrdersScreen> {
                   ),
                 ),
 
+                // осмотр без связи: после перезапуска офлайн иначе к нему
+                // не вернуться (ревью №12)
+                ResumableInspections(
+                  offline: widget.store.availableError != null,
+                ),
                 Expanded(child: _body(orders, hiddenByFilter: all > 0)),
               ],
             );

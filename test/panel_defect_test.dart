@@ -27,7 +27,8 @@ class _SlowDefects extends MockInspectionRepository {
 }
 
 /// Дефект — явным состоянием (ревью №6): повтор «поставить» не снимает
-/// дефект, а второй тап по чипу, пока идёт первый запрос, не уходит (№38).
+/// дефект. Тап виден сразу (очередь осмотра, №12): второй тап, пока первый
+/// запрос в пути, — это «снять», и сервер получает оба по порядку.
 void main() {
   test('повтор «поставить» дефект не снимает', () async {
     final repo = MockInspectionRepository();
@@ -45,7 +46,7 @@ void main() {
     expect(off.defects, isNot(contains('Вмятина')));
   });
 
-  testWidgets('двойной тап по дефекту — один запрос «поставить»', (
+  testWidgets('два тапа по дефекту — «поставить» и «снять» по порядку', (
     tester,
   ) async {
     final repo = _SlowDefects();
@@ -65,13 +66,25 @@ void main() {
 
     repo.gate = Completer<void>();
     await tester.tap(find.text('Вмятина'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    // сервер ещё не ответил, а дефект уже на экране
+    expect(store.panelById('front_right_fender').defects, contains('Вмятина'));
+
     await tester.tap(find.text('Вмятина'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(
+      store.panelById('front_right_fender').defects,
+      isNot(contains('Вмятина')),
+    );
+
     repo.gate!.complete();
     await tester.pumpAndSettle();
 
-    expect(repo.calls, [true]);
-    expect(store.panelById('front_right_fender').defects, contains('Вмятина'));
+    expect(repo.calls, [true, false]);
+    expect(store.pendingCount, 0);
+    expect(
+      store.panelById('front_right_fender').defects,
+      isNot(contains('Вмятина')),
+    );
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../data/api_client.dart';
@@ -7,6 +9,7 @@ import '../models/inspection_verdict.dart';
 import '../models/order.dart';
 import '../models/order_status.dart';
 import '../state/inspection_store.dart';
+import '../state/inspection_outbox.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -193,7 +196,12 @@ class _AssignedInspectionScreenState extends State<AssignedInspectionScreen>
       inspectionId: inspectionId,
     );
     // стор — до маршрута: builder перезапускается при смене темы
-    final store = InspectionStore(repo);
+    // очередь осмотра — общая на приложение (ревью №12)
+    final store = InspectionStore(
+      repo,
+      outbox: InspectionOutboxes.instance?.forInspection(inspectionId),
+    );
+    unawaited(InspectionOutboxes.instance?.markOpened(inspectionId));
     final navigator = Navigator.of(context);
     final ownRoute = ModalRoute.of(context);
     var sendReport = false;

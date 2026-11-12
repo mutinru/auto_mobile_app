@@ -10,7 +10,9 @@ import 'data/api_device_repository.dart';
 import 'data/api_notification_repository.dart';
 import 'data/api_order_repository.dart';
 import 'data/api_verification_repository.dart';
+import 'data/api_inspection_repository.dart';
 import 'data/app_build.dart';
+import 'data/inspection_cache.dart';
 import 'data/auth_service.dart';
 import 'data/car_catalog_repository.dart';
 import 'data/city_repository.dart';
@@ -42,6 +44,7 @@ import 'state/notification_unread.dart';
 import 'state/order_store.dart';
 import 'state/support_chat_scope.dart';
 import 'state/app_update.dart';
+import 'state/inspection_outbox.dart';
 import 'state/support_unread.dart';
 import 'state/verification_status.dart';
 import 'theme/app_theme.dart';
@@ -82,6 +85,28 @@ Future<void> main() async {
   // устаревшую сборку сервер узнаёт и по 426, но гость на первом экране
   // может долго ничего не запрашивать — сверяемся сразу
   unawaited(AppUpdate.checkOnStart(ApiClient(auth)));
+  // очереди осмотров без сети (ревью №12): живут дольше экранов, после
+  // входа поднимаются с диска и уходят на сервер; при возврате в
+  // приложение — повтор
+  final outboxes = InspectionOutboxes(
+    repositoryFor: (id) =>
+        ApiInspectionRepository(ApiClient(auth), inspectionId: id),
+    currentUser: () async {
+      await auth.ensureUser();
+      return auth.user?.id;
+    },
+  );
+  await outboxes.init();
+  InspectionOutboxes.instance = outboxes;
+  var signedIn = false;
+  void onAuth() {
+    final now = auth.isAuthenticated && !auth.isRestoring;
+    if (now && !signedIn) unawaited(outboxes.resumeAll());
+    signedIn = now;
+  }
+
+  auth.addListener(onAuth);
+  AppLifecycleListener(onResume: outboxes.flushAll);
   runApp(
     AutoPodborApp(
       theme: theme,
@@ -484,6 +509,8 @@ class _RootGateState extends State<_RootGate> {
   /// пользователя выход не переживут.
   Future<void> _logout() async {
     await _auth.logout();
+    await InspectionCache.clear();
+    await InspectionOutboxes.instance?.forgetLastOpened();
     await widget.lastSection?.clear();
     if (!mounted) return;
     _nav.reset();
@@ -493,6 +520,7 @@ class _RootGateState extends State<_RootGate> {
   /// как выход. Ошибка (идут заказы) уходит в профиль, ничего не сбросив.
   Future<void> _deleteAccount() async {
     await _auth.deleteAccount();
+    await InspectionCache.clear();
     await widget.lastSection?.clear();
     if (!mounted) return;
     _nav.reset();

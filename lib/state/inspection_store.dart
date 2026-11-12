@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/inspection_repository.dart';
@@ -7,15 +9,27 @@ import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import '../widgets/api_error.dart';
+import 'inspection_op.dart';
+import 'inspection_outbox.dart';
 
 /// Единственный источник правды для экрана осмотра в рамках сессии.
 ///
-/// applyCondition/toggleDefect зовут [InspectionRepository] на запись и
-/// подменяют панель в списке результатом с сервера (или мока) — клиент
-/// не дублирует логику статуса/дефектов, только показывает то, что
-/// вернул источник данных.
+/// Детали — те, что подтвердил сервер, плюс действия очереди поверх
+/// ([applyPending]). Мутации не ждут сеть (ревью №12): действие ложится в
+/// [InspectionOutbox] и сразу видно, очередь отправит его, когда будет
+/// связь, а ответ сервера (деталь целиком) заменит локальный расчёт.
+/// Отказ сервера приходит в [rejections].
 class InspectionStore extends ChangeNotifier {
-  InspectionStore(this._repository, {this.readOnly = false});
+  InspectionStore(
+    this._repository, {
+    this.readOnly = false,
+    InspectionOutbox? outbox,
+  }) : _outbox = readOnly
+           ? null
+           : (outbox ?? InspectionOutbox.memory(_repository)) {
+    _outbox?.addListener(_onOutboxChanged);
+    _events = _outbox?.events.listen(_onOutboxEvent);
+  }
 
   final InspectionRepository _repository;
 
@@ -23,7 +37,15 @@ class InspectionStore extends ChangeNotifier {
   /// запись ему не разрешит (403). Экраны гасят все мутации.
   final bool readOnly;
 
+  final InspectionOutbox? _outbox;
+  StreamSubscription<OutboxEvent>? _events;
+
   Car? _car;
+
+  /// Детали, как их отдал сервер (или копия на телефоне).
+  List<InspectionPanel> _confirmed = const [];
+
+  /// [_confirmed] с действиями очереди поверх — то, что видит исполнитель.
   List<InspectionPanel> _panels = const [];
   List<DefectDef> _defectCatalog = const [];
 
@@ -32,6 +54,86 @@ class InspectionStore extends ChangeNotifier {
   Map<String, List<String>> _defectsByPanel = const {};
   bool _loading = false;
   String? _loadError;
+  bool _offline = false;
+
+  final _rejections = StreamController<String>.broadcast();
+
+  /// «Не сохранилось: <деталь> — <причина>»: сервер отказал действию из
+  /// очереди (заказчик уже оплатил отчёт, лимит фото). Экран показывает
+  /// снекбар; стор сам перечитывает осмотр.
+  Stream<String> get rejections => _rejections.stream;
+
+  /// Осмотр открыт из копии на телефоне: сети не было.
+  bool get isOffline => _offline;
+
+  /// Сколько действий ещё не на сервере.
+  int get pendingCount => _outbox?.pendingCount ?? 0;
+
+  /// Очередь ждёт сеть (последняя попытка не прошла).
+  bool get isWaitingForNetwork => _outbox?.state == OutboxState.waiting;
+
+  /// Отчёт можно отправлять: всё заполнено и уже на сервере.
+  bool get canSendReport => isReportComplete && pendingCount == 0;
+
+  void _recompute() {
+    _panels = applyPending(_confirmed, _outbox?.pending ?? const []);
+  }
+
+  void _onOutboxChanged() {
+    _recompute();
+    notifyListeners();
+  }
+
+  void _onOutboxEvent(OutboxEvent event) {
+    switch (event) {
+      case PanelConfirmed(:final panel):
+        final i = _confirmed.indexWhere((p) => p.id == panel.id);
+        if (i == -1) return;
+        _confirmed = [..._confirmed]..[i] = panel;
+        _onOutboxChanged();
+        // сервер ответил — сеть вернулась: копию заменит свежий осмотр
+        if (_offline) unawaited(_refresh());
+      case OpRejected(:final panelId, :final message):
+        final name = _confirmed
+            .where((p) => p.id == panelId)
+            .map((p) => p.name)
+            .firstOrNull;
+        _rejections.add(
+          name == null
+              ? 'Не сохранилось: $message'
+              : 'Не сохранилось: $name — $message',
+        );
+        unawaited(_refresh());
+      case RefreshNeeded():
+        unawaited(_refresh());
+    }
+  }
+
+  /// Перечитать осмотр с сервера без спиннера (плашка «показана
+  /// сохранённая копия»). Сети всё ещё нет — останется копия.
+  Future<void> refresh() => _refresh();
+
+  /// Тихо перечитать осмотр (без спиннера): после отказа сервера.
+  Future<void> _refresh() async {
+    try {
+      final snapshot = await _repository.fetchInspection();
+      if (snapshot.offline) return;
+      _car = snapshot.car;
+      _confirmed = snapshot.panels;
+      _offline = false;
+      _onOutboxChanged();
+    } catch (_) {
+      // не вышло — останется то, что было
+    }
+  }
+
+  @override
+  void dispose() {
+    _outbox?.removeListener(_onOutboxChanged);
+    _events?.cancel();
+    _rejections.close();
+    super.dispose();
+  }
 
   Car? get car => _car;
 
@@ -101,15 +203,20 @@ class InspectionStore extends ChangeNotifier {
     _loadError = null;
     notifyListeners();
     try {
+      await _outbox?.ready;
       final results = await Future.wait([
         _repository.fetchInspection(),
         _repository.fetchDefectCatalog(),
       ]);
       final snapshot = results[0] as InspectionSnapshot;
       _car = snapshot.car;
-      _panels = snapshot.panels;
+      _confirmed = snapshot.panels;
+      _offline = snapshot.offline;
       _defectCatalog = results[1] as List<DefectDef>;
-      _defectsByPanel = _indexDefects(_defectCatalog, _panels);
+      _defectsByPanel = _indexDefects(_defectCatalog, _confirmed);
+      _recompute();
+      // долги прошлого раза — на сервер, если сеть есть
+      if (!_offline) unawaited(_outbox?.flush());
     } catch (e) {
       _loadError = apiErrorText(e);
     } finally {
@@ -144,52 +251,68 @@ class InspectionStore extends ChangeNotifier {
   }
 
   void _replacePanel(InspectionPanel updated) {
-    final i = indexOf(updated.id);
+    final i = _confirmed.indexWhere((p) => p.id == updated.id);
     if (i == -1) return;
-    _panels = [..._panels]..[i] = updated;
+    _confirmed = [..._confirmed]..[i] = updated;
+    _recompute();
     notifyListeners();
   }
 
-  Future<void> applyCondition(String panelId, PanelCondition condition) async {
-    final updated = await _repository.updateCondition(panelId, condition);
-    _replacePanel(updated);
+  /// Действие — в очередь, сразу на экран; Future закончится, когда
+  /// очередь отработает (в тестах с моком — ответ уже получен). Экраны его
+  /// не ждут: без сети это минуты. Без очереди (только просмотр) — прямой
+  /// запрос, как раньше.
+  Future<void> _queue(
+    Future<void> Function(InspectionOutbox outbox) enqueue,
+    Future<InspectionPanel> Function() direct,
+  ) async {
+    final outbox = _outbox;
+    if (outbox == null) return _replacePanel(await direct());
+    await enqueue(outbox);
+    await outbox.flush();
   }
+
+  Future<void> applyCondition(String panelId, PanelCondition condition) =>
+      _queue(
+        (o) => o.setCondition(panelId, condition),
+        () => _repository.updateCondition(panelId, condition),
+      );
 
   /// Нажатие по дефекту на экране. Желаемое состояние — от того, что видел
   /// пользователь, на сервер уходит явное «поставить/снять» (setDefect):
   /// повтор запроса не перевернёт дефект обратно.
-  Future<void> toggleDefect(String panelId, String defectLabel) async {
+  Future<void> toggleDefect(String panelId, String defectLabel) {
     final defect = _defectCatalog.firstWhere((d) => d.label == defectLabel);
     final on = !panelById(panelId).defects.contains(defectLabel);
-    final updated = await _repository.setDefect(panelId, defect.id, on: on);
-    _replacePanel(updated);
+    return _queue(
+      (o) => o.setDefect(panelId, defect.id, defectLabel, on: on),
+      () => _repository.setDefect(panelId, defect.id, on: on),
+    );
   }
 
-  Future<void> uploadPhoto(String panelId, String filePath) async {
-    final updated = await _repository.uploadPhoto(panelId, filePath);
-    _replacePanel(updated);
-  }
+  Future<void> uploadPhoto(String panelId, String filePath) => _queue(
+    (o) => o.addPhoto(panelId, filePath),
+    () => _repository.uploadPhoto(panelId, filePath),
+  );
 
   Future<void> uploadAudioNote(
     String panelId,
     String filePath,
     int durationSeconds,
-  ) async {
-    final updated = await _repository.uploadAudioNote(
-      panelId,
-      filePath,
-      durationSeconds,
-    );
-    _replacePanel(updated);
-  }
+  ) => _queue(
+    (o) => o.setAudio(panelId, filePath, durationSeconds),
+    () => _repository.uploadAudioNote(panelId, filePath, durationSeconds),
+  );
 
-  Future<void> deleteAudioNote(String panelId) async {
-    final updated = await _repository.deleteAudioNote(panelId);
-    _replacePanel(updated);
-  }
+  Future<void> deleteAudioNote(String panelId) => _queue(
+    (o) => o.deleteAudio(panelId),
+    () => _repository.deleteAudioNote(panelId),
+  );
 
-  Future<void> deletePhoto(int photoId) async {
-    final updated = await _repository.deletePhoto(photoId);
-    _replacePanel(updated);
-  }
+  /// Удалить снимок детали: серверный — по id, ещё не отправленный — из
+  /// очереди.
+  Future<void> deletePhoto(String panelId, PanelPhoto photo) => _queue(
+    (o) => o.deletePhoto(panelId, photo),
+    () => _repository.deletePhoto(photo.id),
+  );
 }

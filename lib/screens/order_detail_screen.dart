@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,6 +20,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/ru_date.dart';
 import '../state/inspection_store.dart';
+import '../state/inspection_outbox.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';
@@ -212,7 +215,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     // сюда доходит только идущий осмотр — исполнитель его и завершает
     final canFinish = isExecutor;
     // стор — до маршрута: builder перезапускается при смене темы
-    final store = InspectionStore(repo, readOnly: !isExecutor);
+    // очередь осмотра — общая на приложение: действия уходят на сервер и
+    // после того, как экран закрыт (ревью №12)
+    final store = InspectionStore(
+      repo,
+      readOnly: !isExecutor,
+      outbox: isExecutor
+          ? InspectionOutboxes.instance?.forInspection(car.inspectionId!)
+          : null,
+    );
+    if (isExecutor) {
+      unawaited(InspectionOutboxes.instance?.markOpened(car.inspectionId!));
+    }
     final navigator = Navigator.of(context);
     final ownRoute = ModalRoute.of(context);
     var finish = false;

@@ -13,3 +13,9 @@
 # RuStore Push SDK: Parcelable-классы передаются в приложение RuStore по IPC —
 # R8 не должен их переименовывать (правило из документации RuStore).
 -keep public class com.vk.push.** extends android.os.Parcelable
+
+# WorkManager (его тянет SDK пушей RuStore) создаёт свою базу Room
+# рефлексией. Без правила R8 вырезает конструктор WorkDatabase_Impl, и
+# release-сборка падает при запуске (NoSuchMethodException в
+# InitializationProvider) — отладочная этого не показывает.
+-keep class * extends androidx.room.RoomDatabase { <init>(); }

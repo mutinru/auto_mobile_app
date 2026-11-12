@@ -27,6 +27,15 @@ extension PanelConditionX on PanelCondition {
     PanelCondition.needsRepair => PanelStatus.defect,
   };
 
+  /// Для отчёта нужно фото — ручное зеркало
+  /// `App\Enums\PanelCondition::requiresPhoto()`. Локально его читает только
+  /// `applyPending` (действия, которых сервер ещё не видел).
+  bool get requiresPhoto =>
+      this == PanelCondition.satisfactory || this == PanelCondition.needsRepair;
+
+  /// Нужен отмеченный дефект — зеркало `requiresDefect()`.
+  bool get requiresDefect => this == PanelCondition.needsRepair;
+
   /// Значение, которое ждёт Laravel API (App\Enums\PanelCondition).
   String get apiValue => switch (this) {
     PanelCondition.excellent => 'excellent',

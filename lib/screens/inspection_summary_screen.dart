@@ -103,11 +103,30 @@ class InspectionSummaryScreen extends StatelessWidget {
                 if (onSendReport case final send?)
                   BottomCta(
                     children: [
+                      // отчёт — только по тому, что уже на сервере: иначе
+                      // заказчик получил бы его без снимков из очереди
+                      if (store.pendingCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            store.isWaitingForNetwork
+                                ? 'Нет связи — отчёт отправится, когда '
+                                      'сохранятся все изменения '
+                                      '(${store.pendingCount})'
+                                : 'Сначала сохраним изменения '
+                                      '(${store.pendingCount})…',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: context.colors.text3,
+                            ),
+                          ),
+                        ),
                       CtaPrimary(
                         label: sendLabel,
                         icon: Icons.send,
                         // то же правило проверит сервер при отправке
-                        onPressed: store.isReportComplete ? send : null,
+                        onPressed: store.canSendReport ? send : null,
                       ),
                     ],
                   ),

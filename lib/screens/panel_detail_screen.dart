@@ -9,9 +9,9 @@ import '../models/panel_condition.dart';
 import '../models/panel_status.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
-import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/audio_note.dart';
+import '../widgets/inspection_sync.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/status_dot.dart';
 
@@ -46,10 +46,7 @@ class PanelDetailScreen extends StatefulWidget {
 class _PanelDetailScreenState extends State<PanelDetailScreen> {
   late String _panelId = widget.panelId;
 
-  /// Снимок, который сейчас уходит на сервер: плитка «+» показывает его
-  /// под крутилкой, чтобы исполнитель сразу видел, что снял.
-  String? _uploadingPath;
-  bool get _uploading => _uploadingPath != null;
+  StreamSubscription<String>? _rejections;
 
   final _conditionKey = GlobalKey();
   final _defectKey = GlobalKey();
@@ -62,6 +59,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _rejections = listenRejections(this, widget.store);
     if (widget.fixMode && !widget.store.readOnly) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _pointAtProblem());
     }
@@ -95,6 +93,7 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
   @override
   void dispose() {
     _highlightTimer?.cancel();
+    _rejections?.cancel();
     super.dispose();
   }
 
@@ -144,34 +143,15 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
     final picked = await ImagePicker().pickImage(source: source);
     if (picked == null || !mounted) return;
 
-    setState(() => _uploadingPath = picked.path);
-    try {
-      await widget.store.uploadPhoto(_panelId, picked.path);
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      if (mounted) setState(() => _uploadingPath = null);
-    }
+    // снимок — в очередь осмотра: виден сразу (плитка со значком облака),
+    // на сервер уйдёт, когда будет сеть; отказ — снекбаром (listenRejections)
+    unawaited(widget.store.uploadPhoto(_panelId, picked.path));
   }
 
-  /// Мутации детали: ждём ответ сервера и показываем отказ (403 после
-  /// «Я оплатил» заказчика, 422) — раньше Future терялся, плитка молча не
-  /// подсвечивалась.
-  /// Идёт запрос оценки, дефекта или заметки: второе нажатие не уходит,
-  /// пока не пришёл ответ на первое (двойной тап по дефекту, ревью №38).
-  bool _busy = false;
-
-  Future<void> _mutate(Future<void> Function() action) async {
-    if (_busy) return;
-    _busy = true;
-    try {
-      await action();
-    } catch (e) {
-      if (mounted) showApiError(context, e);
-    } finally {
-      _busy = false;
-    }
-  }
+  /// Мутации детали: действие ложится в очередь и видно сразу, сеть не
+  /// ждём (ревью №12). Отказ сервера — снекбаром из [listenRejections].
+  Future<void> _mutate(Future<void> Function() action) async =>
+      unawaited(action());
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +338,8 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                     onDelete: store.readOnly
                                         ? null
                                         : (index) => store.deletePhoto(
-                                            panel.photos[index].id,
+                                            _panelId,
+                                            panel.photos[index],
                                           ),
                                   ),
                                   borderRadius: BorderRadius.circular(12),
@@ -370,22 +351,26 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                       color: context.colors.bg1,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: Image.network(
-                                      photo.thumbUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => Icon(
-                                        Icons.broken_image_outlined,
-                                        size: 20,
-                                        color: context.colors.text3,
-                                      ),
-                                    ),
+                                    child: photo.isPending
+                                        ? _PendingPhotoTile(
+                                            path: photo.localPath!,
+                                          )
+                                        : Image.network(
+                                            photo.thumbUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) => Icon(
+                                              Icons.broken_image_outlined,
+                                              size: 20,
+                                              color: context.colors.text3,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),
                             if (panel.photoCount < InspectionPanel.maxPhotos &&
                                 !store.readOnly)
                               InkWell(
-                                onTap: _uploading ? null : _addPhoto,
+                                onTap: _addPhoto,
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
                                   width: 72,
@@ -398,12 +383,10 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                                       width: 1.5,
                                     ),
                                   ),
-                                  child: _uploadingPath != null
-                                      ? _UploadingTile(path: _uploadingPath!)
-                                      : Icon(
-                                          Icons.add,
-                                          color: context.colors.text3,
-                                        ),
+                                  child: Icon(
+                                    Icons.add,
+                                    color: context.colors.text3,
+                                  ),
                                 ),
                               ),
                           ],
@@ -427,6 +410,9 @@ class _PanelDetailScreenState extends State<PanelDetailScreen> {
                     ],
                   ),
                 ),
+                // над кнопкой, а не сверху: появившись, плашка не сдвигает
+                // под пальцем оценки и дефекты
+                InspectionSyncBanner(store: store),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                   child: SizedBox(
@@ -673,9 +659,9 @@ class _DefectChip extends StatelessWidget {
   }
 }
 
-/// Плитка снимка, который уходит на сервер: сам снимок под крутилкой.
-class _UploadingTile extends StatelessWidget {
-  const _UploadingTile({required this.path});
+/// Снимок из очереди: ещё не на сервере — значок облака в углу.
+class _PendingPhotoTile extends StatelessWidget {
+  const _PendingPhotoTile({required this.path});
 
   final String path;
 
@@ -687,15 +673,24 @@ class _UploadingTile extends StatelessWidget {
         Image.file(
           File(path),
           fit: BoxFit.cover,
-          // полный кадр камеры — не раскодируем его целиком ради плитки
           cacheWidth: (72 * MediaQuery.devicePixelRatioOf(context)).round(),
           errorBuilder: (_, _, _) => const SizedBox.shrink(),
         ),
-        const Center(
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+        Positioned(
+          right: 4,
+          bottom: 4,
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.cloud_upload_outlined,
+              size: 12,
+              color: Colors.white,
+              semanticLabel: 'не отправлено',
+            ),
           ),
         ),
       ],

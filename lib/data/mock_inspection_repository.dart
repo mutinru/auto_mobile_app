@@ -116,7 +116,7 @@ class MockInspectionRepository implements InspectionRepository {
       customerMileageKm: 120000,
       mileageMismatch: true,
     );
-    return (car: car, panels: _loadedPanels);
+    return (car: car, panels: _loadedPanels, offline: false);
   }
 
   @override
@@ -266,14 +266,23 @@ class MockInspectionRepository implements InspectionRepository {
   ];
 
   @override
-  Future<InspectionPanel> uploadPhoto(String panelId, String filePath) async {
+  Future<InspectionPanel> uploadPhoto(
+    String panelId,
+    String filePath, {
+    String? clientId,
+  }) async {
     final panel = _loadedPanels.firstWhere((p) => p.id == panelId);
+    // повтор с тем же ключом — как сервер: второе фото не создаётся
+    if (clientId != null && panel.photos.any((p) => p.clientId == clientId)) {
+      return _withMissing(panel);
+    }
     final id = _nextPhotoId++;
     panel.photos.add(
       PanelPhoto(
         id: id,
         url: 'http://localhost/mock/photo/$id.jpg',
         thumbUrl: 'http://localhost/mock/photo/$id.thumb.jpg',
+        clientId: clientId,
       ),
     );
     panel.photoCount++;

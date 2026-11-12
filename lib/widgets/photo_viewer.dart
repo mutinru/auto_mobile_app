@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
@@ -113,27 +115,31 @@ class _PhotoViewerState extends State<PhotoViewer> {
                 itemBuilder: (context, i) => InteractiveViewer(
                   maxScale: 5,
                   child: Center(
-                    child: Image.network(
-                      widget.urls[i],
-                      fit: BoxFit.contain,
-                      frameBuilder: (context, child, frame, _) {
-                        final thumb = widget.thumbUrls?[i];
-                        if (frame != null || thumb == null) return child;
-                        return SizedBox.expand(
-                          child: Image.network(
-                            thumb,
+                    child: widget.urls[i].startsWith('/')
+                        // снимок из очереди осмотра — ещё файл на телефоне
+                        ? Image.file(File(widget.urls[i]), fit: BoxFit.contain)
+                        : Image.network(
+                            widget.urls[i],
                             fit: BoxFit.contain,
-                            // нет превью — ждём полный кадр, как раньше
-                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                            frameBuilder: (context, child, frame, _) {
+                              final thumb = widget.thumbUrls?[i];
+                              if (frame != null || thumb == null) return child;
+                              return SizedBox.expand(
+                                child: Image.network(
+                                  thumb,
+                                  fit: BoxFit.contain,
+                                  // нет превью — ждём полный кадр, как раньше
+                                  errorBuilder: (_, _, _) =>
+                                      const SizedBox.shrink(),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, _, _) => Icon(
+                              Icons.broken_image_outlined,
+                              size: 32,
+                              color: context.colors.text3,
+                            ),
                           ),
-                        );
-                      },
-                      errorBuilder: (_, _, _) => Icon(
-                        Icons.broken_image_outlined,
-                        size: 32,
-                        color: context.colors.text3,
-                      ),
-                    ),
                   ),
                 ),
               ),

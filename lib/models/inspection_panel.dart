@@ -5,10 +5,34 @@ import 'panel_status.dart';
 /// Снимок детали: id — для удаления (DELETE /photos/{id}), url — абсолютная
 /// подписанная ссылка, Bearer не нужен.
 class PanelPhoto {
-  const PanelPhoto({required this.id, required this.url, String? thumbUrl})
-    : thumbUrl = thumbUrl ?? url;
+  const PanelPhoto({
+    required this.id,
+    required this.url,
+    String? thumbUrl,
+    this.clientId,
+    this.localPath,
+  }) : thumbUrl = thumbUrl ?? url;
 
+  /// Ещё не отправленный снимок из очереди осмотра: файл на телефоне.
+  const PanelPhoto.pending({
+    required String this.clientId,
+    required String path,
+  }) : id = 0,
+       url = path,
+       thumbUrl = path,
+       localPath = path;
+
+  /// Серверный id; у снимка из очереди — 0.
   final int id;
+
+  /// Ключ повтора загрузки (`client_id`): им очередь находит своё фото
+  /// среди серверных.
+  final String? clientId;
+
+  /// Файл снимка, который ещё не на сервере. null — снимок с сервера.
+  final String? localPath;
+
+  bool get isPending => localPath != null;
 
   /// Полный кадр — для просмотра на весь экран.
   final String url;
@@ -80,6 +104,27 @@ class InspectionPanel {
   static const missingPhoto = 'photo';
   static const missingDefect = 'defect';
 
+  /// Голосовая заметка лежит файлом на телефоне — ещё в очереди.
+  bool get audioNotePending =>
+      audioNoteUrl != null && !audioNoteUrl!.startsWith('http');
+
+  /// Независимая копия: очередь накладывает свои действия на копию, а не
+  /// на деталь из ответа сервера (мок-репозиторий отдаёт свои объекты).
+  InspectionPanel copy() => InspectionPanel(
+    id: id,
+    name: name,
+    zone: zone,
+    kind: kind,
+    status: status,
+    condition: condition,
+    defects: {...defects},
+    photoCount: photoCount,
+    photos: [...photos],
+    audioNoteSeconds: audioNoteSeconds,
+    audioNoteUrl: audioNoteUrl,
+    missing: {...missing},
+  );
+
   bool get needsPhoto => missing.contains(missingPhoto);
   bool get needsDefect => missing.contains(missingDefect);
 
@@ -133,6 +178,7 @@ class InspectionPanel {
             id: (p as Map<String, dynamic>)['id'] as int,
             url: _absolute(p['url'] as String),
             thumbUrl: mediaUrl(p['thumb_url'] as String?),
+            clientId: p['client_id'] as String?,
           ),
       ],
       audioNoteSeconds: audioNote?['duration_seconds'] as int?,

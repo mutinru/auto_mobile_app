@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/inspection_panel.dart';
@@ -8,6 +10,7 @@ import '../widgets/app_ui.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/inspection_problems_sheet.dart';
 import '../widgets/inspection_schematic.dart';
+import '../widgets/inspection_sync.dart';
 import '../widgets/progress_summary.dart';
 import 'inspection_summary_screen.dart';
 import 'panel_detail_screen.dart';
@@ -37,11 +40,19 @@ class InspectionOverviewScreen extends StatefulWidget {
 
 class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
   int _tab = 0;
+  StreamSubscription<String>? _rejections;
 
   @override
   void initState() {
     super.initState();
+    _rejections = listenRejections(this, widget.store);
     widget.store.load();
+  }
+
+  @override
+  void dispose() {
+    _rejections?.cancel();
+    super.dispose();
   }
 
   Future<void> _openPanel(String panelId) async {
@@ -273,6 +284,8 @@ class _InspectionOverviewScreenState extends State<InspectionOverviewScreen> {
                           onTap: (InspectionPanel p) => _openPanel(p.id),
                         ),
                 ),
+                // под схемой: появившись, плашка не сдвигает детали под пальцем
+                InspectionSyncBanner(store: store),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 22),
                   child: ProgressSummary(panels: store.panels),

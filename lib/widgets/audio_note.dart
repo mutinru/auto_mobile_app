@@ -91,7 +91,12 @@ class _AudioNotePlayerState extends State<AudioNotePlayer> {
       } else if (player.state == PlayerState.paused) {
         await player.resume();
       } else {
-        await player.play(UrlSource(widget.url));
+        // запись из очереди осмотра — ещё файл на телефоне
+        await player.play(
+          widget.url.startsWith('http')
+              ? UrlSource(widget.url)
+              : DeviceFileSource(widget.url),
+        );
       }
     } catch (_) {
       _failed();
