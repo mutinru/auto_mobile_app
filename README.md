@@ -145,6 +145,17 @@ fonts/        Inter и JetBrains Mono, зашиты чтобы не зависе
 VIN и вложений чата — `ApiClient.multipart`. Напрямую транспортом пользуются
 только `AuthService` и гостевая витрина.
 
+Каждая мутация `ApiClient` (POST/PUT/PATCH/DELETE и `multipart`) несёт
+`Idempotency-Key` (ревью №17, `lib/data/idempotency_keys.dart`). Ключ выдаётся
+по подписи запроса (пользователь, метод, путь, тело) и живёт, пока исход
+неизвестен: обрыв, таймаут, 5xx. Та же отправка — «Повторить», второе
+нажатие, очередь осмотра, даже после перезапуска — уходит с тем же ключом, и
+сервер отдаёт сохранённый ответ, а не создаёт дубль. Ответ 2xx или 4xx ключ
+снимает. На 409 («ещё выполняется») `ApiClient` ждёт `Retry-After` и
+спрашивает снова, до 5 раз. Ключи лежат в `<appSupport>/idempotency_keys.json`
+(только хеши подписей) 12 ч — меньше суток, которые хранит сервер. Выход их
+стирает.
+
 `AuthService` один на приложение: создаётся в `main()` и уходит и в `_RootGate`,
 и в `SupportChatScope` (в `MaterialApp.builder`, выше `Navigator`).
 `AuthService` хранит токен в `flutter_secure_storage` (Keystore на Android,

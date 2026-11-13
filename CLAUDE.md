@@ -127,6 +127,15 @@ README перечисляет ограничения приложения; зд�
   — `ProfileRepository` через `ApiClient` (ревью №40), экраны берут его
   `ProfileRepository.of(auth)`, тесты подменяют `ProfileRepository.factory`.
   Новый запрос профиля — туда, не в `AuthService`.
+- **Ключ повтора ставит только `ApiClient`** (ревью №17,
+  `IdempotencyKeys`): не добавляй `Idempotency-Key` руками и не создавай
+  `IdempotencyKeys` в экранах — повтор после обрыва должен прийти с тем же
+  ключом, а это знает лишь общий `IdempotencyKeys.instance`. Мутация мимо
+  `ApiClient` (сессионные запросы `AuthService`) ключа не получает. 409 сервер
+  отдаёт только как «запрос с этим ключом ещё идёт»: `ApiClient` ждёт и
+  повторяет, `multipart` не ждёт — поток файла не перечитать. Имя заголовка,
+  смысл 409 и срок (`IdempotencyKeys.ttl` < суток сервера) — зеркало
+  `App\Http\Middleware\Idempotent`.
 - **Бэкап Android выключен намеренно** (`allowBackup`, `fullBackupContent`,
   `res/xml/data_extraction_rules.xml` — на 12+ без правил перенос
   телефон-к-телефону идёт и при `allowBackup="false"`). Файл

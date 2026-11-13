@@ -85,9 +85,11 @@ void main() {
       expect(apiErrorText(ApiException(422, '{}')), requestFailedText);
       // а понятная причина — как есть
       expect(
-        apiErrorText(ApiException(409, '{"message":"Уже оплачено"}')),
-        'Уже оплачено',
+        apiErrorText(ApiException(409, '{"message":"Запрос ещё выполняется"}')),
+        'Запрос ещё выполняется',
       );
+      // 409 без причины — запрос с тем же ключом ещё идёт (ревью №17)
+      expect(apiErrorText(ApiException(409, '')), inProgressText);
     });
 
     test('обрыв связи — «Нет связи», по типу исключения', () {

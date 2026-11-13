@@ -6,14 +6,21 @@ import '../config/api_config.dart';
 import 'api_exception.dart';
 import 'auth_service.dart';
 import 'http_transport.dart';
+import 'idempotency_keys.dart';
 
 /// Обёртка над [HttpTransport]: базовый URL, Bearer-токен из
 /// [AuthService], декодирование JSON и единая обработка ошибок — в том
 /// числе у загрузки файлов ([multipart]). Таймауты — в транспорте.
+///
+/// Каждая мутация несёт `Idempotency-Key` (ревью №17, [IdempotencyKeys]):
+/// повтор после обрыва связи сервер не выполнит второй раз. Вызывающим
+/// ничего делать не нужно — ключ подбирается по самому запросу.
 class ApiClient {
-  ApiClient(this._auth);
+  ApiClient(this._auth, {IdempotencyKeys? keys})
+    : _keys = keys ?? IdempotencyKeys.instance;
 
   final AuthService _auth;
+  final IdempotencyKeys _keys;
 
   /// Токен для заголовков картинок чата (`ChatRepository.imageHeaders`).
   String? get token => _auth.token;
@@ -64,72 +71,115 @@ class ApiClient {
   Future<Map<String, dynamic>> patch(
     String path,
     Map<String, dynamic> body,
-  ) async {
-    await _auth.ensureUser();
-    final response = await HttpTransport.request(
-      'PATCH',
-      _uri(path),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
-    return _decode(response);
-  }
+  ) => _mutate('PATCH', path, jsonEncode(body));
 
   Future<Map<String, dynamic>> post(
     String path, [
     Map<String, dynamic>? body,
-  ]) async {
-    await _auth.ensureUser();
-    final response = await HttpTransport.request(
-      'POST',
-      _uri(path),
-      headers: _headers,
-      body: body == null ? null : jsonEncode(body),
-    );
-    return _decode(response);
-  }
+  ]) => _mutate('POST', path, body == null ? null : jsonEncode(body));
 
   Future<Map<String, dynamic>> put(
     String path, [
     Map<String, dynamic>? body,
-  ]) async {
-    await _auth.ensureUser();
-    final response = await HttpTransport.request(
-      'PUT',
-      _uri(path),
-      headers: _headers,
-      body: body == null ? null : jsonEncode(body),
-    );
-    return _decode(response);
-  }
+  ]) => _mutate('PUT', path, body == null ? null : jsonEncode(body));
 
-  Future<Map<String, dynamic>> delete(String path) async {
+  Future<Map<String, dynamic>> delete(String path) =>
+      _mutate('DELETE', path, null);
+
+  /// Мутация JSON с ключом повтора ([IdempotencyKeys]): ответ не пришёл —
+  /// следующая такая же отправка уйдёт с тем же ключом, и сервер не
+  /// выполнит её второй раз. «Ещё выполняется» (409) — ждём и спрашиваем
+  /// снова тем же ключом.
+  Future<Map<String, dynamic>> _mutate(
+    String method,
+    String path,
+    String? body,
+  ) async {
     await _auth.ensureUser();
-    final response = await HttpTransport.request(
-      'DELETE',
-      _uri(path),
-      headers: _headers,
+    final signature = IdempotencyKeys.signature(
+      userId: _auth.user?.id,
+      method: method,
+      path: path,
+      body: body,
     );
-    return _decode(response);
+    final key = await _keys.keyFor(signature);
+    for (var attempt = 1; ; attempt++) {
+      final response = await HttpTransport.request(
+        method,
+        _uri(path),
+        headers: {..._headers, IdempotencyKeys.header: key},
+        body: body,
+      );
+      if (_inProgress(response) && attempt < inProgressAttempts) {
+        await Future<void>.delayed(_retryAfter(response));
+        continue;
+      }
+      await _settle(signature, response);
+      return _decode(response);
+    }
   }
 
   /// Загрузка файлов: поля и файлы формой, ответ — JSON, ошибки — как у
   /// [post] (401 стирает сессию, 422 ложатся на поля через
   /// [ApiException.fieldErrors]). Таймаут — [HttpTransport.uploadTimeout].
+  /// Ключ повтора — как у [post]; на 409 не ждёт: поток файла не
+  /// перечитать, повторит вызывающий (кнопка, очередь осмотра) тем же
+  /// ключом.
   Future<Map<String, dynamic>> multipart(
     String path, {
     Map<String, String> fields = const {},
     List<http.MultipartFile> files = const [],
   }) async {
     await _auth.ensureUser();
+    final signature = IdempotencyKeys.signature(
+      userId: _auth.user?.id,
+      method: 'POST',
+      path: path,
+      fields: fields,
+      files: [
+        for (final f in files)
+          (field: f.field, filename: f.filename, length: f.length),
+      ],
+    );
     final request = http.MultipartRequest('POST', _uri(path))
       ..headers['Accept'] = 'application/json'
+      ..headers[IdempotencyKeys.header] = await _keys.keyFor(signature)
       ..fields.addAll(fields)
       ..files.addAll(files);
     if (_auth.token != null) {
       request.headers['Authorization'] = 'Bearer ${_auth.token}';
     }
-    return _decode(await HttpTransport.send(request));
+    final response = await HttpTransport.send(request);
+    await _settle(signature, response);
+    return _decode(response);
+  }
+
+  /// Сколько раз спросить о запросе, который сервер ещё выполняет.
+  static const inProgressAttempts = 5;
+
+  /// Пауза между вопросами, если сервер не назвал свою (`Retry-After`).
+  static const _inProgressPause = Duration(seconds: 1);
+
+  /// 409 — только «запрос с этим ключом ещё идёт» (`Idempotent`), других
+  /// 409 сервер не отдаёт.
+  static bool _inProgress(http.Response r) => r.statusCode == 409;
+
+  static Duration _retryAfter(http.Response r) {
+    final seconds = int.tryParse(r.headers['retry-after'] ?? '');
+    if (seconds == null || seconds < 0) return _inProgressPause;
+    return Duration(seconds: seconds.clamp(0, 5));
+  }
+
+  /// Ответ сервера — исход известен, ключ больше не нужен: 2xx сделан
+  /// (повтор отдал бы его же), 4xx ничего не изменил. Не забываем ключ
+  /// при 5xx (мог упасть после записи), 409 (ещё идёт) и 429 (лимитер
+  /// не пустил — повторят тем же ключом). Сеть — исключение до сюда не
+  /// доходит, ключ остаётся.
+  Future<void> _settle(String signature, http.Response response) async {
+    final status = response.statusCode;
+    final known =
+        status >= 200 && status < 500 && status != 409 && status != 429;
+    if (known) await _keys.settle(signature);
   }
 
   Map<String, dynamic> _decode(http.Response response) {

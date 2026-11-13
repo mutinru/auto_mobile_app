@@ -16,6 +16,7 @@ import 'data/api_vin_report_repository.dart';
 import 'data/api_verification_repository.dart';
 import 'data/api_inspection_repository.dart';
 import 'data/app_build.dart';
+import 'data/idempotency_keys.dart';
 import 'data/inspection_cache.dart';
 import 'data/auth_service.dart';
 import 'data/car_catalog_repository.dart';
@@ -69,6 +70,9 @@ Future<void> main() async {
   await lastSection.load();
   // номер сборки — до первого запроса: его несёт каждый (X-App-Build)
   await AppBuild.load();
+  // ключи повтора мутаций (ревью №17) — на диске: повтор после
+  // перезапуска уходит с тем же ключом
+  IdempotencyKeys.instance = IdempotencyKeys.disk();
   final auth = AuthService();
   // бейджи непрочитанных поддержки: одна сессия — один счётчик
   final unread = SupportUnread(auth, ApiChatRepository(ApiClient(auth)))

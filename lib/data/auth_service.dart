@@ -10,6 +10,7 @@ import '../models/current_user.dart';
 import 'api_exception.dart';
 import 'device_name.dart';
 import 'http_transport.dart';
+import 'idempotency_keys.dart';
 
 /// Сессия: вход по коду, текущий пользователь (GET /me), выход с долгом
 /// `/logout`, протухшая сессия. Профиль правит [ProfileRepository] (ревью
@@ -253,6 +254,8 @@ class AuthService extends ChangeNotifier {
     if (token != null) await _addPendingLogout(token);
     // хранилище может сбоить — сессия в памяти уже стёрта
     await _storage.delete(key: _tokenKey).catchError((_) {});
+    // ключи повтора прежнего пользователя (ревью №17) больше не нужны
+    unawaited(IdempotencyKeys.instance.clear());
     notifyListeners();
     if (token != null) unawaited(flushPendingLogouts());
   }

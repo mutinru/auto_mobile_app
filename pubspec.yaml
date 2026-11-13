@@ -62,6 +62,7 @@ dependencies:
   device_info_plus: ^13.3.0
   # номер сборки и магазин-установщик — для принудительного обновления
   package_info_plus: ^10.2.2
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:

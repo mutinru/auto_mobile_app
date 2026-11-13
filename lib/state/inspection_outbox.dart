@@ -11,6 +11,7 @@ import '../data/inspection_cache.dart';
 import '../data/inspection_repository.dart';
 import '../models/inspection_panel.dart';
 import '../models/panel_condition.dart';
+import '../util/client_id.dart';
 import '../widgets/api_error.dart';
 import 'inspection_op.dart';
 
