@@ -7,6 +7,7 @@ import '../models/order_kind.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/city_map.dart';
 import '../widgets/respond_sheet.dart';

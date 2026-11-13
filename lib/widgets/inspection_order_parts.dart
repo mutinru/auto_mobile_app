@@ -6,8 +6,8 @@ import '../models/order.dart';
 import '../models/order_car.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
-import 'app_ui.dart';
 import 'photo_viewer.dart';
 
 /// Общие куски детали разового осмотра — у заказчика

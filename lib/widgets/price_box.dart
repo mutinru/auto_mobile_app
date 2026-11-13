@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import 'app_ui.dart';
+import '../util/money.dart';
 
 /// .price-box — сумма со степпером ±. Сумму можно вписать по тапу, ± —
 /// подстройка: шаг растёт с суммой, удержание кнопки листает дальше.

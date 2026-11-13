@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/inspection_verdict.dart';
 import '../models/library_inspection.dart';
 import '../theme/app_colors.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
 import 'app_sheet.dart';
 import 'app_ui.dart';

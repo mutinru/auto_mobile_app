@@ -6,6 +6,7 @@ import '../models/order_kind.dart';
 import '../models/order_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
 import 'app_ui.dart';
 

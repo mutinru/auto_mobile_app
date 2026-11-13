@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/vin_kind.dart';
 import '../screens/vin_camera_screen.dart';
 import '../theme/app_colors.dart';
+import '../util/car_input.dart';
 import 'app_ui.dart';
 import 'vin_frame.dart';
 import 'vin_scanner.dart';

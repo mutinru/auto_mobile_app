@@ -12,6 +12,7 @@ import '../state/verification_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../util/geo.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
 import '../widgets/resumable_inspections.dart';
 import '../widgets/app_ui.dart';

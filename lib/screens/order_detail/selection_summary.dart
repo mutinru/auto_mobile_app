@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/app_ui.dart';
+import '../../util/money.dart';
 import '../../widgets/order_status_card.dart';
 
 /// Шапка подбора (ревью №16): статус, машина, города, пробег и бюджет,

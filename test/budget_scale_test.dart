@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:auto_podbor_mobile/widgets/app_ui.dart';
+import 'package:auto_podbor_mobile/util/money.dart';
 import 'package:auto_podbor_mobile/widgets/budget_scale.dart';
 
 void main() {

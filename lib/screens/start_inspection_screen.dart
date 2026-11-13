@@ -6,6 +6,7 @@ import '../data/order_repository.dart';
 import '../models/inspection_type.dart';
 import '../models/order.dart';
 import '../theme/app_colors.dart';
+import '../util/car_input.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/car_picker_sheet.dart';

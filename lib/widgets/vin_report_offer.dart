@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/vin_report.dart';
 import '../screens/vin_report_screen.dart' show vinReportLine;
 import '../theme/app_colors.dart';
+import '../util/money.dart';
 import '../util/ru_plural.dart';
 import 'app_ui.dart';
 

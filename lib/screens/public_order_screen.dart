@@ -7,6 +7,7 @@ import '../models/order_status.dart';
 import '../models/public_order.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 

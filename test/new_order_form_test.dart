@@ -5,6 +5,7 @@ import 'package:auto_podbor_mobile/data/mock_order_repository.dart';
 import 'package:auto_podbor_mobile/screens/new_inspection_screen.dart';
 import 'package:auto_podbor_mobile/screens/new_order_screen.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/util/car_input.dart';
 import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 
 import 'support/stores.dart';

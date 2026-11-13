@@ -5,6 +5,7 @@ import '../models/order.dart';
 import '../models/payout.dart';
 import '../models/report_summary.dart';
 import '../theme/app_colors.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
 import 'app_ui.dart';

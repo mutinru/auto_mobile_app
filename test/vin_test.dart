@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:auto_podbor_mobile/models/vin_kind.dart';
 import 'package:auto_podbor_mobile/theme/app_theme.dart';
+import 'package:auto_podbor_mobile/util/car_input.dart';
 import 'package:auto_podbor_mobile/widgets/app_ui.dart';
 import 'package:auto_podbor_mobile/widgets/vin_capture.dart';
 

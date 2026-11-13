@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/order.dart';
 import '../models/time_slot.dart';
+import '../util/money.dart';
 import 'api_error.dart';
 import 'app_sheet.dart';
 import 'app_ui.dart';

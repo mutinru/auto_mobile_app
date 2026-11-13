@@ -14,6 +14,7 @@ import '../state/inspection_outbox.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/confirm_sheet.dart';

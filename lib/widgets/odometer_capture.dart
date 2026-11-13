@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/vin_kind.dart';
 import '../theme/app_colors.dart';
+import '../util/car_input.dart';
 import 'app_ui.dart';
 import 'vin_capture.dart' show CapturedPhotoRow;
 

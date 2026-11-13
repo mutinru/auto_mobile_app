@@ -8,6 +8,7 @@ import '../models/vin_report.dart';
 import '../state/inspection_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../util/ru_date.dart';
 import '../util/ru_plural.dart';
 import '../widgets/api_error.dart';

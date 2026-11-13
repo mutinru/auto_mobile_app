@@ -5,6 +5,7 @@ import '../models/feed_card.dart';
 import '../models/order_status.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../util/money.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import 'public_order_screen.dart';
