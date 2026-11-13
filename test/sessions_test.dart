@@ -157,5 +157,7 @@ void main() {
 
     expect(sent[0]['device_name'], 'Google Pixel 8');
     expect(sent[1].containsKey('device_name'), isFalse);
+    // согласие с документами — обязательное поле входа
+    expect(sent.map((b) => b['accept_legal']), everyElement(isTrue));
   });
 }

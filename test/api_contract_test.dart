@@ -19,6 +19,8 @@ import 'package:auto_podbor_mobile/data/api_order_repository.dart';
 import 'package:auto_podbor_mobile/data/api_verification_repository.dart';
 import 'package:auto_podbor_mobile/data/auth_service.dart';
 import 'package:auto_podbor_mobile/data/inspection_cache.dart';
+import 'package:auto_podbor_mobile/data/legal_repository.dart';
+import 'package:auto_podbor_mobile/models/legal_text.dart';
 import 'package:auto_podbor_mobile/data/public_feed_repository.dart';
 import 'package:auto_podbor_mobile/models/notification_type.dart';
 import 'package:auto_podbor_mobile/models/order.dart';
@@ -61,6 +63,7 @@ void main() {
     'support_conversation',
     'support_messages',
     'config',
+    'legal_document',
     'vin_report_check',
     'vin_report_purchase',
     'payment',
@@ -372,6 +375,69 @@ void main() {
   });
 
   group('оплата и настройки', () {
+    test('legal_document — документ блоками, гостем', () async {
+      final text = await serve(
+        [
+          'legal_document',
+        ],
+        () => ApiLegalRepository(
+          ApiClient(AuthService()),
+        ).fetch(LegalDocument.terms),
+      );
+      expect(text.title, isNotEmpty);
+      expect(text.edition, isNotNull);
+
+      // ни один блок не потерян: обход в глубину по ответу и по разбору
+      int rawCount(Object? blocks) {
+        var n = 0;
+        for (final b in blocks as List? ?? const []) {
+          n += 1 + rawCount((b as Map)['children']);
+          for (final item in b['items'] as List? ?? const []) {
+            n += rawCount(item);
+          }
+        }
+        return n;
+      }
+
+      int parsedCount(List<LegalBlock> blocks) {
+        var n = 0;
+        for (final b in blocks) {
+          n += 1 + parsedCount(b.children);
+          for (final item in b.items) {
+            n += parsedCount(item);
+          }
+        }
+        return n;
+      }
+
+      final raw = body('legal_document')['data']['blocks'];
+      expect(parsedCount(text.blocks), rawCount(raw));
+
+      // фикстура бекенда — каждый вид блока, который рисует приложение
+      final types = <LegalBlockType>{};
+      void walk(List<LegalBlock> blocks) {
+        for (final b in blocks) {
+          types.add(b.type);
+          walk(b.children);
+          b.items.forEach(walk);
+        }
+      }
+
+      walk(text.blocks);
+      expect(types, LegalBlockType.values.toSet());
+      final spans = text.blocks.expand((b) => b.spans);
+      expect(spans.any((s) => s.strong), isTrue);
+      expect(spans.any((s) => s.em), isTrue);
+      expect(spans.any((s) => s.code), isTrue);
+      expect(
+        spans
+            .map((s) => s.link)
+            .whereType<String>()
+            .map(LegalDocument.fromLink),
+        contains(isNotNull),
+      );
+    });
+
     test('config', () async {
       final config = await serve([
         'config',

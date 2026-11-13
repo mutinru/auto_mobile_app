@@ -186,6 +186,9 @@ class AuthService extends ChangeNotifier {
         'phone': phone,
         'code': code,
         'device_name': ?device,
+        // экран входа зовёт вход только с отмеченной галочкой соглашения;
+        // какую редакцию документов принял человек, сервер пишет сам
+        'accept_legal': true,
       }),
     );
     if (response.statusCode != 200) {

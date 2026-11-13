@@ -78,6 +78,9 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    `Photo::MAX_PER_PANEL`, срок осмотра `maxInspectionDaysAhead` ↔
    `InspectionDay::MAX_DAYS_AHEAD`, `CheckoutMethod` и `PaymentStatus` ↔
    `App\Payments\Checkout` и константы `App\Models\Payment`.
+   Коды документов `LegalDocument` (`lib/models/legal_text.dart`) ↔ ключи
+   `config/legal.php`, блоки `LegalBlock` ↔ `App\Legal\LegalDocuments`.
+   Документы открывает только `openLegalDocument` своим экраном, не браузер.
    `OrderStatus.closed` ↔ `App\Enums\OrderStatus::Closed` (подбор закрыт без
    покупки, время — `closed_at` → `Order.selectionClosedAt`), причина —
    `SelectionCloseReason` ↔ `App\Enums\SelectionCloseReason`. Незнакомое

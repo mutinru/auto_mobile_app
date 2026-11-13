@@ -2,12 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../data/api_client.dart';
 import '../data/api_exception.dart';
 import '../data/auth_service.dart';
+import '../data/legal_repository.dart';
 import '../models/code_channel.dart';
 import '../theme/app_colors.dart';
 import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
+import '../widgets/legal_consent.dart';
 import '../widgets/phone_input.dart';
 
 export '../widgets/phone_input.dart' show cooldownWhen, formatCountdown;
@@ -36,6 +39,15 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   final _codeController = TextEditingController();
 
   bool _codeSent = false;
+
+  /// Галочка соглашения: без неё ни кода, ни входа (сервер требует
+  /// `accept_legal`, см. [AuthService.verifyPhoneCode]).
+  bool _accepted = false;
+
+  /// Тексты документов для ссылок у галочки — гостем, токена ещё нет.
+  late final LegalRepository _legal = ApiLegalRepository(
+    ApiClient(widget.auth),
+  );
   bool _busy = false;
   String? _error;
   CodeChannel? _channel;
@@ -274,7 +286,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
+                LegalConsentCheckbox(
+                  repository: _legal,
+                  value: _accepted,
+                  onChanged: (v) => setState(() => _accepted = v),
+                ),
+
+                const SizedBox(height: 14),
                 CtaPrimary(
                   label: _codeSent
                       ? 'Войти'
@@ -282,7 +301,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       ? 'Получить код'
                       : 'Получить код ${cooldownWhen(cooldown)}',
                   loading: _busy,
-                  onPressed: _codeSent
+                  onPressed: !_accepted
+                      ? null
+                      : _codeSent
                       ? _verify
                       : (cooldown == null ? _requestCode : null),
                 ),
@@ -291,7 +312,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                     label: cooldown == null
                         ? 'Запросить код снова'
                         : 'Запросить код снова ${cooldownWhen(cooldown)}',
-                    onPressed: cooldown == null && !_busy ? _requestCode : null,
+                    onPressed: _accepted && cooldown == null && !_busy
+                        ? _requestCode
+                        : null,
                   ),
                   CtaGhost(
                     label: 'Изменить номер',
@@ -345,18 +368,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                       ),
                     ),
                   ],
-                ),
-
-                const SizedBox(height: 14),
-                Text(
-                  'Продолжая, вы соглашаетесь с условиями сервиса '
-                  'и политикой конфиденциальности',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: context.colors.text3,
-                    height: 1.5,
-                  ),
                 ),
               ],
             ),

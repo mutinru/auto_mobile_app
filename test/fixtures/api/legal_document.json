@@ -1,0 +1,195 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/legal/terms",
+        "as": "guest"
+    },
+    "status": 200,
+    "body": {
+        "data": {
+            "code": "terms",
+            "title": "Пользовательское соглашение",
+            "edition": "2026-11-13",
+            "blocks": [
+                {
+                    "type": "quote",
+                    "children": [
+                        {
+                            "type": "paragraph",
+                            "spans": [
+                                {
+                                    "text": "Черновик.",
+                                    "strong": true
+                                },
+                                {
+                                    "text": " Текст для тестов: в нём каждый вид блока, который умеет рисовать приложение."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "heading",
+                    "level": 2,
+                    "spans": [
+                        {
+                            "text": "1. Общие положения"
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "spans": [
+                        {
+                            "text": "1.1. Обычный абзац с "
+                        },
+                        {
+                            "text": "жирным",
+                            "strong": true
+                        },
+                        {
+                            "text": ", "
+                        },
+                        {
+                            "text": "курсивом",
+                            "em": true
+                        },
+                        {
+                            "text": ", "
+                        },
+                        {
+                            "text": "кодом",
+                            "code": true
+                        },
+                        {
+                            "text": " и "
+                        },
+                        {
+                            "text": "ссылкой на политику",
+                            "link": "/legal/privacy"
+                        },
+                        {
+                            "text": ". Перенос с обратной косой чертой\nдаёт новую строку."
+                        }
+                    ]
+                },
+                {
+                    "type": "heading",
+                    "level": 3,
+                    "spans": [
+                        {
+                            "text": "1.2. Список"
+                        }
+                    ]
+                },
+                {
+                    "type": "list",
+                    "ordered": false,
+                    "start": 1,
+                    "items": [
+                        [
+                            {
+                                "type": "paragraph",
+                                "spans": [
+                                    {
+                                        "text": "первый пункт;"
+                                    }
+                                ]
+                            }
+                        ],
+                        [
+                            {
+                                "type": "paragraph",
+                                "spans": [
+                                    {
+                                        "text": "второй пункт с "
+                                    },
+                                    {
+                                        "text": "почтой",
+                                        "link": "mailto:help@example.com"
+                                    },
+                                    {
+                                        "text": ":"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "list",
+                                "ordered": true,
+                                "start": 1,
+                                "items": [
+                                    [
+                                        {
+                                            "type": "paragraph",
+                                            "spans": [
+                                                {
+                                                    "text": "вложенный первый;"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    [
+                                        {
+                                            "type": "paragraph",
+                                            "spans": [
+                                                {
+                                                    "text": "вложенный второй."
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "type": "list",
+                    "ordered": true,
+                    "start": 3,
+                    "items": [
+                        [
+                            {
+                                "type": "paragraph",
+                                "spans": [
+                                    {
+                                        "text": "нумерация с тройки;"
+                                    }
+                                ]
+                            }
+                        ],
+                        [
+                            {
+                                "type": "paragraph",
+                                "spans": [
+                                    {
+                                        "text": "четвёртый."
+                                    }
+                                ]
+                            }
+                        ]
+                    ]
+                },
+                {
+                    "type": "rule"
+                },
+                {
+                    "type": "paragraph",
+                    "spans": [
+                        {
+                            "text": "Ссылка javascript остаётся текстом."
+                        }
+                    ]
+                },
+                {
+                    "type": "paragraph",
+                    "spans": [
+                        {
+                            "text": "отступ — блок кода абзацем"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

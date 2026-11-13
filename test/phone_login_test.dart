@@ -33,6 +33,7 @@ void main() {
       ),
     );
     await tester.enterText(find.byType(TextField).first, '9001234567');
+    await tester.tap(find.byType(Checkbox));
     await tester.pump();
   }
 
@@ -116,6 +117,8 @@ void main() {
     await tester.pump(const Duration(seconds: 60));
     expect(ghost(tester, 'Запросить код снова').onPressed, isNotNull);
 
+    // галочка соглашения сдвинула кнопку ниже окна теста
+    await tester.ensureVisible(find.text('Запросить код снова'));
     await tester.tap(find.text('Запросить код снова'));
     await tester.pump();
     expect(auth.requests, 2);
@@ -187,5 +190,42 @@ void main() {
       find.text('Слишком много запросов. Подождите немного и повторите'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('без галочки соглашения код не запросить (QA №14)', (
+    tester,
+  ) async {
+    final auth = _FakeAuth();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.dark,
+        home: PhoneLoginScreen(auth: auth, onLoggedIn: () {}),
+      ),
+    );
+    await tester.enterText(find.byType(TextField).first, '9001234567');
+    await tester.pump();
+
+    expect(
+      find.textContaining('пользовательское соглашение', findRichText: true),
+      findsOneWidget,
+    );
+    expect(primary(tester).onPressed, isNull);
+    await tester.tap(find.text('Получить код'));
+    expect(auth.requests, 0);
+
+    // галочку ставит и нажатие по тексту вне ссылок
+    await tester.tapAt(
+      tester.getTopRight(
+            find.textContaining('Принимаю', findRichText: true),
+          ) +
+          const Offset(-4, 6),
+    );
+    await tester.pump();
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(primary(tester).onPressed, isNotNull);
+
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    expect(primary(tester).onPressed, isNull);
   });
 }
