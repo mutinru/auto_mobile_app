@@ -33,6 +33,7 @@
             "inspect_time": null,
             "inspect_ends_at": null,
             "decision_reason": null,
+            "pick_until": null,
             "listing_url": null,
             "listing_host": null,
             "listing_site": null,

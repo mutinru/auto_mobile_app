@@ -285,6 +285,10 @@ class ApiOrderRepository implements OrderRepository {
   });
 
   @override
+  Future<Order> repostSelection(int orderId) =>
+      _orderAction('/orders/$orderId/repost');
+
+  @override
   Future<Order> leaveReview(
     int orderId, {
     required int rating,

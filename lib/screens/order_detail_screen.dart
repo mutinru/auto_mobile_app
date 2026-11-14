@@ -10,7 +10,9 @@ import '../models/inspection_verdict.dart';
 import '../models/order.dart';
 import '../models/order_action.dart';
 import '../models/order_car.dart';
+import '../models/order_status.dart';
 import '../models/user_summary.dart';
+import '../payments/payment_flow.dart';
 import '../state/inspection_outbox.dart';
 import '../state/inspection_store.dart';
 import '../state/order_detail_controller.dart';
@@ -33,6 +35,7 @@ import 'inspection_report_screen.dart';
 import 'order_detail/candidates_section.dart';
 import 'order_detail/customer_box.dart';
 import 'order_detail/executor_actions_section.dart';
+import 'order_detail/placement_section.dart';
 import 'order_detail/purchase_section.dart';
 import 'order_detail/responses_section.dart';
 import 'order_detail/selection_summary.dart';
@@ -279,14 +282,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
   }
 
   /// Исполнитель отказывается от подбора (правило — Order.canRelease с
-  /// сервера). Срывом не считается; заказ уходит в ленту — экран закрываем.
+  /// сервера). Срывом не считается; заказчик решит, разместить ли заказ
+  /// заново, — экран закрываем.
   Future<void> _release() async {
     final ok = await showConfirmSheet(
       context,
       title: 'Отказаться от подбора?',
       text:
-          'Заказ вернётся в ленту к другим исполнителям, повторно '
-          'откликнуться не получится. Готовые отчёты останутся у заказчика, '
+          'Заказчик сможет разместить заказ заново для других исполнителей, '
+          'повторно откликнуться не получится. Готовые отчёты останутся у заказчика, '
           'начатые осмотры удалятся. Срывом это не считается.',
       confirmLabel: 'Отказаться',
     );
@@ -316,12 +320,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
     await _run(() => _c.changePurchase(carId), done: 'Покупка изменена');
   }
 
+  /// Оплата размещения подбора — через PaymentFlow, итог — с сервера.
+  Future<void> _payPlacement() => _run(
+    () => _c.payPlacement(
+      (payment) => runPayment(context, widget.store.payments, payment),
+    ),
+  );
+
+  /// Исполнитель отказался — подбор снова в ленте, второй раз не платим.
+  Future<void> _repost() =>
+      _run(_c.repost, done: 'Заказ снова в ленте исполнителей');
+
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.
-  Future<void> _cancel() async {
+  Future<void> _cancel(Order order) async {
+    // размещение оплачено — при отмене сервер вернёт деньги
+    final refund =
+        order.placementFee != null &&
+        order.status != OrderStatus.awaitingPlacement;
     final ok = await showConfirmSheet(
       context,
       title: 'Отменить заказ?',
-      text: 'Отклики исполнителей будут отклонены. Вернуть заказ нельзя.',
+      text: order.status == OrderStatus.awaitingPlacement
+          ? 'Заказ ещё не опубликован — исполнители его не видели.'
+          : refund
+          ? 'Отклики исполнителей будут отклонены, деньги за размещение '
+                'вернутся на карту. Вернуть заказ нельзя.'
+          : 'Отклики исполнителей будут отклонены. Вернуть заказ нельзя.',
       confirmLabel: 'Отменить заказ',
       cancelLabel: 'Не отменять',
     );
@@ -422,6 +446,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         children: [
           SelectionSummary(order: order),
+          if (customer)
+            PlacementSection(
+              order: order,
+              paying: _c.payingPlacement,
+              reposting: _c.reposting,
+              onPay: _payPlacement,
+              onRepost: _repost,
+            ),
           if (order.executor != null) ...[
             const SizedBox(height: 22),
             const SectionHead('Исполнитель'),
@@ -487,7 +519,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen>
             const SizedBox(height: 14),
             CtaGhost(
               label: 'Отменить заказ',
-              onPressed: _c.cancelling ? null : _cancel,
+              onPressed: _c.cancelling ? null : () => _cancel(order),
             ),
           ],
         ],

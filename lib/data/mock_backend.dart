@@ -20,6 +20,9 @@ class MockBackend {
   /// сервере: 0 — заказ публикуется сразу, иначе ждёт оплаты.
   int placementFee = 0;
 
+  /// Комиссия за размещение подбора, как SELECTION_PLACEMENT_FEE.
+  int selectionPlacementFee = 0;
+
   /// Платежи мока: оплата формы SDK (submitPaymentToken) проходит сразу —
   /// размещение удерживается и публикует заказ, VIN — списывается.
   final Map<int, Payment> payments = {};
@@ -105,7 +108,9 @@ class MockBackend {
   /// публикует заказ (Order::paymentSucceeded), VIN списывается и закрывает
   /// покупку.
   Payment settle(Payment payment, {required String methodType}) {
-    final placement = payment.purpose == 'inspection_placement';
+    final placement =
+        payment.purpose == 'inspection_placement' ||
+        payment.purpose == 'selection_placement';
     final done = Payment(
       id: payment.id,
       status: placement ? PaymentStatus.authorized : PaymentStatus.paid,

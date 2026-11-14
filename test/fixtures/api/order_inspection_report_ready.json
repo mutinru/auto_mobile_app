@@ -31,6 +31,7 @@
             "inspect_time": "16:00",
             "inspect_ends_at": "2026-11-12T21:00:00.000000Z",
             "decision_reason": null,
+            "pick_until": null,
             "listing_url": null,
             "listing_host": null,
             "listing_site": null,

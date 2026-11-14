@@ -16,6 +16,8 @@ enum NotificationType {
   purchaseReported,
   // подбор не закрыт через 7 и 14 дней после вердикта
   purchaseReminder,
+  // подбор: срок выбора исполнителя истекает через сутки
+  pickDeadlineSoon,
   // исполнителю
   executorAssigned,
   responseRejected,
@@ -67,6 +69,7 @@ const _apiValues = {
   'dispute_available': NotificationType.disputeAvailable,
   'purchase_reported': NotificationType.purchaseReported,
   'purchase_reminder': NotificationType.purchaseReminder,
+  'pick_deadline_soon': NotificationType.pickDeadlineSoon,
   'purchase_report_declined': NotificationType.purchaseReportDeclined,
   'purchase_changed': NotificationType.purchaseChanged,
   'selection_close_soon': NotificationType.selectionCloseSoon,

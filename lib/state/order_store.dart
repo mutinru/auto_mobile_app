@@ -449,6 +449,10 @@ class OrderStore extends ChangeNotifier {
   Future<Order> cancelOrder(int orderId) =>
       _mutate(_repository.cancelOrder(orderId));
 
+  /// Подбор размещён заново после отказа исполнителя — заказ из ответа сервера.
+  Future<Order> repostSelection(int orderId) =>
+      _mutate(_repository.repostSelection(orderId));
+
   /// Осмотр размещён заново на новую дату — заказ из ответа сервера.
   Future<Order> repostInspection(
     int orderId, {

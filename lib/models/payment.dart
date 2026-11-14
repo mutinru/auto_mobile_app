@@ -20,7 +20,8 @@ class Payment {
   final int amount;
   final int refundedAmount;
 
-  /// vin_report | inspection_placement; null — сервер не сказал.
+  /// vin_report | inspection_placement | selection_placement; null — сервер
+  /// не сказал.
   final String? purpose;
   final int? orderId;
 

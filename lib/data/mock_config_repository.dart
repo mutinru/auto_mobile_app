@@ -11,6 +11,7 @@ class MockConfigRepository implements ConfigRepository {
   @override
   Future<ClientConfig> fetchClientConfig() async => ClientConfig(
     inspectionPlacementFee: backend.placementFee,
+    selectionPlacementFee: backend.selectionPlacementFee,
     vinReportPrice: 299,
   );
 }

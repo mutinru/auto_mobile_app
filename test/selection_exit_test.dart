@@ -119,7 +119,7 @@ void main() {
   });
 
   testWidgets(
-    'исполнитель отказывается от подбора — заказ в ленте, экран закрыт',
+    'исполнитель отказывается от подбора — заказ ждёт решения, экран закрыт',
     (
       tester,
     ) async {
@@ -164,7 +164,8 @@ void main() {
 
       expect(find.byType(OrderDetailScreen), findsNothing);
       final order = await repo.fetchOrder(3201);
-      expect(order.status, OrderStatus.awaitingExecutor);
+      expect(order.status, OrderStatus.awaitingDecision);
+      expect(order.decisionReason, DecisionReason.executorReleased);
       expect(order.executor, isNull);
       // готовый отчёт остался, начатый осмотр — нет
       expect(order.cars.map((c) => c.id), [81]);

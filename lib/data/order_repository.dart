@@ -147,6 +147,10 @@ abstract class OrderRepository {
     int? askingPrice,
   });
 
+  /// Заказчик размещает подбор заново после отказа исполнителя: снова в
+  /// ленте, новый срок выбора. Оплаченное размещение сервер второй раз не берёт.
+  Future<Order> repostSelection(int orderId);
+
   /// Отзыв заказчика об исполнителе по завершённому заказу. Возвращает
   /// заказ целиком: рейтинг исполнителя и can_review пересчитал сервер.
   Future<Order> leaveReview(int orderId, {required int rating, String? text});
@@ -199,7 +203,7 @@ abstract class OrderRepository {
     required CapturedOdometer odometer,
   });
 
-  /// Оплатить размещение осмотра заново (заказ в awaitingPlacement, прошлая
+  /// Оплатить размещение заново (заказ в awaitingPlacement, прошлая
   /// оплата не прошла). Начатая живая оплата — та же; заказ — с
   /// [Order.pendingPayment].
   Future<Order> payPlacement(int orderId);

@@ -250,9 +250,17 @@ class MockOrderRepository implements OrderRepository {
     List<String> requirements = const [],
     String? comment,
   }) async {
+    final id = DateTime.now().millisecondsSinceEpoch;
+    final fee = backend.selectionPlacementFee;
     final order = Order(
-      id: DateTime.now().millisecondsSinceEpoch,
-      status: OrderStatus.awaitingExecutor,
+      id: id,
+      status: fee > 0
+          ? OrderStatus.awaitingPlacement
+          : OrderStatus.awaitingExecutor,
+      placementFee: fee > 0 ? fee : null,
+      pendingPayment: fee > 0
+          ? backend.startPayment(fee, 'selection_placement', orderId: id)
+          : null,
       brand: brand,
       model: model,
       yearFrom: yearFrom,
@@ -504,6 +512,21 @@ class MockOrderRepository implements OrderRepository {
   }
 
   @override
+  Future<Order> repostSelection(int orderId) async {
+    final order = await fetchOrder(orderId);
+    if (order.status != OrderStatus.awaitingDecision) {
+      throw ApiException(422, '{"message":"Заказ не ждёт решения"}');
+    }
+    return _replace(
+      order.copyWith(
+        status: OrderStatus.awaitingExecutor,
+        clearDecision: true,
+        pickUntil: DateTime.now().add(const Duration(days: 5)),
+      ),
+    );
+  }
+
+  @override
   Future<Order> repostInspection(
     int orderId, {
     required DateTime inspectOn,
@@ -709,11 +732,17 @@ class MockOrderRepository implements OrderRepository {
     }
     if (order.pendingPayment != null) return order;
     final updated = order.copyWith(
-      pendingPayment: backend.startPayment(
-        order.placementFee ?? backend.placementFee,
-        'inspection_placement',
-        orderId: orderId,
-      ),
+      pendingPayment: order.isInspection
+          ? backend.startPayment(
+              order.placementFee ?? backend.placementFee,
+              'inspection_placement',
+              orderId: orderId,
+            )
+          : backend.startPayment(
+              order.placementFee ?? backend.selectionPlacementFee,
+              'selection_placement',
+              orderId: orderId,
+            ),
     );
     return _replace(updated);
   }
@@ -794,7 +823,13 @@ class MockOrderRepository implements OrderRepository {
   Future<Order> declineOrder(int orderId) async {
     final order = await fetchOrder(orderId);
     final updated = order.copyWith(
-      status: OrderStatus.awaitingExecutor,
+      // подбор, как сервер, ждёт решения заказчика: заново или отменить
+      status: order.isInspection
+          ? OrderStatus.awaitingExecutor
+          : OrderStatus.awaitingDecision,
+      decisionReason: order.isInspection
+          ? null
+          : DecisionReason.executorReleased,
       clearExecutor: true,
       // подбор, как сервер: готовые отчёты остаются, начатые осмотры — нет
       cars: order.isInspection

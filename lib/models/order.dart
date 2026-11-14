@@ -17,7 +17,10 @@ import 'order_action.dart';
 
 /// Почему разовый осмотр ждёт решения заказчика: исполнитель сорвал день
 /// осмотра или день прошёл, а исполнитель так и не выбран.
-enum DecisionReason { missed, datePassed }
+/// Почему заказ ждёт решения заказчика — зеркало decision_reason
+/// (`Order::DECISION_*` на бекенде): осмотр — срыв или день прошёл, подбор —
+/// отказ исполнителя.
+enum DecisionReason { missed, datePassed, executorReleased }
 
 /// Зеркалит OrderResource на бекенде (app/Http/Resources/OrderResource.php).
 /// Поля с address по askingPrice заполнены только у заказа-осмотра
@@ -65,6 +68,7 @@ class Order {
     this.disputeAvailableAt,
     this.executorDeadlineAt,
     this.decisionReason,
+    this.pickUntil,
     this.paymentSentAt,
     this.paymentConfirmedAt,
     this.dispute,
@@ -246,6 +250,11 @@ class Order {
   /// Почему заказ ждёт решения заказчика ([OrderStatus.awaitingDecision]);
   /// сервер отдаёт только заказчику.
   final DecisionReason? decisionReason;
+
+  /// Подбор: до какого момента выбрать исполнителя, иначе сервер отменит
+  /// заказ и вернёт деньги за размещение. Только заказчику; срок считает
+  /// сервер.
+  final DateTime? pickUntil;
   final DateTime? paymentSentAt;
   final DateTime? paymentConfirmedAt;
 
@@ -349,7 +358,11 @@ class Order {
     final done = cars.where((c) => c.inspectionStatus == 'completed').length;
     final inspected = 'Осмотрено ${counted(done, 'машина', 'машины', 'машин')}';
     return switch (shownStatus) {
+      OrderStatus.awaitingPlacement =>
+        'Оплатите размещение — исполнители ещё не видят заказ',
       OrderStatus.awaitingExecutor => 'Исполнитель ещё не выбран',
+      OrderStatus.awaitingDecision =>
+        'Исполнитель отказался — разместите заново или отмените',
       OrderStatus.sourcing =>
         done > 0 ? inspected : 'Осмотренных машин пока нет',
       OrderStatus.inspecting =>
@@ -377,6 +390,8 @@ class Order {
     DateTime? disputeAvailableAt,
     bool clearDisputeWindow = false,
     DateTime? executorDeadlineAt,
+    DecisionReason? decisionReason,
+    DateTime? pickUntil,
     DateTime? paymentSentAt,
     OrderDispute? dispute,
     Payout? payout,
@@ -453,7 +468,10 @@ class Order {
     executorDeadlineAt: clearExecutor
         ? null
         : (executorDeadlineAt ?? this.executorDeadlineAt),
-    decisionReason: clearDecision ? null : decisionReason,
+    decisionReason: clearDecision
+        ? null
+        : (decisionReason ?? this.decisionReason),
+    pickUntil: pickUntil ?? this.pickUntil,
     paymentSentAt: paymentSentAt ?? this.paymentSentAt,
     paymentConfirmedAt: paymentConfirmedAt ?? this.paymentConfirmedAt,
     dispute: dispute ?? this.dispute,
@@ -533,8 +551,10 @@ class Order {
     decisionReason: switch (json['decision_reason']) {
       'missed' => DecisionReason.missed,
       'date_passed' => DecisionReason.datePassed,
+      'executor_released' => DecisionReason.executorReleased,
       _ => null,
     },
+    pickUntil: _date(json['pick_until']),
     paymentSentAt: _date(json['payment_sent_at']),
     paymentConfirmedAt: _date(json['payment_confirmed_at']),
     dispute: json['dispute'] != null

@@ -5,6 +5,7 @@ import '../models/library_inspection.dart';
 import '../models/order.dart';
 import '../models/order_action.dart';
 import '../models/order_car.dart';
+import '../models/payment.dart';
 import '../widgets/api_error.dart';
 import 'order_store.dart';
 
@@ -38,6 +39,8 @@ class OrderDetailController extends ChangeNotifier {
   bool _attaching = false;
   bool _purchaseBusy = false;
   bool _releasing = false;
+  bool _payingPlacement = false;
+  bool _reposting = false;
   bool _disposed = false;
 
   Order? get order => _order;
@@ -59,6 +62,12 @@ class OrderDetailController extends ChangeNotifier {
   /// Идёт отказ исполнителя от подбора.
   bool get releasing => _releasing;
 
+  /// Идёт оплата размещения подбора.
+  bool get payingPlacement => _payingPlacement;
+
+  /// Идёт повторное размещение после отказа исполнителя.
+  bool get reposting => _reposting;
+
   /// Идёт загрузка или действие: опрос (AutoRefresh) их результат не затрёт.
   bool get busy =>
       _loading ||
@@ -66,7 +75,9 @@ class OrderDetailController extends ChangeNotifier {
       _completing ||
       _cancelling ||
       _attaching ||
-      _purchaseBusy;
+      _purchaseBusy ||
+      _payingPlacement ||
+      _reposting;
 
   /// Заказчик ли смотрит (ревью №31): роль — из загруженного заказа
   /// (`viewer_role`), подсказка экрана — только до загрузки и для мока, где
@@ -191,6 +202,33 @@ class OrderDetailController extends ChangeNotifier {
     () => _releasing,
     (v) => _releasing = v,
     () => store.declineOrder(orderId),
+  );
+
+  /// Оплатить размещение: начатая оплата — та же, иначе сервер заведёт
+  /// новую. Саму оплату проводит экран (`runPayment` — ему нужен context),
+  /// итог — заказ с сервера: оплачен — он уже в ленте исполнителей.
+  Future<void> payPlacement(
+    Future<void> Function(Payment payment) runPayment,
+  ) => _guarded(
+    () => _payingPlacement,
+    (v) => _payingPlacement = v,
+    () async {
+      final current = _order;
+      final payment =
+          current?.pendingPayment ??
+          (await store.payPlacement(orderId)).pendingPayment;
+      if (payment != null) await runPayment(payment);
+      final updated = await store.fetchOrder(orderId);
+      store.replaceOrder(updated);
+      _set(updated);
+    },
+  );
+
+  /// Исполнитель отказался — заказчик размещает подбор заново.
+  Future<void> repost() => _guarded(
+    () => _reposting,
+    (v) => _reposting = v,
+    () async => _set(await store.repostSelection(orderId)),
   );
 
   /// Отменить можно, пока сервер отдаёт canCancel; заказ — из ответа.

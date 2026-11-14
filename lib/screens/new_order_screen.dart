@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/order_status.dart';
+import '../payments/payment_flow.dart';
 import '../state/order_store.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -53,10 +55,25 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   final Set<String> _requirements = {'Без ДТП'};
   bool _submitting = false;
 
+  /// Комиссия за размещение подбора с сервера (`/config`); 0 — бесплатно.
+  int _placementFee = 0;
+
   @override
   void initState() {
     super.initState();
     _detectCity();
+    _loadPlacementFee();
+  }
+
+  Future<void> _loadPlacementFee() async {
+    try {
+      final config = await widget.store.config.fetchClientConfig();
+      if (mounted) {
+        setState(() => _placementFee = config.selectionPlacementFee);
+      }
+    } catch (_) {
+      // нет связи — подпись кнопки без цены, остальное решит сервер
+    }
   }
 
   Future<void> _detectCity() async {
@@ -154,8 +171,18 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             ? null
             : _commentController.text.trim(),
       );
+      // при комиссии заказ ждёт оплаты: проводим её сразу. Не оплатил —
+      // заказ всё равно создан, «Оплатить» останется в его карточке
+      var result = order;
+      final payment = order.pendingPayment;
+      if (order.status == OrderStatus.awaitingPlacement && payment != null) {
+        if (!mounted) return;
+        await runPayment(context, widget.store.payments, payment);
+        result = await widget.store.fetchOrder(order.id);
+        widget.store.replaceOrder(result);
+      }
       // созданный заказ — результатом: витрина по нему открывает «Мои заказы»
-      if (mounted) Navigator.of(context).pop(order);
+      if (mounted) Navigator.of(context).pop(result);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -335,8 +362,20 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             ),
             BottomCta(
               children: [
+                if (_placementFee > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Размещение — ${money(_placementFee)} ₽. Деньги спишутся, '
+                      'когда вы выберете исполнителя; не выберете или отмените '
+                      'заказ — вернутся.',
+                      style: context.text.fieldNote,
+                    ),
+                  ),
                 CtaPrimary(
-                  label: 'Разместить заказ',
+                  label: _placementFee > 0
+                      ? 'Оплатить и разместить · ${money(_placementFee)} ₽'
+                      : 'Разместить заказ',
                   loading: _submitting,
                   onPressed: _submit,
                 ),
