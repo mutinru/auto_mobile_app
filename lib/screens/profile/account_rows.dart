@@ -6,10 +6,12 @@ import '../../state/order_store.dart';
 import '../../widgets/change_phone_sheet.dart';
 import '../../widgets/payout_sheet.dart';
 import '../../widgets/phone_input.dart';
+import '../payments_screen.dart';
 import '../vin_report_screen.dart';
 import 'settings_row.dart';
 
-/// Данные аккаунта: номер телефона, реквизиты для выплат, купленные отчёты.
+/// Данные аккаунта: номер телефона, реквизиты для выплат, купленные отчёты,
+/// платежи с чеками.
 class ProfileAccountRows extends StatelessWidget {
   const ProfileAccountRows({
     super.key,
@@ -67,6 +69,18 @@ class ProfileAccountRows extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) =>
                   VinReportsScreen(repository: store.vinReports, auth: auth),
+            ),
+          ),
+        ),
+
+        // оплаты размещения и отчётов — с чеками об оплате
+        SettingsRow(
+          icon: Icons.receipt_long_outlined,
+          label: 'Платежи и чеки',
+          trailing: const SettingsChevron(),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PaymentsScreen(repository: store.payments),
             ),
           ),
         ),

@@ -42,6 +42,9 @@ enum NotificationType {
   selectionCloseSoon,
   // подбор закрыт без покупки (без новостей или заказчик удалил аккаунт)
   selectionClosed,
+  // плательщику: чек об оплате зарегистрирован / аннулирован после возврата
+  receiptIssued,
+  receiptCancelled,
   unknown,
 }
 
@@ -74,6 +77,8 @@ const _apiValues = {
   'purchase_changed': NotificationType.purchaseChanged,
   'selection_close_soon': NotificationType.selectionCloseSoon,
   'selection_closed': NotificationType.selectionClosed,
+  'receipt_issued': NotificationType.receiptIssued,
+  'receipt_cancelled': NotificationType.receiptCancelled,
 };
 
 NotificationType notificationTypeFromApi(String? value) =>
@@ -98,6 +103,11 @@ extension NotificationTypeX on NotificationType {
     NotificationType.purchaseChanged => false,
     _ => true,
   };
+
+  /// Чек об оплате — тап открывает «Платежи и чеки», а не заказ.
+  bool get opensPayments =>
+      this == NotificationType.receiptIssued ||
+      this == NotificationType.receiptCancelled;
 
   /// Открывается ли заказ по тапу. Отклонённый и сорвавший срок исполнитель
   /// заказ уже не видит (сервер ответит 403) — такое уведомление только

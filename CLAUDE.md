@@ -77,7 +77,9 @@ $ADB -s emulator-5554 exec-out screencap -p > shot.png
    Так же зеркалится лимит фото на деталь: `InspectionPanel.maxPhotos` ↔
    `Photo::MAX_PER_PANEL`, срок осмотра `maxInspectionDaysAhead` ↔
    `InspectionDay::MAX_DAYS_AHEAD`, `CheckoutMethod` и `PaymentStatus` ↔
-   `App\Payments\Checkout` и константы `App\Models\Payment`.
+   `App\Payments\Checkout` и константы `App\Models\Payment`, `ReceiptStatus`
+   ↔ константы `App\Models\Receipt` (чек об оплате; pending/registering/failed
+   для покупателя — одно «оформляется»).
    Коды документов `LegalDocument` (`lib/models/legal_text.dart`) ↔ ключи
    `config/legal.php`, блоки `LegalBlock` ↔ `App\Legal\LegalDocuments`.
    Документы открывает только `openLegalDocument` своим экраном, не браузер.
@@ -339,6 +341,9 @@ README перечисляет ограничения приложения; зд�
   и магазин приходят в `checkout`. Цены (комиссия, отчёт по VIN) — только с
   сервера (`GET /config`, ответ покупки), не хардкодь. В виджет-тестах плагина
   нет — подменяй `PaymentFlow.sdk` и верни `YooKassaSdk()` в `tearDown`.
+  Чек об оплате — только `Payment.receipt` с сервера (`GET /payments`,
+  экран «Платежи и чеки»): когда он появляется и аннулируется, решает сервер,
+  ссылка — страница ФНС, открывается в браузере.
 - **«Завершённые» в «Моих» и «Взятых заказах» — страницы с сервера**
   (`OrderStore.myFinished`/`assignedFinished`, `PagedOrders`, `?scope=finished`):
   грузятся при открытии вкладки, подвалом `LoadMore`. `myOrders` и

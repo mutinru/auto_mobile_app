@@ -1,0 +1,67 @@
+{
+    "request": {
+        "method": "GET",
+        "path": "/api/payments?page=1",
+        "as": "customer"
+    },
+    "status": 200,
+    "body": {
+        "data": [
+            {
+                "id": 2,
+                "status": "paid",
+                "amount": 299,
+                "refunded_amount": 0,
+                "purpose": "vin_report",
+                "description": "Готовые отчёты по VIN",
+                "order_id": null,
+                "checkout": null,
+                "confirmation_url": null,
+                "payment_method_type": null,
+                "paid_at": "2026-11-11T09:00:01+00:00",
+                "created_at": "2026-11-11T09:00:01+00:00",
+                "receipt": {
+                    "status": "registered",
+                    "url": "http://api.test/api/v1/receipt/000000000000/00000000-0000-0000-0000-000000000000/print",
+                    "registered_at": "2026-11-11T09:00:01+00:00",
+                    "cancelled_at": null
+                }
+            }
+        ],
+        "links": {
+            "first": "http://api.test/api/payments?page=1",
+            "last": "http://api.test/api/payments?page=1",
+            "prev": null,
+            "next": null
+        },
+        "meta": {
+            "current_page": 1,
+            "from": 1,
+            "last_page": 1,
+            "links": [
+                {
+                    "url": null,
+                    "label": "&laquo; Previous",
+                    "page": null,
+                    "active": false
+                },
+                {
+                    "url": "http://api.test/api/payments?page=1",
+                    "label": "1",
+                    "page": 1,
+                    "active": true
+                },
+                {
+                    "url": null,
+                    "label": "Next &raquo;",
+                    "page": null,
+                    "active": false
+                }
+            ],
+            "path": "http://api.test/api/payments",
+            "per_page": 20,
+            "to": 1,
+            "total": 1
+        }
+    }
+}

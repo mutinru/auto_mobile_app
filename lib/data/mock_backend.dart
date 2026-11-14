@@ -35,6 +35,10 @@ class MockBackend {
       amount: amount,
       purpose: purpose,
       orderId: orderId,
+      description: purpose == 'vin_report'
+          ? 'Готовые отчёты по VIN'
+          : 'Размещение заказа',
+      createdAt: DateTime.now(),
       checkout: PaymentCheckout(
         method: CheckoutMethod.sdk,
         provider: 'yookassa',
@@ -118,6 +122,19 @@ class MockBackend {
       purpose: payment.purpose,
       orderId: payment.orderId,
       methodType: methodType,
+      description: payment.description,
+      paidAt: DateTime.now(),
+      createdAt: payment.createdAt,
+      // как сервер с RECEIPTS_DRIVER=fake: списанный получает чек сразу,
+      // удержанный — при списании
+      receipt: placement
+          ? null
+          : PaymentReceipt(
+              status: ReceiptStatus.registered,
+              url:
+                  'https://lknpd.nalog.ru/api/v1/receipt/000000000000/mock-${payment.id}/print',
+              registeredAt: DateTime.now(),
+            ),
     );
     payments[payment.id] = done;
     if (placement && payment.orderId != null) {

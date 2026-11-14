@@ -67,6 +67,7 @@ void main() {
     'vin_report_check',
     'vin_report_purchase',
     'payment',
+    'payments',
     'verification',
     'reviews',
     'public_feed',
@@ -463,6 +464,16 @@ void main() {
       ], () => ApiPaymentRepository(client()).fetchPayment(paymentId));
       expect(payment.status, isNot(PaymentStatus.unknown));
       expect(payment.checkout?.method, CheckoutMethod.sdk);
+    });
+
+    test('payments — платежи с чеками', () async {
+      final page = await serve([
+        'payments',
+      ], () => ApiPaymentRepository(client()).fetchPayments());
+      expect(page.items, hasLength(dataList('payments').length));
+      final receipt = page.items.first.receipt;
+      expect(receipt?.status, ReceiptStatus.registered);
+      expect(receipt?.url, isNotNull);
     });
 
     test('verification', () async {

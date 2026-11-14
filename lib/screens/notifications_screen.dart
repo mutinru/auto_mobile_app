@@ -17,6 +17,7 @@ import '../widgets/api_error.dart';
 import '../widgets/app_ui.dart';
 import '../widgets/load_more.dart';
 import 'order_routes.dart';
+import 'payments_screen.dart';
 
 /// Открыть ленту колокольчиком из шапки раздела. Репозиторий берём из
 /// [NotificationScope] до маршрута, а не в builder: при смене темы builder
@@ -90,7 +91,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       if (mounted) showApiError(context, e);
       return;
     }
-    if (!notification.opensOrder || !mounted) return;
+    if (!mounted) return;
+    if (notification.type.opensPayments) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PaymentsScreen(repository: widget.store.payments),
+        ),
+      );
+      return;
+    }
+    if (!notification.opensOrder) return;
     await openOrderScreen(
       context,
       store: widget.store,
@@ -353,12 +363,15 @@ class _NotificationCard extends StatelessWidget {
     NotificationType.purchaseChanged => Icons.swap_horiz,
     NotificationType.selectionCloseSoon => Icons.hourglass_bottom,
     NotificationType.selectionClosed => Icons.archive_outlined,
+    NotificationType.receiptIssued => Icons.receipt_long_outlined,
+    NotificationType.receiptCancelled => Icons.receipt_long_outlined,
     NotificationType.unknown => Icons.notifications_none,
   };
 
   /// Тон иконки: хорошее — done, ждёт действия — progress, плохое — defect.
   static Color _tone(AppColors c, NotificationType type) => switch (type) {
     NotificationType.executorAssigned ||
+    NotificationType.receiptIssued ||
     NotificationType.reportOpened ||
     NotificationType.orderCompleted ||
     NotificationType.disputeResolved => c.statusDone,

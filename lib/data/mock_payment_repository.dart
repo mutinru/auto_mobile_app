@@ -12,6 +12,16 @@ class MockPaymentRepository implements PaymentRepository {
   final MockBackend backend;
 
   @override
+  Future<PaymentPage> fetchPayments({int page = 1}) async {
+    final shown =
+        backend.payments.values
+            .where((p) => p.holdsMoney || p.status == PaymentStatus.voided)
+            .toList()
+          ..sort((a, b) => b.id.compareTo(a.id));
+    return PaymentPage(items: page == 1 ? shown : const [], hasMore: false);
+  }
+
+  @override
   Future<Payment> fetchPayment(int id) async {
     final payment = backend.payments[id];
     if (payment == null) throw ApiException(404, '{"message":"Не найдено"}');

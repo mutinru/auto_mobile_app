@@ -18,6 +18,7 @@
                 "amount": 299,
                 "refunded_amount": 0,
                 "purpose": "vin_report",
+                "description": "Готовые отчёты по VIN · 100111",
                 "order_id": null,
                 "checkout": {
                     "method": "sdk",
@@ -28,7 +29,8 @@
                 "confirmation_url": null,
                 "payment_method_type": null,
                 "paid_at": null,
-                "created_at": "2026-11-11T09:00:01+00:00"
+                "created_at": "2026-11-11T09:00:01+00:00",
+                "receipt": null
             },
             "inspections": [
                 {

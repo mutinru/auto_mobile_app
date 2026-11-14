@@ -11,6 +11,10 @@ class Payment {
     this.checkout,
     this.confirmationUrl,
     this.methodType,
+    this.description,
+    this.paidAt,
+    this.createdAt,
+    this.receipt,
   });
 
   final int id;
@@ -35,6 +39,22 @@ class Payment {
   /// Способ оплаты, выбранный в форме SDK (bank_card, sbp, …).
   final String? methodType;
 
+  /// За что платёж — подпись в «Платежах» («Размещение подбора Kia Rio»).
+  final String? description;
+
+  /// Когда деньги удержали или списали.
+  final DateTime? paidAt;
+  final DateTime? createdAt;
+
+  /// Чек об оплате — только у списанного платежа; null — чека нет (не
+  /// списан или чеки выдаёт ЮKassa сама).
+  final PaymentReceipt? receipt;
+
+  /// Вернули всё — удержание снято или списанное возвращено.
+  bool get isRefunded =>
+      status == PaymentStatus.voided ||
+      (status == PaymentStatus.paid && refundedAmount >= amount);
+
   bool get isPending => status == PaymentStatus.pending;
 
   /// Деньги у платформы: удержаны (размещение до отчёта) или списаны.
@@ -53,8 +73,61 @@ class Payment {
         : null,
     confirmationUrl: json['confirmation_url'] as String?,
     methodType: json['payment_method_type'] as String?,
+    description: json['description'] as String?,
+    paidAt: _date(json['paid_at']),
+    createdAt: _date(json['created_at']),
+    receipt: json['receipt'] is Map<String, dynamic>
+        ? PaymentReceipt.fromJson(json['receipt'] as Map<String, dynamic>)
+        : null,
   );
 }
+
+DateTime? _date(Object? value) =>
+    value is String ? DateTime.tryParse(value)?.toLocal() : null;
+
+/// Чек об оплате — зеркало `receipt` в PaymentResource. Статус ведёт сервер
+/// (App\Receipts\Receipts): чек самозанятого регистрируется в «Мой налог»
+/// после списания, при возврате аннулируется. Ссылка — страница чека у ФНС,
+/// открывается без входа.
+class PaymentReceipt {
+  const PaymentReceipt({
+    required this.status,
+    this.url,
+    this.registeredAt,
+    this.cancelledAt,
+  });
+
+  final ReceiptStatus status;
+  final String? url;
+  final DateTime? registeredAt;
+  final DateTime? cancelledAt;
+
+  factory PaymentReceipt.fromJson(Map<String, dynamic> json) => PaymentReceipt(
+    status: receiptStatusFromApi(json['status'] as String?),
+    url: json['url'] as String?,
+    registeredAt: _date(json['registered_at']),
+    cancelledAt: _date(json['cancelled_at']),
+  );
+}
+
+/// Статус чека — зеркало констант App\Models\Receipt.
+enum ReceiptStatus {
+  /// Ещё не в ФНС: ждёт регистрации (pending, registering, failed — для
+  /// покупателя одно и то же: «чек оформляется»).
+  issuing,
+  registered,
+
+  /// Деньги вернули — чек аннулирован.
+  cancelled,
+  unknown,
+}
+
+ReceiptStatus receiptStatusFromApi(String? value) => switch (value) {
+  'pending' || 'registering' || 'failed' => ReceiptStatus.issuing,
+  'registered' => ReceiptStatus.registered,
+  'cancelled' => ReceiptStatus.cancelled,
+  _ => ReceiptStatus.unknown,
+};
 
 /// Статус платежа — зеркало констант App\Models\Payment.
 enum PaymentStatus {
